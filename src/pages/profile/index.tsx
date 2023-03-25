@@ -1,10 +1,69 @@
-import { Box } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Card,
+  Container,
+  Flex,
+  Heading,
+  Text,
+} from "@chakra-ui/react";
 import { ReactElement } from "react";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import SidebarLayout from "~/layouts/SidebarLayout";
+import AboutUser from "./About";
 
 export default function Profile() {
-  return <Box></Box>;
+  return (
+    <Flex w="100%" justify="center">
+      <Box
+        w="90%"
+        display={{ base: "block", md: "flex" }}
+        columnGap={15}
+        mt={10}
+      >
+        <Box w={{ base: "100%", md: "30%" }} mb={10}>
+          <Card w="100%" height={{ base: "xs" }} borderRadius="2xl"></Card>
+          <Flex flexDirection="column">
+            <Button colorScheme="blue" mt={5} w="90%" mx="auto">
+              Send message
+            </Button>
+            <Button colorScheme="blue" mt={5} w="90%" mx="auto">
+              Follow
+            </Button>
+          </Flex>
+        </Box>
+        <Box w={{ base: "100%", md: "70%" }}>
+          <AboutUser />
+          <Heading as="h3" size="md" my={5}>
+            Topics
+          </Heading>
+          <Box
+            bg="none"
+            border="2px"
+            borderColor="gray.200"
+            w="100%"
+            h="24"
+            borderRadius="2xl"
+          ></Box>
+          <Heading as="h3" size="md" my={5}>
+            Achievements
+          </Heading>
+          <Card w="100%" h="24" borderRadius="2xl"></Card>
+          <Heading as="h3" size="md" my={5}>
+            Achievements
+          </Heading>
+          <Box
+            bg="none"
+            border="2px"
+            borderColor="gray.200"
+            w="100%"
+            minH="60"
+            borderRadius="2xl"
+          ></Box>
+        </Box>
+      </Box>
+    </Flex>
+  );
 }
 Profile.getLayout = function getLayout(page: ReactElement) {
   return (

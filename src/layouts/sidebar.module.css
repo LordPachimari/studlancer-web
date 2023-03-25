@@ -4,6 +4,22 @@
 
   transition: all 0.2s ease-in-out;
 }
+.sidebar {
+  z-index: 9;
+  left: -500px;
+  position: fixed;
+  overflow-y: scroll;
+  width: 256px;
+  height: 100vh;
+  background: white;
+  box-shadow: 2px 0px 4px 0.5px rgba(72, 72, 72, 0.25);
+  border-right: 1px solid var(--border);
+  transition: all 0.1s ease-in-out;
+  backdrop-filter: blur(4px);
+}
+.show {
+  left: 0;
+}
 
 @media screen and (min-width: 1024px) {
   .adjustChildren {

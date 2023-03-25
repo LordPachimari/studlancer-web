@@ -54,7 +54,6 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
             }
           />
         ) : null}
-        yo
         {children}
       </div>
     </Flex>
