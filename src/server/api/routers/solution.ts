@@ -21,7 +21,7 @@ import {
   UpdateCommandInput,
 } from "@aws-sdk/lib-dynamodb";
 
-import { KeysAndAttributes, Update } from "@aws-sdk/client-dynamodb";
+import { Update } from "@aws-sdk/client-dynamodb";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 

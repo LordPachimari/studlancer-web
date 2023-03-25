@@ -17,7 +17,6 @@ import {
   SolverPartialZod,
   User,
   UserDynamo,
-  PublishedQuestsInput,
 } from "../../../types/main";
 
 import { NativeAttributeValue } from "@aws-sdk/util-dynamodb";
