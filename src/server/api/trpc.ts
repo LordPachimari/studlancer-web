@@ -15,10 +15,18 @@
  * These allow you to access things when processing a request, like the database, the session, etc.
  */
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
-
+import type { User } from "@clerk/nextjs/api";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 /** Replace this with an object if you want to pass things to `createContextInner`. */
 type CreateContextOptions = Record<string, never>;
-
+type TEST_USER = {
+  id: string;
+  name: string;
+  email: string;
+};
+type IUserProps = {
+  user: User | undefined | null;
+};
 /**
  * This helper generates the "internals" for a tRPC context. If you need to use it, you can export
  * it from here.
@@ -29,8 +37,12 @@ type CreateContextOptions = Record<string, never>;
  *
  * @see https://create.t3.gg/en/usage/trpc#-servertrpccontextts
  */
-const createInnerTRPCContext = (_opts: CreateContextOptions) => {
-  return {};
+
+export const createContextInner = async ({ user }: IUserProps) => {
+  return {
+    user,
+    // prisma,
+  };
 };
 
 /**
@@ -39,8 +51,20 @@ const createInnerTRPCContext = (_opts: CreateContextOptions) => {
  *
  * @see https://trpc.io/docs/context
  */
-export const createTRPCContext = (_opts: CreateNextContextOptions) => {
-  return createInnerTRPCContext({});
+
+export const createContext = async (opts: CreateNextContextOptions) => {
+  async function getUser() {
+    // get userId from request
+    const { userId } = getAuth(opts.req);
+    // get full user object
+    const user = userId ? await clerkClient.users.getUser(userId) : null;
+    return user;
+  }
+
+  const user = await getUser();
+  console.log("activated");
+
+  return await createContextInner({ user });
 };
 
 /**
@@ -50,11 +74,11 @@ export const createTRPCContext = (_opts: CreateNextContextOptions) => {
  * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-const t = initTRPC.context<typeof createTRPCContext>().create({
+const t = initTRPC.context<typeof createContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
     return {
@@ -89,4 +113,24 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure;
+const authedOnly = t.middleware(({ next, ctx }) => {
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+  }
+  return next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
+});
+const publicAndAuthed = t.middleware(({ next, ctx }) => {
+  return next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
+});
+
+export const router = t.router;
+export const publicProcedure = t.procedure.use(publicAndAuthed);
+export const protectedProcedure = t.procedure.use(authedOnly);
