@@ -1,0 +1,13 @@
+.childrenContainer {
+  width: 100%;
+  min-height: 100vh;
+
+  transition: all 0.2s ease-in-out;
+}
+
+@media screen and (min-width: 1024px) {
+  .adjustChildren {
+    width: calc(100% - 256px);
+    margin-left: 256px;
+  }
+}

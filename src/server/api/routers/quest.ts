@@ -48,6 +48,7 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { dynamoClient } from "~/constants/dynamoClient";
 import { rocksetClient } from "~/constants/rocksetClient";
+import { reviver } from "~/utils/mapReplacer";
 
 export const questRouter = router({
   publishedQuest: publicProcedure
@@ -239,14 +240,7 @@ export const questRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx;
       const { transactionsString } = input;
-      function reviver(key: string, value: any) {
-        if (typeof value === "object" && value !== null) {
-          if (value.dataType === "Map") {
-            return new Map(value.value);
-          }
-        }
-        return value;
-      }
+
       const transactionMap = JSON.parse(
         transactionsString,
         reviver

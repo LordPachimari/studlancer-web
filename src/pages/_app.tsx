@@ -6,7 +6,7 @@ import "~/styles/globals.css";
 import { ReactElement, ReactNode } from "react";
 import { NextPage } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { ChakraProvider } from "@chakra-ui/react";
+import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode;
@@ -14,14 +14,33 @@ export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
 type AppPropsWithLayout = AppProps & {
   Component: NextPageWithLayout;
 };
+
 const MyApp: AppType = ({
   Component,
   pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
   const getLayout = Component.getLayout ?? ((page) => page);
+  const theme = extendTheme({
+    components: {
+      Drawer: {
+        parts: ["dialog", "header", "body"],
+        variants: {
+          primary: {
+            secondary: {
+              dialog: {
+                maxW: "220px",
+              },
+            },
+          },
+        },
+      },
+    },
+  });
   return (
     <ClerkProvider {...pageProps}>
-      <ChakraProvider>{getLayout(<Component {...pageProps} />)}</ChakraProvider>
+      <ChakraProvider theme={theme}>
+        {getLayout(<Component {...pageProps} />)}
+      </ChakraProvider>
     </ClerkProvider>
   );
 };
