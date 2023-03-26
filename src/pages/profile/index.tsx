@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   Card,
+  Center,
   Container,
   Flex,
   Heading,
@@ -11,6 +12,9 @@ import { ReactElement } from "react";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import SidebarLayout from "~/layouts/SidebarLayout";
 import AboutUser from "./About";
+import Achievements from "./Achiements";
+import UserQuests from "./Quests";
+import UserTopics from "./Topics";
 
 export default function Profile() {
   return (
@@ -19,15 +23,33 @@ export default function Profile() {
         w="90%"
         display={{ base: "block", md: "flex" }}
         columnGap={15}
-        mt={10}
+        mt={16}
       >
         <Box w={{ base: "100%", md: "30%" }} mb={10}>
           <Card w="100%" height={{ base: "xs" }} borderRadius="2xl"></Card>
+          <Center gap={10} mt={2}>
+            <Text color="gray.500" fontWeight="bold">
+              69 followers
+            </Text>
+            <Text color="gray.500" fontWeight="bold">
+              69 following
+            </Text>
+          </Center>
           <Flex flexDirection="column">
-            <Button colorScheme="blue" mt={5} w="90%" mx="auto">
+            <Button
+              colorScheme="blue"
+              mt={5}
+              w={{ base: "90%", md: "40" }}
+              mx="auto"
+            >
               Send message
             </Button>
-            <Button colorScheme="blue" mt={5} w="90%" mx="auto">
+            <Button
+              colorScheme="blue"
+              mt={5}
+              w={{ base: "90%", md: "40" }}
+              mx="auto"
+            >
               Follow
             </Button>
           </Flex>
@@ -37,29 +59,15 @@ export default function Profile() {
           <Heading as="h3" size="md" my={5}>
             Topics
           </Heading>
-          <Box
-            bg="none"
-            border="2px"
-            borderColor="gray.200"
-            w="100%"
-            h="24"
-            borderRadius="2xl"
-          ></Box>
+          <UserTopics />
           <Heading as="h3" size="md" my={5}>
             Achievements
           </Heading>
-          <Card w="100%" h="24" borderRadius="2xl"></Card>
+          <Achievements />
           <Heading as="h3" size="md" my={5}>
-            Achievements
+            Quests
           </Heading>
-          <Box
-            bg="none"
-            border="2px"
-            borderColor="gray.200"
-            w="100%"
-            minH="60"
-            borderRadius="2xl"
-          ></Box>
+          <UserQuests />
         </Box>
       </Box>
     </Flex>

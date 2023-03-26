@@ -55,7 +55,12 @@ export default function Username({
     >
       {(props) => (
         <Form>
-          <Card bg="white" w="md" h="sm" borderRadius="3xl">
+          <Card
+            bg="white"
+            w={{ base: "100%", md: "md" }}
+            h="sm"
+            borderRadius="3xl"
+          >
             <CardHeader display="flex" justifyContent="center">
               <Heading size={{ base: "md" }}>USERNAME</Heading>
             </CardHeader>

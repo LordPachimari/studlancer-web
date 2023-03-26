@@ -1,4 +1,4 @@
-import { Flex, IconButton } from "@chakra-ui/react";
+import { Center, Flex, IconButton, Input } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import styles from "./sidebar.module.css";
@@ -39,6 +39,7 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
         {!showSidebar ? (
           <IconButton
             m={2}
+            position="absolute"
             aria-label="Close Sidebar"
             onClick={() => toggleShowSidebar()}
             icon={
@@ -54,6 +55,15 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
             }
           />
         ) : null}
+        <Center w="100%" bg="white" h="14">
+          <Input
+            size="lg"
+            width="60%"
+            bg="gray.100"
+            height="10"
+            placeholder="Search..."
+          />
+        </Center>
         {children}
       </div>
     </Flex>
