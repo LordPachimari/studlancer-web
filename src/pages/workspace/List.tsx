@@ -9,7 +9,7 @@ import { useAuth } from "@clerk/nextjs";
 import { del, get, update } from "idb-keyval";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ulid } from "ulid";
 import { WorkspaceStore } from "../../zustand/workspace";
 import { storeQuestOrSolution } from "./Actions";
@@ -26,9 +26,20 @@ import {
   Circle,
   Divider,
   Flex,
+  FormControl,
+  FormLabel,
   Heading,
   IconButton,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Text,
+  useDisclosure,
 } from "@chakra-ui/react";
 const List = ({
   showList,
@@ -313,9 +324,7 @@ const List = ({
           </svg>
         </IconButton>
       </Flex>
-      <ListSettings>
-        <TrashComponent trash={trash} />
-      </ListSettings>
+      <ListSettings trash={trash} />
       <Divider />
       <Accordion defaultIndex={[0]} allowMultiple>
         <AccordionItem>
@@ -340,22 +349,24 @@ const List = ({
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4} p="0">
+            {/* {serverWorkspaceList.isLoading
+        ? emptyLists.map((l, i) => <ListComponentSkeleton key={i} />)
+        : !workspaceListState.quests
+        ? null
+        : workspaceListState.quests.map((q) => (
+            <ListComponent
+              type="QUEST"
+              key={q.id}
+              listComponent={q}
+              deleteListComponent={deleteListComponent}
+            />
+          ))} */}
             <Button
               justifyContent="flex-start"
               pl="2"
               borderRadius={0}
               bg="none"
-              leftIcon={<Circle size="24px" bg="tomato" color="white"></Circle>}
-              w="100%"
-              color="black"
-            >
-              title
-            </Button>
-            <Button
-              justifyContent="flex-start"
-              pl="2"
-              borderRadius={0}
-              bg="none"
+              onClick={() => createQuestOrSolutionHandler({ type: "QUEST" })}
               leftIcon={
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -403,17 +414,19 @@ const List = ({
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4} p="0">
-            <Button
-              justifyContent="flex-start"
-              pl="2"
-              borderRadius={0}
-              bg="none"
-              leftIcon={<Circle size="24px" bg="tomato" color="white"></Circle>}
-              w="100%"
-              color="black"
-            >
-              title
-            </Button>
+            {/* {serverWorkspaceList.isLoading
+        ? emptyLists.map((l, i) => <ListComponentSkeleton key={i} />)
+        : !workspaceListState.solutions
+        ? null
+        : workspaceListState.solutions.map((s) => (
+            <ListComponent
+              type="SOLUTION"
+              key={s.id}
+              listComponent={s}
+              deleteListComponent={deleteListComponent}
+            />
+          ))} */}
+
             <Button
               justifyContent="flex-start"
               pl="2"
@@ -436,6 +449,7 @@ const List = ({
               }
               w="100%"
               color="gray.500"
+              onClick={() => createQuestOrSolutionHandler({ type: "SOLUTION" })}
             >
               Add Solution
             </Button>
@@ -446,7 +460,17 @@ const List = ({
   );
 };
 
-const ListSettings = ({ children }: { children: React.ReactNode }) => {
+const ListSettings = ({ trash }: { trash: WorkspaceList }) => {
+  const {
+    isOpen: isOpenSearchModal,
+    onOpen: onOpenSearchModal,
+    onClose: onCloseSearchModal,
+  } = useDisclosure();
+  const {
+    isOpen: isOpenTrashModal,
+    onOpen: onOpenTrashModal,
+    onClose: onCloseTrashModal,
+  } = useDisclosure();
   return (
     <>
       <Button
@@ -470,9 +494,15 @@ const ListSettings = ({ children }: { children: React.ReactNode }) => {
         }
         w="100%"
         color="gray.500"
+        onClick={onOpenSearchModal}
       >
         Search
       </Button>
+      <SearchComponent
+        onClose={onCloseSearchModal}
+        isOpen={isOpenSearchModal}
+        onOpen={onOpenSearchModal}
+      />
       <Button
         justifyContent="flex-start"
         pl="2"
@@ -505,6 +535,7 @@ const ListSettings = ({ children }: { children: React.ReactNode }) => {
         pl="2"
         borderRadius={0}
         bg="none"
+        onClick={onOpenTrashModal}
         leftIcon={
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -524,62 +555,121 @@ const ListSettings = ({ children }: { children: React.ReactNode }) => {
       >
         Trash
       </Button>
+      <TrashComponent
+        isOpen={isOpenTrashModal}
+        onOpen={onOpenTrashModal}
+        onClose={onCloseTrashModal}
+        trash={trash}
+      />
     </>
   );
 };
-const TrashComponent = ({ trash }: { trash: WorkspaceList }) => {
+const SearchComponent = ({
+  isOpen,
+  onClose,
+  onOpen,
+}: {
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}) => {
+  const initialRef = React.useRef(null);
   return (
-    <div className={styles.trashContainer}>
-      <div className={styles.trashListComponent}>
-        {trash &&
-          trash.quests.map((c, i) => (
-            <div key={i} className={styles.listComponent}>
-              <div className={styles.listComponentContent}>
-                <div className={styles.iconContainer}>
-                  <div>{!c.topic ? "" : c.topic[0]}</div>
-                </div>
-                {c.title || "Untitled"}
-              </div>
-              <div className="centerDiv">
-                <button className={styles.listButton}></button>
-                <button className={styles.listButton}>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    width="24"
-                    height="24"
-                  >
-                    <path fill="none" d="M0 0h24v24H0z" />
-                    <path
-                      d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm0-9.414l2.828-2.829 1.415 1.415L13.414 12l2.829 2.828-1.415 1.415L12 13.414l-2.828 2.829-1.415-1.415L10.586 12 7.757 9.172l1.415-1.415L12 10.586z"
-                      fill="var(--red)"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        <br />
+    <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Search</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <FormControl>
+            <Input
+              ref={initialRef}
+              placeholder="Search for quests and solutions..."
+            />
+          </FormControl>
+        </ModalBody>
 
-        {trash &&
-          trash.solutions.map((c, i) => (
-            <div key={i} className={styles.listComponent}>
-              <div className={styles.listComponentContent}>
-                <div className={styles.iconContainer}>
-                  <div className={styles.topicIcon}>
-                    {/* {!c.topic ? "" : c.topic[0]} */}
-                  </div>
-                </div>
+        <ModalFooter>
+          <Button colorScheme="blue" mr={3}>
+            Search
+          </Button>
+          <Button onClick={onClose}>Cancel</Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
+const TrashComponent = ({
+  trash,
+  onClose,
+  onOpen,
+  isOpen,
+}: {
+  trash: WorkspaceList;
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}) => {
+  const initialRef = React.useRef(null);
+  return (
+    <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Search</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <FormControl>
+            <Input
+              ref={initialRef}
+              placeholder="Search for quests and solutions..."
+            />
+          </FormControl>
+
+          {trash &&
+            trash.quests.map((c, i) => (
+              <Button
+                justifyContent="flex-start"
+                pl="2"
+                borderRadius={0}
+                bg="none"
+                leftIcon={
+                  <Circle size="24px" bg="tomato" color="white"></Circle>
+                }
+                w="100%"
+                color="black"
+                key={i}
+              >
                 {c.title || "Untitled"}
-              </div>
-              <div className="centerDiv">
-                <button className={styles.trashButton}></button>
-                <button className={styles.trashButton}></button>
-              </div>
-            </div>
-          ))}
-      </div>
-    </div>
+              </Button>
+            ))}
+
+          {trash &&
+            trash.solutions.map((c, i) => (
+              <Button
+                justifyContent="flex-start"
+                pl="2"
+                borderRadius={0}
+                bg="none"
+                leftIcon={
+                  <Circle size="24px" bg="tomato" color="white"></Circle>
+                }
+                w="100%"
+                color="black"
+                key={i}
+              >
+                {c.title || "Untitled"}
+              </Button>
+            ))}
+        </ModalBody>
+
+        <ModalFooter>
+          <Button colorScheme="blue" mr={3}>
+            Search
+          </Button>
+          <Button onClick={onClose}>Cancel</Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 const ListComponent = ({
@@ -595,23 +685,43 @@ const ListComponent = ({
   if (type === "QUEST") {
     const questListComponent = listComponent as QuestListComponent;
     return (
-      <div className={styles.listComponent}>
-        <Link
-          className={styles.listComponentContent}
-          href={`/workspace/quests/${listComponent.id}`}
-        ></Link>
-      </div>
+      <Link
+        className={styles.listComponentContent}
+        href={`/workspace/quests/${listComponent.id}`}
+      >
+        <Button
+          justifyContent="flex-start"
+          pl="2"
+          borderRadius={0}
+          bg="none"
+          leftIcon={<Circle size="24px" bg="tomato" color="white"></Circle>}
+          w="100%"
+          color="black"
+        >
+          title
+        </Button>
+      </Link>
     );
   }
   if (type === "SOLUTION") {
     return (
-      <div className={styles.listComponent}>
-        <Link
-          className={styles.listComponentContent}
-          href={`/workspace/solutions/${listComponent.id}`}
-          key={listComponent.id}
-        ></Link>
-      </div>
+      <Link
+        className={styles.listComponentContent}
+        href={`/workspace/solutions/${listComponent.id}`}
+        key={listComponent.id}
+      >
+        <Button
+          justifyContent="flex-start"
+          pl="2"
+          borderRadius={0}
+          bg="none"
+          leftIcon={<Circle size="24px" bg="tomato" color="white"></Circle>}
+          w="100%"
+          color="black"
+        >
+          title
+        </Button>
+      </Link>
     );
   }
   return <></>;

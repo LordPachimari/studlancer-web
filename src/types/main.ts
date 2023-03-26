@@ -14,6 +14,7 @@ const questAttributes = [
   "slots",
   "deadline",
   "content",
+  "lastUpdated"
 ] as const;
 export const Topics = [
   "MARKETING",
