@@ -97,16 +97,17 @@
 }
 .bubbleMenuButton {
   border: none;
-  background: red;
   cursor: pointer;
+
+  min-width: 40px;
 }
 .bubbleMenuButton:hover {
-  border-right: 1px solid black;
-  border-left: 1px solid black;
+  border-right: 1px solid var(--gray);
+  border-left: 1px solid var(--gray);
 }
 .active {
-  border-right: 1px solid black;
-  border-left: 1px solid black;
+  border-right: 1px solid var(--gray);
+  border-left: 1px solid var(--gray);
 
   background: #e9e8e8;
 }
