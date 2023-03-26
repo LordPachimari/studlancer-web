@@ -1,0 +1,29 @@
+.listContainer {
+  background: white;
+  left: -560px;
+  width: 256px;
+  height: calc(100vh - 56px);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+
+  z-index: 5; /* Stay on top */
+  transition: all 0.1s ease-in-out;
+  border: 1px solid #cbd5e0;
+  border-top: none;
+}
+.showList {
+  left: 0;
+}
+.workspaceContainer {
+  overflow-y: scroll;
+  height: calc(100vh - 56px);
+  width: 100%;
+  transition: all 0.1s ease-in-out;
+}
+@media screen and (min-width: 1024px) {
+  .adjust {
+    width: calc(100% - 256px);
+    margin-left: 256px;
+  }
+}

@@ -95,7 +95,7 @@ const QuestPartialZod = z
     publishedAt: z.string(),
     inTrash: z.boolean(),
     deadline: z.string(),
-    version: z.number(),
+    lastUpdated: z.string(),
 
     type: z.enum(ObjectTypes),
   })
@@ -108,7 +108,7 @@ export const QuestZod = QuestPartialZod.required({
   createdAt: true,
   creatorId: true,
   inTrash: true,
-  version: true,
+  lastUpdated: true,
 
   type: true,
 });
@@ -123,7 +123,7 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   solverCount: z.number(),
   allowUnpublish: z.boolean(),
 }).omit({
-  version: true,
+  lastUpdated: true,
   inTrash: true,
   createdAt: true,
 });
@@ -141,11 +141,11 @@ export interface PublishedQuestDynamo extends PublishedQuest {
 
 export type QuestListComponent = Pick<
   Quest,
-  "id" | "title" | "topic" | "inTrash" | "version" | "type"
+  "id" | "title" | "topic" | "inTrash" | "lastUpdated" | "type"
 >;
 export type Versions = {
-  server: number;
-  local: number;
+  server: string;
+  local: string;
 };
 export const SolverZod = z.object({
   id: z.string(),
@@ -214,7 +214,7 @@ const SolutionPartialZod = z
     publishedAt: z.string(),
     questId: z.string(),
     title: z.string(),
-    version: z.number(),
+    lastUpdated: z.string(),
     views: z.number(),
 
     questCreatorId: z.string(),
@@ -227,14 +227,14 @@ export const SolutionZod = SolutionPartialZod.required({
   creatorId: true,
   published: true,
   inTrash: true,
-  version: true,
+  lastUpdated: true,
   createdAt: true,
   type: true,
 });
 export type Solution = z.infer<typeof SolutionZod>;
 export const PublishedSolutionZod = SolutionPartialZod.omit({
   inTrash: true,
-  version: true,
+  lastUpdated: true,
   createdAt: true,
 })
   .required()
@@ -250,7 +250,7 @@ export const SolutionDynamoZod = SolutionZod.extend({
 export type SolutionDynamo = z.infer<typeof SolutionDynamoZod>;
 export type SolutionListComponent = Pick<
   Solution,
-  "id" | "title" | "version" | "inTrash" | "type"
+  "id" | "title" | "lastUpdated" | "inTrash" | "type"
 >;
 export type WorkspaceList = {
   quests: QuestListComponent[];

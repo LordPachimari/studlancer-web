@@ -1,4 +1,13 @@
-import { Center, Flex, IconButton, Input } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Center,
+  Flex,
+  IconButton,
+  Input,
+  InputGroup,
+  InputRightElement,
+} from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import styles from "./sidebar.module.css";
@@ -50,12 +59,21 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
                 height="24"
               >
                 <path fill="none" d="M0 0h24v24H0z" />
-                <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z" />
+                <path
+                  d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"
+                  fill="#3182CE"
+                />
               </svg>
             }
           />
         ) : null}
-        <Center w="100%" bg="white" h="14">
+        <Center
+          w="100%"
+          bg="white"
+          h="14"
+          borderBottomWidth="1px"
+          borderColor="gray.300"
+        >
           <Input
             size="lg"
             width="60%"

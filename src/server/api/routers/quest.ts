@@ -215,7 +215,7 @@ export const questRouter = router({
         creatorId: user.id,
         inTrash: false,
         published: false,
-        version: 1,
+        lastUpdated: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         type: "QUEST",
       };
@@ -260,15 +260,11 @@ export const questRouter = router({
         const attributes = value.transactions.map((t) => {
           return `${t.attribute} = :${t.attribute}`;
         });
-        const UpdateExpression = `set ${attributes.join(
-          ", "
-        )},   version = version + :inc`;
+        const UpdateExpression = `set ${attributes.join(", ")}`;
         const ExpressionAttributeValues: Record<
           string,
           string | number | string[]
-        > = {
-          ":inc": 1,
-        };
+        > = {};
         value.transactions.forEach((t) => {
           ExpressionAttributeValues[`:${t.attribute}`] = t.value;
         });
@@ -392,12 +388,12 @@ export const questRouter = router({
                     "#published =:published AND #creatorId =:creatorId",
 
                   UpdateExpression:
-                    "SET #published = :value, #version = #version + :inc, #publishedAt = :publishedAt, #allowUnpublish = :true",
+                    "SET #published = :value, #lastUpdated = :time, #publishedAt = :publishedAt, #allowUnpublish = :true",
 
                   ExpressionAttributeNames: {
                     "#published": "published",
-                    "#version": "version",
                     "#publishedAt": "publishedAt",
+                    "#lastUpdated": "lastUpdated",
 
                     "#creatorId": "creatorId",
                     "#allowUnpublish": "allowUnpublish",
@@ -405,7 +401,7 @@ export const questRouter = router({
                   ExpressionAttributeValues: {
                     ":published": false,
                     ":value": true,
-                    ":inc": 1,
+                    ":time": new Date().toISOString(),
                     ":publishedAt": publishedQuest.publishedAt,
                     ":creatorId": user.id,
                     ":true": true,
@@ -453,19 +449,18 @@ export const questRouter = router({
               ConditionExpression:
                 "#creatorId =:creatorId AND #allowUnpublish = :true",
 
-              UpdateExpression:
-                "SET #published = :value, #version = #version + :inc",
+              UpdateExpression: "SET #published = :value, #lastUpdated = :time",
 
               ExpressionAttributeNames: {
                 "#allowUnpublish": "allowUnpublish",
                 "#published": "published",
-                "#version": "version",
+                "#lastUpdated": "lastUpdated",
                 "#creatorId": "creatorId",
               },
               ExpressionAttributeValues: {
                 ":true": true,
                 ":value": false,
-                ":inc": 1,
+                ":time": new Date().toISOString(),
                 ":creatorId": user.id,
               },
             },

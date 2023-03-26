@@ -16,7 +16,7 @@ export default function Home() {
           <QuestComponent />
           <QuestComponentSkeleton />
         </Flex>
-        <Box
+        <Center
           w={{ lg: "30%" }}
           display={{ base: "none", lg: "flex" }}
           flexDirection="column"
@@ -25,7 +25,7 @@ export default function Home() {
         >
           <Leaderboard />
           <GeneralChat />
-        </Box>
+        </Center>
 
         <Box></Box>
       </Flex>

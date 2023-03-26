@@ -153,7 +153,7 @@ export const solutionRouter = router({
         creatorId: user.id,
         inTrash: false,
         published: false,
-        version: 1,
+        lastUpdated:new Date().toISOString(),
         createdAt: new Date().toISOString(),
         type: "SOLUTION",
 
@@ -210,12 +210,12 @@ export const solutionRouter = router({
         });
         const UpdateExpression = `set ${attributes.join(
           ", "
-        )},   version = version + :inc`;
+        )}`;
         const ExpressionAttributeValues: Record<
           string,
           string | number | string[]
         > = {
-          ":inc": 1,
+         
         };
         value.transactions.forEach((t) => {
           ExpressionAttributeValues[`:${t.attribute}`] = t.value;
@@ -309,18 +309,17 @@ export const solutionRouter = router({
                     "#published =:published AND #creatorId =:creatorId",
 
                   UpdateExpression:
-                    "SET #published = :value, #version = #version + :inc, #publishedAt = :publishedAt",
+                    "SET #published = :value, #lastUpdated = :time, #publishedAt = :publishedAt",
 
                   ExpressionAttributeNames: {
                     "#published": "published",
-                    "#version": "version",
                     "#publishedAt": "publishedAt",
                     "#creatorId": "creatorId",
                   },
                   ExpressionAttributeValues: {
                     ":published": false,
                     ":value": true,
-                    ":inc": 0.01,
+                    ":lastUpdated": new Date().toISOString(),
                     ":publishedAt": publishedSolution.publishedAt,
                     ":creatorId": user.id,
                   },
@@ -379,11 +378,11 @@ export const solutionRouter = router({
               ConditionExpression: "#creatorId =:creatorId",
 
               UpdateExpression:
-                "SET #published = :value, #version = #version + :inc",
+                "SET #published = :value, #lastUpdated =  :time",
 
               ExpressionAttributeNames: {
                 "#published": "published",
-                "#version": "version",
+                "#lastUpdated": new Date().toISOString(),
                 "#creatorId": "creatorId",
               },
               ExpressionAttributeValues: {

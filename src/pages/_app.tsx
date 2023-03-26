@@ -20,27 +20,10 @@ const MyApp: AppType = ({
   pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
   const getLayout = Component.getLayout ?? ((page) => page);
-  const theme = extendTheme({
-    components: {
-      Drawer: {
-        parts: ["dialog", "header", "body"],
-        variants: {
-          primary: {
-            secondary: {
-              dialog: {
-                maxW: "220px",
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+
   return (
     <ClerkProvider {...pageProps}>
-      <ChakraProvider theme={theme}>
-        {getLayout(<Component {...pageProps} />)}
-      </ChakraProvider>
+      <ChakraProvider>{getLayout(<Component {...pageProps} />)}</ChakraProvider>
     </ClerkProvider>
   );
 };

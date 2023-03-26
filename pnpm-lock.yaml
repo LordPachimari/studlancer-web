@@ -31,6 +31,7 @@ specifiers:
   eslint-config-next: ^13.2.1
   formik: ^2.2.9
   framer-motion: ^10.9.0
+  idb-keyval: ^6.2.0
   immer: ^9.0.21
   jest: ^29.5.0
   next: ^13.2.1
@@ -46,6 +47,7 @@ specifiers:
   react-dom: 18.2.0
   superjson: 1.9.1
   typescript: ^4.9.5
+  ulid: ^2.3.0
   zod: ^3.20.6
   zustand: ^4.3.6
 
@@ -71,6 +73,7 @@ dependencies:
   dayjs: 1.11.7
   formik: 2.2.9_react@18.2.0
   framer-motion: 10.9.0_biqbaboplfbrettd7655fr4n2y
+  idb-keyval: 6.2.0
   immer: 9.0.21
   next: 13.2.4_biqbaboplfbrettd7655fr4n2y
   prosemirror-commands: 1.5.1
@@ -84,6 +87,7 @@ dependencies:
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
   superjson: 1.9.1
+  ulid: 2.3.0
   zod: 3.21.4
   zustand: 4.3.6_immer@9.0.21+react@18.2.0
 
@@ -5499,6 +5503,12 @@ packages:
     engines: {node: '>=10.17.0'}
     dev: true
 
+  /idb-keyval/6.2.0:
+    resolution: {integrity: sha512-uw+MIyQn2jl3+hroD7hF8J7PUviBU7BPKWw4f/ISf32D4LoGu98yHjrzWWJDASu9QNrX10tCJqk9YY0ClWm8Ng==}
+    dependencies:
+      safari-14-idb-fix: 3.0.0
+    dev: false
+
   /ignore/5.2.4:
     resolution: {integrity: sha512-MAb38BcSbH0eHNBxn7ql2NH/kX33OkB3lZ1BNdh7ENeRChHTYsTvWrMubiIAMNS2llXEEgZ1MUOBtXChP3kaFQ==}
     engines: {node: '>= 4'}
@@ -7197,6 +7207,10 @@ packages:
       queue-microtask: 1.2.3
     dev: true
 
+  /safari-14-idb-fix/3.0.0:
+    resolution: {integrity: sha512-eBNFLob4PMq8JA1dGyFn6G97q3/WzNtFK4RnzT1fnLq+9RyrGknzYiM/9B12MnKAxuj1IXr7UKYtTNtjyKMBog==}
+    dev: false
+
   /safe-regex-test/1.0.0:
     resolution: {integrity: sha512-JBUUzyOgEwXQY1NuPtvcj/qcBDbDmEvWufhlnXZIm75DEHp+afM1r1ujJpJsV/gSM4t59tpDyPi1sd6ZaPFfsA==}
     dependencies:
@@ -7639,6 +7653,11 @@ packages:
 
   /uc.micro/1.0.6:
     resolution: {integrity: sha512-8Y75pvTYkLJW2hWQHXxoqRgV7qb9B+9vFEtidML+7koHUFapnVJAZ6cKs+Qjz5Aw3aZWHMC6u0wJE3At+nSGwA==}
+    dev: false
+
+  /ulid/2.3.0:
+    resolution: {integrity: sha512-keqHubrlpvT6G2wH0OEfSW4mquYRcbe/J8NMmveoQOjUqmo+hXtO+ORCpWhdbZ7k72UtY61BL7haGxW6enBnjw==}
+    hasBin: true
     dev: false
 
   /unbox-primitive/1.0.2:
