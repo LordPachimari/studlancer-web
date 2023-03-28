@@ -1,14 +1,12 @@
 import styles from "../../workspace.module.css";
-// import Editor from "./Editor";
+import { Box, Card, Center, Spinner } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { ReactElement } from "react";
+import { QuestComponentSkeleton } from "~/components/QuestComponent";
 import GlobalLayout from "../../../../layouts/GlobalLayout";
 import SidebarLayout from "../../../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../../../layouts/WorkspaceLayout";
-import { NextPageWithLayout } from "../../../_app";
-import { Box, Card, Center, Flex, Spinner } from "@chakra-ui/react";
-import { QuestComponentSkeleton } from "~/components/QuestComponent";
 const Editor = dynamic(() => import("./SolutionEditor"), {
   ssr: false,
 });
