@@ -4,8 +4,8 @@ import { ReactElement, useState } from "react";
 import { z } from "zod";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import WelcomeLayout from "~/layouts/WelcomeLayout";
-import Character from "./Character";
-import Username from "./Username";
+import Character from "../../components/create-user/Character";
+import Username from "../../components/create-user/Username";
 
 export default function CreateUser() {
   const [componentName, setComponentName] = useState<"USERNAME" | "CHARACTER">(

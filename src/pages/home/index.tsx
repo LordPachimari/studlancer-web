@@ -5,8 +5,8 @@ import QuestComponent, {
 } from "~/components/QuestComponent";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import SidebarLayout from "~/layouts/SidebarLayout";
-import GeneralChat from "./Chat";
-import Leaderboard from "./Leaderboard";
+import GeneralChat from "../../components/home/Chat";
+import Leaderboard from "../../components/home/Leaderboard";
 
 export default function Home() {
   return (
