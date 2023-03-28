@@ -348,6 +348,9 @@ const QuestAttributes = ({
     lastTransaction: UpdateTransaction;
   }) => void;
 }) => {
+  if (!quest) {
+    return;
+  }
   const updateQuestAttributesListAttribute = WorkspaceStore(
     (state) => state.updateQuestState
   );
@@ -455,10 +458,6 @@ const QuestAttributes = ({
       },
     });
   };
-
-  if (quest === null) {
-    return <div>No data</div>;
-  }
 
   return (
     <Flex flexDirection="column" gap={2}>
