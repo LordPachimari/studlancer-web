@@ -348,8 +348,6 @@ const QuestAttributes = ({
     lastTransaction: UpdateTransaction;
   }) => void;
 }) => {
-  const { id } = quest;
-
   const updateQuestAttributesListAttribute = WorkspaceStore(
     (state) => state.updateQuestState
   );
@@ -359,12 +357,12 @@ const QuestAttributes = ({
   const handleTitleChange = (e: FormEvent<HTMLDivElement>) => {
     console.log("title update");
     addTransaction({
-      id,
+      id: quest.id,
       attribute: "title",
       value: e.currentTarget.textContent as string,
     });
     updateQuestAttributesListAttribute({
-      id,
+      id: quest.id,
       attribute: "title",
       value: e.currentTarget.textContent as string,
     });
@@ -372,7 +370,7 @@ const QuestAttributes = ({
     updateQuestAttributesHandler({
       transactionQueue,
       lastTransaction: {
-        id,
+        id: quest.id,
         attribute: "title",
         value: e.currentTarget.textContent as string,
       },
@@ -382,19 +380,19 @@ const QuestAttributes = ({
   const handleTopicChange = (e: ChangeEvent<HTMLSelectElement>) => {
     console.log("event, ", e);
     addTransaction({
-      id,
+      id: quest.id,
       attribute: "topic",
       value: e.target.value,
     });
     updateQuestAttributesListAttribute({
-      id,
+      id: quest.id,
       attribute: "topic",
       value: e.target.value,
     });
     updateQuestAttributesHandler({
       transactionQueue,
       lastTransaction: {
-        id,
+        id: quest.id,
         attribute: "topic",
         value: e.target.value,
       },
@@ -413,14 +411,14 @@ const QuestAttributes = ({
     });
     if (subtopicValues.length > 0) {
       addTransaction({
-        id,
+        id: quest.id,
         attribute: "subtopic",
         value: subtopicValues,
       });
       updateQuestAttributesHandler({
         transactionQueue,
         lastTransaction: {
-          id,
+          id: quest.id,
           attribute: "subtopic",
           value: subtopicValues,
         },
@@ -429,14 +427,14 @@ const QuestAttributes = ({
   };
   const handleRewardChange = (e: ChangeEvent<HTMLInputElement>) => {
     addTransaction({
-      id,
+      id: quest.id,
       attribute: "reward",
       value: e.currentTarget.valueAsNumber,
     });
     updateQuestAttributesHandler({
       transactionQueue,
       lastTransaction: {
-        id,
+        id: quest.id,
         attribute: "reward",
         value: e.currentTarget.valueAsNumber,
       },
@@ -444,14 +442,14 @@ const QuestAttributes = ({
   };
   const handleSlotsChange = (e: ChangeEvent<HTMLInputElement>) => {
     addTransaction({
-      id,
+      id: quest.id,
       attribute: "slots",
       value: e.currentTarget.valueAsNumber,
     });
     updateQuestAttributesHandler({
       transactionQueue,
       lastTransaction: {
-        id,
+        id: quest.id,
         attribute: "slots",
         value: e.currentTarget.valueAsNumber,
       },
