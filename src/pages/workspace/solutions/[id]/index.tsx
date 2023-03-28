@@ -1,4 +1,3 @@
-import styles from "../../workspace.module.css";
 import { Box, Card, Center, Spinner } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
@@ -7,9 +6,12 @@ import { QuestComponentSkeleton } from "~/components/QuestComponent";
 import GlobalLayout from "../../../../layouts/GlobalLayout";
 import SidebarLayout from "../../../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../../../layouts/WorkspaceLayout";
-const Editor = dynamic(() => import("./SolutionEditor"), {
-  ssr: false,
-});
+const Editor = dynamic(
+  () => import("../../../../components/workspace/SolutionEditor"),
+  {
+    ssr: false,
+  }
+);
 
 // import QuestAttributes from "./questAttributes";
 
@@ -55,8 +57,8 @@ const TargetQuest = () => {
     return <Box></Box>;
   }
   return (
-    <div className={`${styles.targetQuest} ${styles.targetQuestFilled}`}>
+    <Box>
       {isLoading ? <QuestComponentSkeleton includeContent={false} /> : <></>}
-    </div>
+    </Box>
   );
 };

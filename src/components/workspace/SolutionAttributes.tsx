@@ -2,10 +2,10 @@ import {
   Solution,
   TransactionQueue,
   UpdateTransaction,
-} from "../../../../types/main";
+} from "../../types/main";
 import { FormEvent, KeyboardEvent, useRef } from "react";
 
-import { WorkspaceStore } from "../../../../zustand/workspace";
+import { WorkspaceStore } from "../../zustand/workspace";
 import styles from "../../workspace.module.css";
 import { Flex, Skeleton } from "@chakra-ui/react";
 const SolutionAttributes = ({

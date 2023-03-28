@@ -7,8 +7,8 @@ import {
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { ChangeEvent, useCallback, useRef, useState } from "react";
-import FileExtension from "../../components/Tiptap/FileExtension";
-import ImageExtension from "../../components/Tiptap/ImageExtension";
+import FileExtension from "../Tiptap/FileExtension";
+import ImageExtension from "../Tiptap/ImageExtension";
 import { WorkspaceStore } from "../../zustand/workspace";
 import styles from "./workspace.module.css";
 import { Box, SkeletonText } from "@chakra-ui/react";

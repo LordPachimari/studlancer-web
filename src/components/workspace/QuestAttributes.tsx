@@ -4,7 +4,7 @@ import {
   TopicsType,
   TransactionQueue,
   UpdateTransaction,
-} from "../../../../types/main";
+} from "../../types/main";
 
 import {
   Flex,
@@ -15,8 +15,8 @@ import {
   Skeleton,
   Text,
 } from "@chakra-ui/react";
-import { WorkspaceStore } from "../../../../zustand/workspace";
-import styles from "../../workspace.module.css";
+import { WorkspaceStore } from "../../zustand/workspace";
+import styles from "./workspace.module.css";
 
 const Title = ({
   title,

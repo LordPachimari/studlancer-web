@@ -8,8 +8,8 @@ import { useMemo } from "react";
 
 import { generateHTML } from "@tiptap/html";
 import Image, { ImageLoaderProps } from "next/image";
-import FileExtension from "../../components/Tiptap/FileExtension";
-import ImageExtension from "../../components/Tiptap/ImageExtension";
+import FileExtension from "../Tiptap/FileExtension";
+import ImageExtension from "../Tiptap/ImageExtension";
 
 import styles from "./workspace.module.css";
 import { Badge, Box, Flex, Heading, Text } from "@chakra-ui/react";

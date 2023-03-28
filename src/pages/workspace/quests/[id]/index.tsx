@@ -7,9 +7,12 @@ import GlobalLayout from "../../../../layouts/GlobalLayout";
 import SidebarLayout from "../../../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../../../layouts/WorkspaceLayout";
 import { NextPageWithLayout } from "../../../_app";
-const Editor = dynamic(() => import("./QuestEditor"), {
-  ssr: false,
-});
+const Editor = dynamic(
+  () => import("../../../../components/workspace/QuestEditor"),
+  {
+    ssr: false,
+  }
+);
 
 // import QuestAttributes from "./questAttributes";
 

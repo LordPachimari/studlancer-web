@@ -6,10 +6,10 @@ import {
   TransactionQueue,
   UpdateTransaction,
   Versions,
-} from "../../../../types/main";
+} from "../../types/main";
 import { update } from "idb-keyval";
 
-import Publish from "../../Publish";
+import Publish from "./Publish";
 
 import debounce from "lodash.debounce";
 // import TiptapEditor from "../../TiptapEditor";
@@ -22,7 +22,7 @@ import { WorkspaceStore } from "~/zustand/workspace";
 import { mapReplacer } from "~/utils/mapReplacer";
 import { Box, SkeletonText, useDisclosure } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
-import TiptapEditor from "../../TiptapEditor";
+import TiptapEditor from "./TiptapEditor";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(

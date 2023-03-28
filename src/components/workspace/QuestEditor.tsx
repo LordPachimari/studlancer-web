@@ -7,15 +7,15 @@ import {
   TransactionQueue,
   UpdateTransaction,
   Versions,
-} from "../../../../types/main";
+} from "../../types/main";
 import { update } from "idb-keyval";
 
-import Publish from "../../Publish";
+import Publish from "./Publish";
 
 import debounce from "lodash.debounce";
-import { mapReplacer } from "../../../../utils/mapReplacer";
-import { WorkspaceStore } from "../../../../zustand/workspace";
-import TiptapEditor from "../../TiptapEditor";
+import { mapReplacer } from "../../utils/mapReplacer";
+import { WorkspaceStore } from "../../zustand/workspace";
+import TiptapEditor from "./TiptapEditor";
 
 import { trpc } from "~/utils/api";
 import {

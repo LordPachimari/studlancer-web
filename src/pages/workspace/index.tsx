@@ -1,5 +1,5 @@
 import { ReactElement } from "react";
-import Actions from "./Actions";
+import Actions from "../../components/workspace/Actions";
 import GlobalLayout from "../../layouts/GlobalLayout";
 import SidebarLayout from "../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../layouts/WorkspaceLayout";

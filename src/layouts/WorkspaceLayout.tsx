@@ -1,4 +1,4 @@
-import styles from "../pages/workspace/workspace.module.css";
+import styles from "../components/workspace/workspace.module.css";
 
 import React, { useState } from "react";
 
@@ -6,7 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
 import { GeneralStore } from "../zustand/general";
 import { Flex, IconButton } from "@chakra-ui/react";
-import List from "~/pages/workspace/List";
+import List from "~/components/workspace/List";
 
 const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
   const [showList, toggleShowList] = useState(true);
