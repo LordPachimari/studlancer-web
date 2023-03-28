@@ -6,7 +6,7 @@ import {
 import { FormEvent, KeyboardEvent, useRef } from "react";
 
 import { WorkspaceStore } from "../../zustand/workspace";
-import styles from "../../workspace.module.css";
+import styles from "./workspace.module.css";
 import { Flex, Skeleton } from "@chakra-ui/react";
 const SolutionAttributes = ({
   solution,
