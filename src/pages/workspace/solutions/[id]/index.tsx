@@ -7,23 +7,15 @@ import GlobalLayout from "../../../../layouts/GlobalLayout";
 import SidebarLayout from "../../../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../../../layouts/WorkspaceLayout";
 import { NextPageWithLayout } from "../../../_app";
-import {
-  Box,
-  Button,
-  Card,
-  Center,
-  Flex,
-  Spinner,
-  useDisclosure,
-} from "@chakra-ui/react";
-import Publish from "../../Publish";
-const Editor = dynamic(() => import("./QuestEditor"), {
+import { Box, Card, Center, Flex, Spinner } from "@chakra-ui/react";
+import { QuestComponentSkeleton } from "~/components/QuestComponent";
+const Editor = dynamic(() => import("./SolutionEditor"), {
   ssr: false,
 });
 
 // import QuestAttributes from "./questAttributes";
 
-const WorkspaceQuest: NextPageWithLayout = () =>
+const WorkspaceSolution: NextPageWithLayout = () =>
   // { params }: { params: { id: string } }
   {
     const router = useRouter();
@@ -42,14 +34,14 @@ const WorkspaceQuest: NextPageWithLayout = () =>
     }
 
     return (
-      <Center mt={10} flexDirection="column">
-        <Card w="85%" bg="white" p={5} maxW="2xl" borderRadius="2xl">
+      <Center mt={10}>
+        <Card w="85%" bg="white" p={5}>
           <Editor id={id} />
         </Card>
       </Center>
     );
   };
-WorkspaceQuest.getLayout = function getLayout(page: ReactElement) {
+WorkspaceSolution.getLayout = function getLayout(page: ReactElement) {
   return (
     <GlobalLayout>
       <SidebarLayout>
@@ -59,4 +51,15 @@ WorkspaceQuest.getLayout = function getLayout(page: ReactElement) {
   );
 };
 
-export default WorkspaceQuest;
+const TargetQuest = () => {
+  const exist = false;
+  const isLoading = true;
+  if (!exist) {
+    return <Box></Box>;
+  }
+  return (
+    <div className={`${styles.targetQuest} ${styles.targetQuestFilled}`}>
+      {isLoading ? <QuestComponentSkeleton includeContent={false} /> : <></>}
+    </div>
+  );
+};

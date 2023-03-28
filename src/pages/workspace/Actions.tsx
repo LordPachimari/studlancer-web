@@ -55,19 +55,13 @@ const Actions = () => {
   );
   const createQuest = trpc.quest.createQuest.useMutation();
   const createSolution = trpc.solution.createSolution.useMutation();
-  // useEffect(() => {
-  //   if (createQuest.isError) {
-  //   }
-
-  //   if (createQuest.isSuccess) {
-  //   }
-  // }, [createQuest.isError, createQuest.error?.message, createQuest.isSuccess]);
 
   return (
     <Center flexDirection="column" gap={5} mt="16">
       <Button
         colorScheme="blue"
-        w={{ base: "90%", lg: "60" }}
+        w={{ base: "90%", md: "60" }}
+        isLoading={createQuest.isLoading}
         onClick={() => {
           const id = ulid();
           createQuestOrSolutionState({ id, type: "QUEST" });
@@ -82,11 +76,12 @@ const Actions = () => {
           );
         }}
       >
-        {createQuest.isLoading ? "..." : " CREATE QUEST"}
+        CREATE QUEST
       </Button>
       <Button
         colorScheme="blue"
-        w={{ base: "90%", lg: "60" }}
+        w={{ base: "90%", md: "60" }}
+        isLoading={createSolution.isLoading}
         onClick={async () => {
           const id = ulid();
 

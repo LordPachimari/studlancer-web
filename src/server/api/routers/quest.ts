@@ -158,7 +158,7 @@ export const questRouter = router({
           return publishedQuests.results as PublishedQuest[];
         } catch (error) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
+            code: "INTERNAL_SERVER_ERROR",
             message: "FAILED RETRIEVING QUESTS, PLEASE TRY AGAIN",
           });
         }
@@ -430,8 +430,10 @@ export const questRouter = router({
         }
         return false;
       } catch (error) {
-        console.log(error);
-        return false;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error publishing quest, fill all the attributes",
+        });
       }
     }),
 
@@ -646,7 +648,7 @@ export const questRouter = router({
       } catch (error) {
         console.log(error);
         throw new TRPCError({
-          code: "BAD_REQUEST",
+          code: "INTERNAL_SERVER_ERROR",
           message: "NOT ALLOWED TO JOIN",
         });
       }

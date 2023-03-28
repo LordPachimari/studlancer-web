@@ -14,7 +14,7 @@ export default function Home() {
       <Flex w="90%" columnGap={15} mt={16}>
         <Flex w={{ base: "100%", lg: "70%" }} flexDirection="column" gap={10}>
           <QuestComponent />
-          <QuestComponentSkeleton />
+          <QuestComponentSkeleton includeContent={true} />
         </Flex>
         <Center
           w={{ lg: "30%" }}

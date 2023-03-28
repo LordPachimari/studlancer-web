@@ -4,8 +4,7 @@ import React, { useRef, useState } from "react";
 import ImageResizer from "./ImageResizer";
 import styles from "./tiptap.module.css";
 
-export default (props) => {
-  console.log("props", props);
+export default function ImageComponent(props) {
   const imageLoader = ({ src, width, quality }) => {
     return `${src}?w=${width}&q=${quality || 75}`;
   };
@@ -13,7 +12,7 @@ export default (props) => {
   const [isResizing, setIsResizing] = useState(false);
   const onResizeEnd = (
     nextWidth: "inherit" | number,
-    nextHeight: "inherit" | number,
+    nextHeight: "inherit" | number
   ) => {
     setTimeout(() => {
       setIsResizing(false);
@@ -60,4 +59,4 @@ export default (props) => {
       </div>
     </NodeViewWrapper>
   );
-};
+}

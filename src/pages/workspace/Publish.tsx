@@ -1,6 +1,13 @@
 import { Quest, Solution } from "../../types/main";
 import { get, update } from "idb-keyval";
-import React, { useCallback, useState } from "react";
+import React, {
+  Dispatch,
+  RefObject,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { z } from "zod";
 
 import Preview from "./Preview";
@@ -21,6 +28,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Spacer,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
@@ -30,12 +38,23 @@ const Publish = ({
   questId,
   type,
   questCreatorId,
+  isOpen,
+  onOpen,
+  onClose,
+  errorMessage,
+  setErrorMessage,
 }: {
   solutionId?: string;
+
   questId?: string;
   questCreatorId?: string;
-
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
   type: "QUEST" | "SOLUTION";
+
+  errorMessage: string | undefined;
+  setErrorMessage: Dispatch<SetStateAction<string | undefined>>;
 }) => {
   const QuestAttributesZod = z.object({
     id: z.string(),
@@ -67,22 +86,18 @@ const Publish = ({
   });
   const publishQuest = trpc.quest.publishQuest.useMutation();
   const publishSolution = trpc.solution.publishSolution.useMutation();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(
-    undefined
-  );
+
   const [QuestOrSolution, setQuestOrSolution] = useState<
     Quest | Solution | undefined
   >();
-  const cancelRef = React.useRef();
+  const cancelRef = React.useRef<any>();
   const {
     isOpen: isPreviewOpen,
     onOpen: onPreviewOpen,
     onClose: onPreviewClose,
   } = useDisclosure();
 
-  const validate = useCallback(() => {
-    setErrorMessage(undefined);
+  const validate = () => {
     if (type === "QUEST" && questId) {
       get(questId).then((val) => {
         setQuestOrSolution(val);
@@ -99,7 +114,7 @@ const Publish = ({
               : "Please fill all the quest attributes"
           );
 
-          return;
+          return false;
         }
       });
     }
@@ -118,11 +133,13 @@ const Publish = ({
               : "Please fill all the quest attributes"
           );
 
-          return;
+          return false;
         }
       });
     }
-  }, []);
+    return false;
+  };
+
   const handlePublish = ({
     solutionId,
     questId,
@@ -131,28 +148,45 @@ const Publish = ({
     questId?: string;
   }) => {
     if (questId && type === "QUEST") {
-      publishQuest.mutate({ id: questId });
+      publishQuest.mutate(
+        { id: questId },
+        {
+          onSuccess: () => {
+            update(questId, (item) => {
+              const value = item as Quest | Solution;
 
-      update(questId, (item) => {
-        const value = item as Quest | Solution;
-
-        value.published = true;
-        setQuestOrSolution(value);
-        return value;
-      });
+              value.published = true;
+              setQuestOrSolution(value);
+              return value;
+            });
+          },
+          onError(error, variables, context) {
+            setErrorMessage(error.message);
+          },
+        }
+      );
     }
     if (solutionId && type === "SOLUTION" && questId && questCreatorId) {
-      publishSolution.mutate({
-        id: solutionId,
-        questCreatorId,
-        questId,
-      });
-      update(solutionId, (item) => {
-        const value = item as Quest | Solution;
-        value.published = true;
-        setQuestOrSolution(value);
-        return value;
-      });
+      publishSolution.mutate(
+        {
+          id: solutionId,
+          questCreatorId,
+          questId,
+        },
+        {
+          onSuccess: () => {
+            update(solutionId, (item) => {
+              const value = item as Quest | Solution;
+              value.published = true;
+              setQuestOrSolution(value);
+              return value;
+            });
+          },
+          onError(error, variables, context) {
+            setErrorMessage(error.message);
+          },
+        }
+      );
     }
   };
   return (
@@ -165,7 +199,7 @@ const Publish = ({
         <AlertDialogContent>
           {QuestOrSolution?.published ? (
             <Text>PUBLISHED</Text>
-          ) : QuestOrSolution?.type === "QUEST" ? (
+          ) : type === "QUEST" ? (
             <>
               <AlertDialogHeader fontSize="lg" fontWeight="bold">
                 Confirm Publish
@@ -185,12 +219,22 @@ const Publish = ({
             <></>
           )}
 
-          <AlertDialogFooter>
-            <Button ref={cancelRef} onClick={onClose}>
+          <AlertDialogFooter gap={2}>
+            <Button ref={cancelRef} onClick={onClose} colorScheme="red">
               Close
             </Button>
-            <Button colorScheme="gray.200">Preview</Button>
-            <Modal isOpen={isPreviewOpen} onClose={onPreviewClose}>
+
+            <Spacer />
+            <Button
+              colorScheme="gray"
+              onClick={() => {
+                validate();
+                onPreviewOpen();
+              }}
+            >
+              Preview
+            </Button>
+            <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="2xl">
               <ModalOverlay />
               <ModalContent>
                 <ModalHeader>Preview</ModalHeader>
@@ -212,20 +256,34 @@ const Publish = ({
                 </ModalBody>
 
                 <ModalFooter>
-                  <Button colorScheme="blue" mr={3} onClick={onClose}>
+                  <Button colorScheme="blue" mr={3} onClick={onPreviewClose}>
                     Close
                   </Button>
                   <Button
                     colorScheme="green"
-                    disabled={!!errorMessage}
-                    onClick={() => handlePublish({ questId, solutionId })}
+                    isDisabled={!!errorMessage}
+                    onClick={() => {
+                      const validationResult = validate();
+                      if (validationResult) {
+                        handlePublish({ questId, solutionId });
+                      }
+                    }}
                   >
                     Publish
                   </Button>
                 </ModalFooter>
               </ModalContent>
             </Modal>
-            <Button colorScheme="blue" onClick={validate} ml={3}>
+            <Button
+              colorScheme="green"
+              onClick={() => {
+                const validationResult = validate();
+                if (validationResult) {
+                  handlePublish({ questId, solutionId });
+                }
+              }}
+              isDisabled={!!errorMessage}
+            >
               Publish
             </Button>
           </AlertDialogFooter>

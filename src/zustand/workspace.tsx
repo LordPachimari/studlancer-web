@@ -82,7 +82,7 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
         inTrash: false,
         createdAt: new Date().toISOString(),
         creatorId: TEST_USER.id,
-        version: 1,
+        lastUpdated: new Date().toISOString(),
         type: "QUEST",
       };
       set(
@@ -98,7 +98,7 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
         inTrash: false,
         published: false,
         type: "SOLUTION",
-        version: 1,
+        lastUpdated: new Date().toISOString(),
       };
       set(
         produce((state: WorkspaceState) => {
@@ -137,9 +137,13 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
     set(
       produce((state: WorkspaceState) => {
         const index = state.workspaceList.quests.findIndex((q) => q.id === id);
+        console.log("index", index);
         if (index < 0) {
+          console.log("hellooooooo");
           return;
         }
+
+        console.log("all good");
         state.workspaceList.quests[index]![attribute] = value;
       })
     ),

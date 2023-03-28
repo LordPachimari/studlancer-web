@@ -110,9 +110,18 @@ export default function QuestComponent() {
     </Card>
   );
 }
-export const QuestComponentSkeleton = () => {
+export const QuestComponentSkeleton = ({
+  includeContent,
+}: {
+  includeContent: boolean;
+}) => {
   return (
-    <Card w="100%" h="64" borderRadius="2xl" cursor="pointer">
+    <Card
+      w="100%"
+      h={includeContent ? "64" : "36"}
+      borderRadius="2xl"
+      cursor="pointer"
+    >
       <CardHeader pb="0">
         <Flex gap={5}>
           <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
@@ -133,7 +142,9 @@ export const QuestComponentSkeleton = () => {
       </CardHeader>
 
       <CardBody>
-        <SkeletonText mt="4" noOfLines={4} spacing="4" skeletonHeight="2" />
+        {includeContent && (
+          <SkeletonText mt="4" noOfLines={4} spacing="4" skeletonHeight="2" />
+        )}
       </CardBody>
     </Card>
   );

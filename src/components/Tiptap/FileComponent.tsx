@@ -2,7 +2,7 @@ import { NodeViewWrapper } from "@tiptap/react";
 import React from "react";
 import styles from "./tiptap.module.css";
 
-export default (props) => {
+export default function FileComponent(props) {
   return (
     <NodeViewWrapper className={styles.fileComponent}>
       <div
@@ -24,4 +24,4 @@ export default (props) => {
       </div>
     </NodeViewWrapper>
   );
-};
+}

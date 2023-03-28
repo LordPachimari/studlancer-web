@@ -9,13 +9,23 @@ import {
   Text,
 } from "@chakra-ui/react";
 
-export default function AboutUser() {
+export default function AboutUser({
+  username,
+  about,
+  level,
+  experience,
+}: {
+  username: string;
+  about: string | undefined;
+  level: number;
+  experience: number;
+}) {
   return (
     <Card w={{ base: "100%" }} height={{ base: "xs" }} borderRadius="2xl">
       <CardBody>
         <Flex alignItems="center">
           <Badge mr="1" variant="solid" colorScheme="blue" fontSize="15">
-            1 lvl
+            {level} lvl
           </Badge>
           <Progress
             colorScheme="green"
@@ -27,9 +37,9 @@ export default function AboutUser() {
           />
         </Flex>
         <Text fontSize={{ base: "xl", lg: "2xl" }} fontWeight="bold">
-          Pachimari{" "}
+          {username}
         </Text>
-        <Text fontSize={{ base: "xl" }}>About</Text>
+        <Text fontSize={{ base: "xl" }}>{about && about}</Text>
       </CardBody>
       <CardFooter>
         <HStack>

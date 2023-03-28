@@ -8,15 +8,29 @@ import {
   Heading,
   Text,
 } from "@chakra-ui/react";
+import { getAuth } from "@clerk/nextjs/server";
+import { GetServerSidePropsContext } from "next";
 import { ReactElement } from "react";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import SidebarLayout from "~/layouts/SidebarLayout";
-import AboutUser from "./About";
-import Achievements from "./Achiements";
-import UserQuests from "./Quests";
-import UserTopics from "./Topics";
+import AboutUser from "../About";
+import Achievements from "../Achiements";
+import UserQuests from "../Quests";
+import UserTopics from "../Topics";
+import { createProxySSGHelpers } from "@trpc/react-query/ssg";
+import { createContextInner } from "~/server/api/trpc";
+import { appRouter } from "~/server/api/root";
+import superjson from "superjson";
+import { useRouter } from "next/router";
+import { trpc } from "~/utils/api";
 
 export default function Profile() {
+  const router = useRouter();
+  const id = router.query.id as string;
+  const user = trpc.user.userById.useQuery({ id });
+  if (!user.data) {
+    return <div></div>;
+  }
   return (
     <Flex w="100%" justify="center">
       <Box
@@ -55,7 +69,12 @@ export default function Profile() {
           </Flex>
         </Box>
         <Box w={{ base: "100%", md: "70%" }}>
-          <AboutUser />
+          <AboutUser
+            username={user.data.username}
+            about={user.data.about}
+            level={user.data.level}
+            experience={user.data.experience}
+          />
           <Heading as="h3" size="md" my={5}>
             Topics
           </Heading>
@@ -80,3 +99,25 @@ Profile.getLayout = function getLayout(page: ReactElement) {
     </GlobalLayout>
   );
 };
+export async function getServerSideProps(
+  context: GetServerSidePropsContext<{ id: string }>
+) {
+  const ssg = createProxySSGHelpers({
+    router: appRouter,
+    ctx: await createContextInner({ user: null }),
+    transformer: superjson,
+  });
+  const id = context.params?.id as string;
+  /*
+   * Prefetching the `post.byId` query here.
+   * `prefetch` does not return the result and never throws - if you need that behavior, use `fetch` instead.
+   */
+  await ssg.user.userById.prefetch({ id });
+
+  return {
+    props: {
+      trpcState: ssg.dehydrate(),
+      id,
+    },
+  };
+}

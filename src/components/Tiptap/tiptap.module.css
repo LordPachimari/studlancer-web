@@ -18,15 +18,18 @@
   align-items: center;
   width: fit-content;
   height: 30px;
-  border: 1px solid var(--border-color);
   border-radius: 10px;
   justify-content: space-between;
 }
 .fileComponent {
+  margin: 5px;
+  padding: 10px;
   display: flex;
   align-items: center;
   height: 40px;
   width: fit-content;
+  border: 1px solid var(--blue);
+  border-radius: 10px;
 }
 .deleteFileButton {
   width: 30px;

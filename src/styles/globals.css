@@ -1,6 +1,7 @@
 :root {
   --blue: #3182ce;
   --gray: #718096;
+  --purple: #805ad5;
 }
 html,
 body {
@@ -8,6 +9,10 @@ body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
     Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+h1 {
+  font-size: x-large;
+  font-weight: bold;
 }
 
 .page {
@@ -23,6 +28,14 @@ body {
   height: 100%;
   margin-top: 10px;
 }
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 .image-resizer {
   display: block;
   width: 7px;

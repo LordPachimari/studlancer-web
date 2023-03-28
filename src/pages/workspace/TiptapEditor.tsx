@@ -6,12 +6,13 @@ import {
   useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useCallback, useRef } from "react";
+import { ChangeEvent, useCallback, useRef, useState } from "react";
 import FileExtension from "../../components/Tiptap/FileExtension";
 import ImageExtension from "../../components/Tiptap/ImageExtension";
 import { WorkspaceStore } from "../../zustand/workspace";
 import styles from "./workspace.module.css";
-import { Box } from "@chakra-ui/react";
+import { Box, SkeletonText } from "@chakra-ui/react";
+import Placeholder from "@tiptap/extension-placeholder";
 
 const TiptapEditor = (props: {
   id: string;
@@ -28,7 +29,6 @@ const TiptapEditor = (props: {
   }) => void;
 }) => {
   const { id, updateAttributesHandler, content } = props;
-
   const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
   const addQuestTransaction = WorkspaceStore((state) => state.addTransaction);
   // const provider = new HocuspocusProvider({
@@ -54,8 +54,10 @@ const TiptapEditor = (props: {
         //   },
         // }),
         ImageExtension,
-
         FileExtension,
+        Placeholder.configure({
+          placeholder: "Write something …",
+        }),
 
         // EventHandler,
 
@@ -76,19 +78,19 @@ const TiptapEditor = (props: {
       onUpdate: ({ editor }) => {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
-        // addQuestTransaction({
-        //   id: id,
-        //   attribute: "content",
-        //   value: jsonString,
-        // });
-        // updateAttributesHandler({
-        //   transactionQueue,
-        //   lastTransaction: {
-        //     id: id,
-        //     attribute: "content",
-        //     value: jsonString,
-        //   },
-        // });
+        addQuestTransaction({
+          id: id,
+          attribute: "content",
+          value: jsonString,
+        });
+        updateAttributesHandler({
+          transactionQueue,
+          lastTransaction: {
+            id: id,
+            attribute: "content",
+            value: jsonString,
+          },
+        });
         // updateQuest();
         // send the content to an API here
       },
@@ -107,8 +109,8 @@ const TiptapEditor = (props: {
     fileInputRef.current?.click();
   };
   const addImage = useCallback(
-    async (files: FileList | null) => {
-      console.log("yo");
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
       if (!files) {
         return;
       }
@@ -153,11 +155,13 @@ const TiptapEditor = (props: {
 
           .run();
       }
+      e.target.value = "";
     },
     [editor]
   );
   const addFile = useCallback(
-    async (files: FileList | null) => {
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
       if (!files) {
         return;
       }
@@ -201,6 +205,8 @@ const TiptapEditor = (props: {
       } else {
         console.log("upload failed", upload.statusText);
       }
+
+      e.target.value = "";
     },
     [editor]
   );
@@ -223,6 +229,7 @@ const TiptapEditor = (props: {
             >
               h1
             </button>
+
             <button
               onClick={() => editor.chain().focus().toggleBold().run()}
               className={`${styles.bubbleMenuButton} ${
@@ -288,7 +295,7 @@ const TiptapEditor = (props: {
               accept="image/*"
               ref={imageInputRef}
               className={styles.imageInput}
-              onChange={(e) => addImage(e.target.files)}
+              onChange={addImage}
             />
             <button
               className={styles.floatingMenuButton}
@@ -300,7 +307,7 @@ const TiptapEditor = (props: {
               ref={fileInputRef}
               type="file"
               className={styles.imageInput}
-              onChange={(e) => addFile(e.target.files)}
+              onChange={addFile}
             />
           </FloatingMenu>
         </>

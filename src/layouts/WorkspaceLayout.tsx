@@ -14,11 +14,10 @@ const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   const { isSignedIn, isLoaded } = useAuth();
-  // console.log("isSignedIn", isSignedIn);
-  // if (!isSignedIn && isLoaded) {
-  //   setRedirectUrl("/workspace");
-  //   router.push("/");
-  // }
+  if (!isSignedIn && isLoaded) {
+    setRedirectUrl("/workspace");
+    router.push("/");
+  }
 
   return (
     <Flex position="relative">

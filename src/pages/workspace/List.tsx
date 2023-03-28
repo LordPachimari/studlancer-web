@@ -3,6 +3,7 @@ import {
   QuestListComponent,
   Solution,
   SolutionListComponent,
+  Versions,
   WorkspaceList,
 } from "../../types/main";
 import { useAuth } from "@clerk/nextjs";
@@ -38,6 +39,9 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Skeleton,
+  SkeletonCircle,
+  Spacer,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
@@ -54,20 +58,20 @@ const List = ({
   }
   const { userId, isLoaded } = useAuth();
   const router = useRouter();
-  //   const createQuest = trpc.quest.createQuest.useMutation();
-  //   const createSolution = trpc.solution.createSolution.useMutation();
+  const createQuest = trpc.quest.createQuest.useMutation();
+  const createSolution = trpc.solution.createSolution.useMutation();
 
-  //   const serverWorkspaceList = trpc.workspace.workspaceList.useQuery(undefined, {
-  //     staleTime: 10 * 60 * 1000,
-  //     enabled: isLoaded,
-  //   });
-  //   const workspaceListState = WorkspaceStore((state) => state.workspaceList);
-  //   const deleteQuest = trpc.quest.deleteQuest.useMutation();
-  //   const deleteSolution = trpc.solution.deleteSolution.useMutation();
-  //   const deleteQuestPermanently =
-  //     trpc.quest.deleteQuestPermanently.useMutation();
-  //   const deleteSolutionPermanently =
-  //     trpc.solution.deleteSolutionPermanently.useMutation();
+  const serverWorkspaceList = trpc.workspace.workspaceList.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000,
+    enabled: isLoaded,
+  });
+  const workspaceListState = WorkspaceStore((state) => state.workspaceList);
+  const deleteQuest = trpc.quest.deleteQuest.useMutation();
+  const deleteSolution = trpc.solution.deleteSolution.useMutation();
+  const deleteQuestPermanently =
+    trpc.quest.deleteQuestPermanently.useMutation();
+  const deleteSolutionPermanently =
+    trpc.solution.deleteSolutionPermanently.useMutation();
 
   const setWorkspaceListState = WorkspaceStore(
     (state) => state.setWorkspaceList
@@ -125,9 +129,9 @@ const List = ({
                 return list;
               }
             });
-            // deleteQuest.mutate({ id: quest.id });
+            deleteQuest.mutate({ id: quest.id });
           } else {
-            // deleteQuestPermanently.mutate({ id: quest.id });
+            deleteQuestPermanently.mutate({ id: quest.id });
 
             deletePermanentlyFromLocalStorage({ id: quest.id, type: "QUEST" });
           }
@@ -161,9 +165,9 @@ const List = ({
                 return list;
               }
             });
-            // deleteSolution.mutate({ id: solution.id });
+            deleteSolution.mutate({ id: solution.id });
           } else {
-            // deleteSolutionPermanently.mutate({ id: solution.id });
+            deleteSolutionPermanently.mutate({ id: solution.id });
             deletePermanentlyFromLocalStorage({
               id: solution.id,
               type: "SOLUTION",
@@ -214,91 +218,87 @@ const List = ({
       const id = ulid();
       createQuestOrSolutionState({ id, type: "QUEST" });
       storeQuestOrSolution({ id, type: "QUEST" });
-      //   createQuest.mutate(
-      //     { id },
-      //     {
-      //       onSuccess: () => {
-      //         router.push(`/workspace/quests/${id}`);
-      //       },
-      //     }
-      //   );
+      createQuest.mutate(
+        { id },
+        {
+          onSuccess: () => {
+            router.push(`/workspace/quests/${id}`);
+          },
+        }
+      );
     } else if (type === "SOLUTION") {
       const id = ulid();
       createQuestOrSolutionState({ id, type: "SOLUTION" });
 
       storeQuestOrSolution({ id, type: "SOLUTION" });
-      //   createSolution.mutate(
-      //     { id },
-      //     {
-      //       onSuccess: () => {
-      //         router.push(`/workspace/solutions/${id}`);
-      //       },
-      //     }
-      //   );
+      createSolution.mutate(
+        { id },
+        {
+          onSuccess: () => {
+            router.push(`/workspace/solutions/${id}`);
+          },
+        }
+      );
     }
-    // const result = await createQuest({ id });
-    // if (result) {
-    //   router.push(`/workspace/quests/${id}`);
-    // }
   };
-  // useEffect(() => {
-  //   if (serverWorkspaceList.data) {
-  //     const nonDeletedQuests: Quest[] = [];
-  //     const nonDeletedSolutions: Solution[] = [];
-  //     const deletedQuests: Quest[] = [];
-  //     const deletedSolutions: Solution[] = [];
-  //     serverWorkspaceList.data.quests.forEach((quest) => {
-  //       if (quest.inTrash) {
-  //         deletedQuests.push(quest);
-  //       } else {
-  //         nonDeletedQuests.push(quest);
-  //       }
-  //     });
-  //     serverWorkspaceList.data.solutions.forEach((solution) => {
-  //       if (solution.inTrash) {
-  //         deletedSolutions.push(solution);
-  //       } else {
-  //         nonDeletedSolutions.push(solution);
-  //       }
-  //     });
+  useEffect(() => {
+    if (serverWorkspaceList.data) {
+      const nonDeletedQuests: Quest[] = [];
+      const nonDeletedSolutions: Solution[] = [];
+      const deletedQuests: Quest[] = [];
+      const deletedSolutions: Solution[] = [];
+      serverWorkspaceList.data.quests.forEach((quest) => {
+        if (quest.inTrash) {
+          deletedQuests.push(quest);
+        } else {
+          nonDeletedQuests.push(quest);
+        }
+      });
+      serverWorkspaceList.data.solutions.forEach((solution) => {
+        if (solution.inTrash) {
+          deletedSolutions.push(solution);
+        } else {
+          nonDeletedSolutions.push(solution);
+        }
+      });
 
-  //     nonDeletedQuests.forEach((q) => {
-  //       const questVersion = JSON.parse(
-  //         localStorage.getItem(q.id) as string
-  //       ) as Versions | null;
-  //       if (questVersion) {
-  //         const updatedVersions: Versions = {
-  //           server: q.lastUpdated,
-  //           local: questVersion.local,
-  //         };
+      nonDeletedQuests.forEach((q) => {
+        const questVersion = JSON.parse(
+          localStorage.getItem(q.id) as string
+        ) as Versions | null;
+        if (questVersion) {
+          const updatedVersions: Versions = {
+            server: q.lastUpdated,
+            local: questVersion.local,
+          };
 
-  //         localStorage.setItem(q.id, JSON.stringify(updatedVersions));
-  //       }
-  //     });
-  //     nonDeletedSolutions.forEach((s) => {
-  //       const solutionVersion = JSON.parse(
-  //         localStorage.getItem(s.id) as string
-  //       ) as Versions | null;
-  //       if (solutionVersion) {
-  //         const updatedVersions: Versions = {
-  //           server: s.lastUpdated,
-  //           local: solutionVersion.local,
-  //         };
+          localStorage.setItem(q.id, JSON.stringify(updatedVersions));
+        }
+      });
+      nonDeletedSolutions.forEach((s) => {
+        const solutionVersion = JSON.parse(
+          localStorage.getItem(s.id) as string
+        ) as Versions | null;
+        if (solutionVersion) {
+          const updatedVersions: Versions = {
+            server: s.lastUpdated,
+            local: solutionVersion.local,
+          };
 
-  //         localStorage.setItem(s.id, JSON.stringify(updatedVersions));
-  //       }
-  //     });
+          localStorage.setItem(s.id, JSON.stringify(updatedVersions));
+        }
+      });
 
-  //     setWorkspaceListState({
-  //       quests: nonDeletedQuests,
-  //       solutions: nonDeletedSolutions,
-  //     });
-  //     setTrash({
-  //       quests: deletedQuests,
-  //       solutions: deletedSolutions,
-  //     });
-  //   }
-  // }, [serverWorkspaceList.data, setWorkspaceListState]);
+      setWorkspaceListState({
+        quests: nonDeletedQuests,
+        solutions: nonDeletedSolutions,
+      });
+      setTrash({
+        quests: deletedQuests,
+        solutions: deletedSolutions,
+      });
+    }
+  }, [serverWorkspaceList.data, setWorkspaceListState]);
 
   return (
     <div className={`${styles.listContainer} ${showList && styles.showList}`}>
@@ -349,18 +349,23 @@ const List = ({
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4} p="0">
-            {/* {serverWorkspaceList.isLoading
-        ? emptyLists.map((l, i) => <ListComponentSkeleton key={i} />)
-        : !workspaceListState.quests
-        ? null
-        : workspaceListState.quests.map((q) => (
-            <ListComponent
-              type="QUEST"
-              key={q.id}
-              listComponent={q}
-              deleteListComponent={deleteListComponent}
-            />
-          ))} */}
+            {serverWorkspaceList.isLoading
+              ? emptyLists.map((l, i) => (
+                  <Flex key={i} alignItems="center" gap={2} p="2">
+                    <SkeletonCircle size="7" />
+                    <Skeleton height="15px" w="52" />
+                  </Flex>
+                ))
+              : !workspaceListState.quests
+              ? null
+              : workspaceListState.quests.map((q) => (
+                  <ListComponent
+                    type="QUEST"
+                    key={q.id}
+                    listComponent={q}
+                    deleteListComponent={deleteListComponent}
+                  />
+                ))}
             <Button
               justifyContent="flex-start"
               pl="2"
@@ -414,18 +419,23 @@ const List = ({
             </AccordionButton>
           </h2>
           <AccordionPanel pb={4} p="0">
-            {/* {serverWorkspaceList.isLoading
-        ? emptyLists.map((l, i) => <ListComponentSkeleton key={i} />)
-        : !workspaceListState.solutions
-        ? null
-        : workspaceListState.solutions.map((s) => (
-            <ListComponent
-              type="SOLUTION"
-              key={s.id}
-              listComponent={s}
-              deleteListComponent={deleteListComponent}
-            />
-          ))} */}
+            {serverWorkspaceList.isLoading
+              ? emptyLists.map((l, i) => (
+                  <Flex key={i} alignItems="center" gap={2} p="2">
+                    <SkeletonCircle size="7" />
+                    <Skeleton height="15px" w="52" />
+                  </Flex>
+                ))
+              : !workspaceListState.solutions
+              ? null
+              : workspaceListState.solutions.map((s) => (
+                  <ListComponent
+                    type="SOLUTION"
+                    key={s.id}
+                    listComponent={s}
+                    deleteListComponent={deleteListComponent}
+                  />
+                ))}
 
             <Button
               justifyContent="flex-start"
@@ -689,17 +699,54 @@ const ListComponent = ({
         className={styles.listComponentContent}
         href={`/workspace/quests/${listComponent.id}`}
       >
-        <Button
-          justifyContent="flex-start"
+        <Flex
           pl="2"
           borderRadius={0}
           bg="none"
-          leftIcon={<Circle size="24px" bg="tomato" color="white"></Circle>}
           w="100%"
+          h="10"
           color="black"
+          gap={2}
+          alignItems="center"
+          _hover={{
+            bg: "gray.100",
+            ".actionButton": {
+              display: "flex",
+            },
+          }}
+          className="listComponent"
         >
-          title
-        </Button>
+          <Circle size="24px" bg="tomato" color="white"></Circle>
+          <Text fontSize="lg" fontWeight="bold">
+            {listComponent.title || "Untitled"}
+          </Text>
+          <Spacer />
+          <IconButton
+            bg="none"
+            _hover={{
+              bg: "gray.200",
+            }}
+            size="sm"
+            mr={1}
+            display="none"
+            aria-label="delete list component"
+            className="actionButton"
+            icon={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+              >
+                <path fill="none" d="M0 0h24v24H0z" />
+                <path
+                  d="M12 3c-.825 0-1.5.675-1.5 1.5S11.175 6 12 6s1.5-.675 1.5-1.5S12.825 3 12 3zm0 15c-.825 0-1.5.675-1.5 1.5S11.175 21 12 21s1.5-.675 1.5-1.5S12.825 18 12 18zm0-7.5c-.825 0-1.5.675-1.5 1.5s.675 1.5 1.5 1.5 1.5-.675 1.5-1.5-.675-1.5-1.5-1.5z"
+                  fill="var(--blue)"
+                />
+              </svg>
+            }
+          ></IconButton>
+        </Flex>
       </Link>
     );
   }
@@ -725,9 +772,6 @@ const ListComponent = ({
     );
   }
   return <></>;
-};
-const ListComponentSkeleton = () => {
-  return <Box></Box>;
 };
 
 export default List;

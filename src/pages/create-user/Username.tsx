@@ -17,8 +17,10 @@ import {
   FormikProps,
   FormikValues,
 } from "formik";
+import { useRouter } from "next/router";
 import { Dispatch, SetStateAction, useState } from "react";
 import { z } from "zod";
+import { trpc } from "~/utils/api";
 const UsernameFormValues = z.object({
   username: z.string().min(2, { message: "username is too short" }),
 });
@@ -26,10 +28,13 @@ type UsernameFormValuesType = z.infer<typeof UsernameFormValues>;
 export default function Username({
   componentName,
   setComponentName,
+  userId,
 }: {
   componentName: "USERNAME" | "CHARACTER";
   setComponentName: Dispatch<SetStateAction<"USERNAME" | "CHARACTER">>;
+  userId: string;
 }) {
+  const router = useRouter();
   function validateUsername(value: string) {
     let error;
     const usernameParseResult = UsernameFormValues.safeParse({
@@ -42,15 +47,18 @@ export default function Username({
     }
     return error;
   }
+  const createUser = trpc.user.createUser.useMutation({
+    onSuccess: () => {
+      router.push(`/profile/${userId}`);
+    },
+  });
 
   return (
     <Formik
       initialValues={{ username: "" }}
       onSubmit={(values, actions) => {
-        setTimeout(() => {
-          alert(JSON.stringify(values, null, 2));
-          actions.setSubmitting(false);
-        }, 1000);
+        console.log("usernmae", values);
+        createUser.mutate({ username: values.username });
       }}
     >
       {(props) => (
@@ -65,7 +73,7 @@ export default function Username({
               <Heading size={{ base: "md" }}>USERNAME</Heading>
             </CardHeader>
             <CardBody>
-              <Field name="name" validate={validateUsername}>
+              <Field name="username" validate={validateUsername}>
                 {({ field, form }) => (
                   <FormControl
                     isInvalid={form.errors.name && form.touched.name}
@@ -82,7 +90,7 @@ export default function Username({
                 colorScheme="blue"
                 isLoading={props.isSubmitting}
                 type="submit"
-                onClick={() => setComponentName("CHARACTER")}
+                // onClick={() => setComponentName("CHARACTER")}
               >
                 Next
               </Button>

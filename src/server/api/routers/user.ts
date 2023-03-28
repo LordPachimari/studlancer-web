@@ -92,7 +92,7 @@ export const userRouter = router({
         profile: "default profile",
         email: user.emailAddresses[0]!.emailAddress!,
         // email: user.email,
-        username: username || user.id,
+        username: username,
         verified: false,
         type: "USER",
       };

@@ -14,6 +14,7 @@ export default function GeneralChat() {
   return (
     <Card
       w="90%"
+      maxW="xs"
       h="80"
       bg="none"
       borderWidth="3px"

@@ -1,9 +1,8 @@
 import { get, set } from "idb-keyval";
 import { useCallback, useEffect, useState } from "react";
-import QuestAttributes, { QuestAttributesSkeleton } from "./QuestAttributes";
 
 import {
-  Quest,
+  Solution,
   TransactionQueue,
   UpdateTransaction,
   Versions,
@@ -13,51 +12,52 @@ import { update } from "idb-keyval";
 import Publish from "../../Publish";
 
 import debounce from "lodash.debounce";
-import { mapReplacer } from "../../../../utils/mapReplacer";
-import { WorkspaceStore } from "../../../../zustand/workspace";
 import TiptapEditor from "../../TiptapEditor";
+import SolutionAttributes, {
+  SolutionAttributesSkeleton,
+} from "./SolutionAttributes";
 import { trpc } from "~/utils/api";
-import {
-  Box,
-  Button,
-  Card,
-  SkeletonText,
-  useDisclosure,
-} from "@chakra-ui/react";
-
+import { WorkspaceStore } from "~/zustand/workspace";
+import { mapReplacer } from "~/utils/mapReplacer";
+import { Box, SkeletonText, useDisclosure } from "@chakra-ui/react";
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,
 // });
 
-const QuestEditor = ({ id }: { id: string }) => {
-  const [quest, setQuest] = useState<Quest | null | undefined>(undefined);
+const SolutionEditor = ({ id }: { id: string }) => {
+  const [solution, setSolution] = useState<Solution | null | undefined>(
+    undefined
+  );
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
     undefined
   );
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const questVersion = JSON.parse(
+  const solutionVersion = JSON.parse(
     localStorage.getItem(id) as string
   ) as Versions | null;
   const shouldUpdate =
-    !questVersion ||
-    new Date(questVersion.local) < new Date(questVersion.server);
+    !solutionVersion ||
+    new Date(solutionVersion.local) < new Date(solutionVersion.server);
 
-  const serverQuest = trpc.quest.workspaceQuest.useQuery(
+  const serverSolution = trpc.solution.workspaceSolution.useQuery(
     { id },
     {
       staleTime: 10 * 60 * 1000,
-      enabled: shouldUpdate || false,
+      enabled: shouldUpdate,
     }
   );
-  const updateQuestAttributes = trpc.quest.updateQuestAttributes.useMutation({
-    // retry: 3,
-  });
+  const updateSolutionAttributes =
+    trpc.solution.updateSolutionAttributes.useMutation({
+      // retry: 3,
+    });
 
+  const addTransaction = WorkspaceStore((state) => state.addTransaction);
   const clearTransactionQueue = WorkspaceStore(
     (state) => state.clearTransactionQueue
   );
 
-  const updateQuestAttributesHandler = useCallback(
+  const updateSolutionAttributesHandler = useCallback(
     debounce(
       async ({
         transactionQueue,
@@ -69,40 +69,44 @@ const QuestEditor = ({ id }: { id: string }) => {
         transactionQueue: TransactionQueue;
         lastTransaction: UpdateTransaction;
       }) => {
+        addTransaction({
+          id: lastTransaction.id,
+          attribute: lastTransaction.attribute,
+          value: lastTransaction.value,
+        });
         //transactionQueue supposed to be immutable, but I'll allow myself to mutate the copy of it
         const _transactionQueue = structuredClone(transactionQueue);
-        const updateTime = new Date().toISOString();
 
-        const questTransactions = _transactionQueue.get(lastTransaction.id);
+        const solutionTransactions = _transactionQueue.get(lastTransaction.id);
+        const updateDate = new Date().toISOString();
         const { attribute, value } = lastTransaction;
-        if (!questTransactions) {
+        if (!solutionTransactions) {
           _transactionQueue.set(lastTransaction.id, {
             transactions: [
               lastTransaction,
               {
                 id: lastTransaction.id,
                 attribute: "lastUpdated",
-                value: updateTime,
+                value: updateDate,
               },
             ],
           });
         } else {
-          const transactionIndex = questTransactions?.transactions.findIndex(
+          const transactionIndex = solutionTransactions?.transactions.findIndex(
             (t) => t.attribute === attribute
           );
-
           if (transactionIndex < 0) {
-            questTransactions.transactions.push(lastTransaction);
+            solutionTransactions.transactions.push(lastTransaction);
           } else {
-            questTransactions.transactions[transactionIndex]!.value = value;
+            solutionTransactions.transactions[transactionIndex]!.value = value;
           }
-          questTransactions.transactions.push({
+          solutionTransactions.transactions.push({
             id: lastTransaction.id,
             attribute: "lastUpdated",
-            value: updateTime,
+            value: updateDate,
           });
 
-          _transactionQueue.set(lastTransaction.id, questTransactions);
+          _transactionQueue.set(lastTransaction.id, solutionTransactions);
         }
         for (const [key, value] of _transactionQueue.entries()) {
           for (const item of value.transactions) {
@@ -117,25 +121,25 @@ const QuestEditor = ({ id }: { id: string }) => {
           //updating the indexedb quest version after changes
 
           update(key, (item) => {
-            const quest = item as Quest;
-            quest.lastUpdated = updateTime;
-            return quest;
+            const solution = item as Solution;
+            solution.lastUpdated = updateDate;
+            return solution;
           });
           //updating the localstorage quest versions after change
-          const questVersion = JSON.parse(
+          const solutionVersion = JSON.parse(
             localStorage.getItem(key) as string
           ) as Versions;
-          if (questVersion) {
+          if (solutionVersion) {
             const newVersions = {
-              server: updateTime,
-              local: updateTime,
+              server: updateDate,
+              local: updateDate,
             };
             localStorage.setItem(key, JSON.stringify(newVersions));
           }
         }
 
         console.log("redacting transaction", _transactionQueue);
-        updateQuestAttributes.mutate({
+        updateSolutionAttributes.mutate({
           transactionsString: JSON.stringify(_transactionQueue, mapReplacer),
         });
         clearTransactionQueue();
@@ -147,75 +151,62 @@ const QuestEditor = ({ id }: { id: string }) => {
 
   useEffect(() => {
     //if local version is behind server's then fetch the quest from the server and update the local version
-    console.log("shouldUpdate again", shouldUpdate);
     if (shouldUpdate) {
-      if (serverQuest.data) {
-        setQuest(serverQuest.data);
-        set(id, serverQuest.data);
+      if (serverSolution.data) {
+        setSolution(serverSolution.data);
+        set(id, serverSolution.data);
         localStorage.setItem(
           id,
           JSON.stringify({
-            server: serverQuest.data?.lastUpdated,
-            local: serverQuest.data?.lastUpdated,
+            server: serverSolution.data?.lastUpdated,
+            local: serverSolution.data?.lastUpdated,
           })
         );
       }
     } else {
       get(id).then((val) => {
-        setQuest(val);
-        //if someone deleted local quest in indexedb, delete version so next time fetch from server
-        if (!val) {
-          localStorage.removeItem(id);
-        }
+        setSolution(val);
       });
     }
-  }, [serverQuest.data, id]);
+  }, [serverSolution.data, id]);
 
-  if (quest === null) {
+  if (solution === null) {
     return <Box>Quest does not exist</Box>;
   }
 
   return (
     <>
-      {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
-        <QuestAttributesSkeleton />
+      {solution === undefined || (serverSolution.isLoading && shouldUpdate) ? (
+        <SolutionAttributesSkeleton />
       ) : (
-        <QuestAttributes
-          quest={quest}
-          // isLoading={shouldUpdate && serverQuest.isLoading}
-          updateQuestAttributesHandler={updateQuestAttributesHandler}
+        <SolutionAttributes
+          solution={solution}
+          updateSolutionAttributesHandler={updateSolutionAttributesHandler}
         />
       )}
-      {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
+      {solution === undefined || (serverSolution.isLoading && shouldUpdate) ? (
         <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
       ) : (
         <TiptapEditor
-          id={quest.id}
-          content={quest.content}
-          updateAttributesHandler={updateQuestAttributesHandler}
+          id={solution.id}
+          content={solution.content}
+          updateAttributesHandler={updateSolutionAttributesHandler}
         />
       )}
-
-      <Publish
-        questId={id}
-        type="QUEST"
-        isOpen={isOpen}
-        onClose={onClose}
-        onOpen={onOpen}
-        errorMessage={errorMessage}
-        setErrorMessage={setErrorMessage}
-      />
-      <Button
-        colorScheme="blue"
-        mt={3}
-        onClick={() => {
-          onOpen();
-          setErrorMessage(undefined);
-        }}
-      >
-        Publish
-      </Button>
+      {solution && (
+        <Publish
+          solutionId={solution.id}
+          isOpen={isOpen}
+          onOpen={onOpen}
+          onClose={onClose}
+          type="SOLUTION"
+          questId={solution.questId}
+          questCreatorId={solution.questCreatorId}
+          errorMessage={errorMessage}
+          setErrorMessage={setErrorMessage}
+        />
+      )}
     </>
   );
 };
-export default QuestEditor;
+export default SolutionEditor;

@@ -6,7 +6,7 @@ import _Text from "@tiptap/extension-text";
 import parse, { attributesToProps } from "html-react-parser";
 import { useMemo } from "react";
 
-import { generateHTML } from "@tiptap/react";
+import { generateHTML } from "@tiptap/html";
 import Image, { ImageLoaderProps } from "next/image";
 import FileExtension from "../../components/Tiptap/FileExtension";
 import ImageExtension from "../../components/Tiptap/ImageExtension";
@@ -53,20 +53,52 @@ const Title = ({ title }: { title: string | undefined }) => {
   );
 };
 const Topic = ({ topic }: { topic?: TopicsType | undefined }) => {
-  return <Badge>{topic && topic}</Badge>;
+  return (
+    <Badge
+      colorScheme={`${
+        topic === "BUSINESS"
+          ? "green"
+          : topic === "MARKETING"
+          ? "red"
+          : topic === "PROGRAMMING"
+          ? "purple"
+          : topic === "VIDEOGRAPHY"
+          ? "blue"
+          : topic === "SCIENCE"
+          ? "green"
+          : "white"
+      }`}
+      fontSize="sm"
+      width="fit-content"
+      borderRadius="md"
+    >
+      {topic && topic}
+    </Badge>
+  );
 };
 
 const Subtopic = ({ subtopic }: { subtopic: string[] | undefined }) => {
   return (
-    <Box id="subtopic">
-      {subtopic && subtopic.map((s, i) => <Badge key={i}>{s}</Badge>)}
-    </Box>
+    <Flex id="subtopic" gap={2}>
+      {subtopic &&
+        subtopic.map((s, i) => (
+          <Badge
+            key={i}
+            colorScheme="blue"
+            fontSize="sm"
+            width="fit-content"
+            borderRadius="md"
+          >
+            {s}
+          </Badge>
+        ))}
+    </Flex>
   );
 };
 
 const Reward = ({ reward }: { reward: number | undefined }) => {
   return (
-    <Flex id="reward">
+    <Flex id="reward" gap={2}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
@@ -76,10 +108,10 @@ const Reward = ({ reward }: { reward: number | undefined }) => {
         <path fill="none" d="M0 0h24v24H0z" />
         <path
           d="M4.873 3h14.254a1 1 0 0 1 .809.412l3.823 5.256a.5.5 0 0 1-.037.633L12.367 21.602a.5.5 0 0 1-.706.028c-.007-.006-3.8-4.115-11.383-12.329a.5.5 0 0 1-.037-.633l3.823-5.256A1 1 0 0 1 4.873 3zm.51 2l-2.8 3.85L12 19.05 21.417 8.85 18.617 5H5.383z"
-          fill="var(--diamond)"
+          fill="var(--purple)"
         />
       </svg>
-      {reward}
+      <Text fontWeight="bold">{reward}</Text>
     </Flex>
   );
 };
@@ -95,24 +127,37 @@ const Slots = ({ slots }: { slots: number | undefined }) => {
         <path fill="none" d="M0 0h24v24H0z" />
         <path
           d="M2 22a8 8 0 1 1 16 0h-2a6 6 0 1 0-12 0H2zm8-9c-3.315 0-6-2.685-6-6s2.685-6 6-6 6 2.685 6 6-2.685 6-6 6zm0-2c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm8.284 3.703A8.002 8.002 0 0 1 23 22h-2a6.001 6.001 0 0 0-3.537-5.473l.82-1.824zm-.688-11.29A5.5 5.5 0 0 1 21 8.5a5.499 5.499 0 0 1-5 5.478v-2.013a3.5 3.5 0 0 0 1.041-6.609l.555-1.943z"
-          fill="var(--character)"
+          fill="var(--gray)"
         />
       </svg>
-      {slots}
+      <Text fontWeight="bold">{slots}</Text>
     </Flex>
   );
 };
-const Date = ({ questDate }: { questDate: string }) => {
+const DateComponent = ({ questDate }: { questDate: string }) => {
   const dueDate = new Date(questDate).toDateString();
   const exactDate = new Date(questDate).toLocaleDateString();
   console.log(dueDate);
 
   return (
-    <Flex>
+    <Flex gap={3}>
       <Text>DUE</Text>
-      <Badge size="small" color="blue">
+      <Badge
+        colorScheme="blue"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        borderRadius="md"
+      >
         {FromNow({ date: dueDate })}
-
+      </Badge>
+      <Badge
+        colorScheme="blue"
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        borderRadius="md"
+      >
         {exactDate}
       </Badge>
     </Flex>
@@ -121,15 +166,15 @@ const Date = ({ questDate }: { questDate: string }) => {
 
 const QuestAttributes = ({ quest }: { quest: Quest }) => {
   return (
-    <div className={`${styles.rowMargins}`}>
+    <Flex flexDirection="column" gap={3}>
       <Title title={quest.title} />
 
-      {quest.deadline && <Date questDate={quest.deadline} />}
+      {quest.deadline && <DateComponent questDate={quest.deadline} />}
       <Topic topic={quest.topic} />
       <Subtopic subtopic={quest.subtopic} />
       <Reward reward={quest.reward} />
       <Slots slots={quest.slots} />
-    </div>
+    </Flex>
   );
 };
 const SolutionAttributes = ({ solution }: { solution: Solution }) => {
@@ -179,6 +224,6 @@ const Preview = ({
       </>
     );
   }
-  return <></>;
+  return <>hello</>;
 };
 export default Preview;

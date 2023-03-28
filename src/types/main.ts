@@ -21,6 +21,7 @@ export const Topics = [
   "BUSINESS",
   "PROGRAMMING",
   "SCIENCE",
+  "VIDEOGRAPHY"
 ] as const;
 
 export const TopicsObject = {
