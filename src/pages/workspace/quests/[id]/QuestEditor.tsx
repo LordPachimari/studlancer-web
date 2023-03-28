@@ -1,7 +1,9 @@
 import { get, set } from "idb-keyval";
 import { useCallback, useEffect, useState } from "react";
-import QuestAttributes, { QuestAttributesSkeleton } from "./QuestAttributes";
-
+import { QuestAttributesSkeleton } from "./QuestAttributes";
+const QuestAttributes = dynamic(() => import("./QuestAttributes"), {
+  ssr: false,
+});
 import {
   Quest,
   TransactionQueue,
@@ -15,7 +17,10 @@ import Publish from "../../Publish";
 import debounce from "lodash.debounce";
 import { mapReplacer } from "../../../../utils/mapReplacer";
 import { WorkspaceStore } from "../../../../zustand/workspace";
-import TiptapEditor from "../../TiptapEditor";
+// import TiptapEditor from "../../TiptapEditor";
+const TiptapEditor = dynamic(() => import("../../TiptapEditor"), {
+  ssr: false,
+});
 import { trpc } from "~/utils/api";
 import {
   Box,
@@ -24,6 +29,7 @@ import {
   SkeletonText,
   useDisclosure,
 } from "@chakra-ui/react";
+import dynamic from "next/dynamic";
 
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,

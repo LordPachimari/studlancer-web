@@ -348,9 +348,7 @@ const QuestAttributes = ({
     lastTransaction: UpdateTransaction;
   }) => void;
 }) => {
-  if (!quest) {
-    return;
-  }
+ 
   const updateQuestAttributesListAttribute = WorkspaceStore(
     (state) => state.updateQuestState
   );

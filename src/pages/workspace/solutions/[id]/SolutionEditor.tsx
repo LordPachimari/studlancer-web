@@ -12,17 +12,19 @@ import { update } from "idb-keyval";
 import Publish from "../../Publish";
 
 import debounce from "lodash.debounce";
-import TiptapEditor from "../../TiptapEditor";
-import SolutionAttributes, {
-  SolutionAttributesSkeleton,
-} from "./SolutionAttributes";
+// import TiptapEditor from "../../TiptapEditor";
+import { SolutionAttributesSkeleton } from "./SolutionAttributes";
+const SolutionAttributes = dynamic(() => import("./SolutionAttributes"), {
+  ssr: false,
+});
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "~/zustand/workspace";
 import { mapReplacer } from "~/utils/mapReplacer";
 import { Box, SkeletonText, useDisclosure } from "@chakra-ui/react";
-// const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
-//   ssr: false,
-// });
+import dynamic from "next/dynamic";
+const TiptapEditor = dynamic(() => import("../../TiptapEditor"), {
+  ssr: false,
+});
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
