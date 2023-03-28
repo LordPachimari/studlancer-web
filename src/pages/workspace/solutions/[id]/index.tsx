@@ -15,32 +15,31 @@ const Editor = dynamic(() => import("./SolutionEditor"), {
 
 // import QuestAttributes from "./questAttributes";
 
-const WorkspaceSolution: NextPageWithLayout = () =>
+export default function WorkspaceSolution() {
   // { params }: { params: { id: string } }
-  {
-    const router = useRouter();
-    const id = router.query.id as string | undefined;
+  const router = useRouter();
+  const id = router.query.id as string | undefined;
 
-    if (!id) {
-      return (
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="blue.500"
-          size="xl"
-        />
-      );
-    }
-
+  if (!id) {
     return (
-      <Center mt={10}>
-        <Card w="85%" bg="white" p={5}>
-          <Editor id={id} />
-        </Card>
-      </Center>
+      <Spinner
+        thickness="4px"
+        speed="0.65s"
+        emptyColor="gray.200"
+        color="blue.500"
+        size="xl"
+      />
     );
-  };
+  }
+
+  return (
+    <Center mt={10}>
+      <Card w="85%" bg="white" p={5}>
+        <Editor id={id} />
+      </Card>
+    </Center>
+  );
+}
 WorkspaceSolution.getLayout = function getLayout(page: ReactElement) {
   return (
     <GlobalLayout>
