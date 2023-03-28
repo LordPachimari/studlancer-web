@@ -13,18 +13,16 @@ import Publish from "../../Publish";
 
 import debounce from "lodash.debounce";
 // import TiptapEditor from "../../TiptapEditor";
-import { SolutionAttributesSkeleton } from "./SolutionAttributes";
-const SolutionAttributes = dynamic(() => import("./SolutionAttributes"), {
-  ssr: false,
-});
+import SolutionAttributes, {
+  SolutionAttributesSkeleton,
+} from "./SolutionAttributes";
+
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "~/zustand/workspace";
 import { mapReplacer } from "~/utils/mapReplacer";
 import { Box, SkeletonText, useDisclosure } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
-const TiptapEditor = dynamic(() => import("../../TiptapEditor"), {
-  ssr: false,
-});
+import TiptapEditor from "../../TiptapEditor";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(

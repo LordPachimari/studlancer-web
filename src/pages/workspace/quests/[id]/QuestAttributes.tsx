@@ -1,11 +1,4 @@
-import {
-  ChangeEvent,
-  FormEvent,
-  KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useRef } from "react";
 import {
   Quest,
   TopicsType,
@@ -348,7 +341,6 @@ const QuestAttributes = ({
     lastTransaction: UpdateTransaction;
   }) => void;
 }) => {
- 
   const updateQuestAttributesListAttribute = WorkspaceStore(
     (state) => state.updateQuestState
   );
