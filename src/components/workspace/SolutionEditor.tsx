@@ -30,9 +30,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
   );
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(
-    undefined
-  );
+
   const solutionVersion = JSON.parse(
     localStorage.getItem(id) as string
   ) as Versions | null;
@@ -202,8 +200,6 @@ const SolutionEditor = ({ id }: { id: string }) => {
           type="SOLUTION"
           questId={solution.questId}
           questCreatorId={solution.questCreatorId}
-          errorMessage={errorMessage}
-          setErrorMessage={setErrorMessage}
         />
       )}
     </>

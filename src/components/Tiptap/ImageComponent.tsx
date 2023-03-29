@@ -4,8 +4,16 @@ import React, { useRef, useState } from "react";
 import ImageResizer from "./ImageResizer";
 import styles from "./tiptap.module.css";
 
-export default function ImageComponent(props) {
-  const imageLoader = ({ src, width, quality }) => {
+type ImageLoaderProps = {
+  src: string;
+  width: number;
+  quality?: number;
+};
+export default function ImageComponent(props: {
+  [key: string]: any;
+  as?: React.ElementType;
+}) {
+  const imageLoader = ({ src, width, quality }: ImageLoaderProps) => {
     return `${src}?w=${width}&q=${quality || 75}`;
   };
   const imageRef = useRef<null | HTMLImageElement>(null);
@@ -21,7 +29,6 @@ export default function ImageComponent(props) {
       width: nextWidth,
       height: nextHeight,
     });
-    // setImageWidhtHeight({width: parseInt(nextWidth ), height:parseInt(nextHeight)})
   };
 
   const onResizeStart = () => {

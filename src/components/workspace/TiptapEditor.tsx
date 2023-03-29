@@ -78,6 +78,7 @@ const TiptapEditor = (props: {
       onUpdate: ({ editor }) => {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
+
         addQuestTransaction({
           id: id,
           attribute: "content",

@@ -28,9 +28,7 @@ const SolutionAttributes = ({
   );
   const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
   const titlePlaceholderText = "Write title here";
-  const subtopicPlaceholderText = "Write subtopics and type , for styling";
   const titleRef = useRef<HTMLDivElement>(null);
-  const subtopicRef = useRef<HTMLDivElement>(null);
   const handleTitleChange = (e: FormEvent<HTMLDivElement>) => {
     updateSolutionListAttribute({
       id,

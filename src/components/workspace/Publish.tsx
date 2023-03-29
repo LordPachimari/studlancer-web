@@ -20,7 +20,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Box,
   Button,
+  Center,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -41,8 +43,6 @@ const Publish = ({
   isOpen,
   onOpen,
   onClose,
-  errorMessage,
-  setErrorMessage,
 }: {
   solutionId?: string;
 
@@ -52,10 +52,10 @@ const Publish = ({
   onOpen: () => void;
   onClose: () => void;
   type: "QUEST" | "SOLUTION";
-
-  errorMessage: string | undefined;
-  setErrorMessage: Dispatch<SetStateAction<string | undefined>>;
 }) => {
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(
+    undefined
+  );
   const QuestAttributesZod = z.object({
     id: z.string(),
     title: z.string(),
@@ -190,106 +190,114 @@ const Publish = ({
     }
   };
   return (
-    <AlertDialog
-      isOpen={isOpen}
-      leastDestructiveRef={cancelRef}
-      onClose={onClose}
-    >
-      <AlertDialogOverlay>
-        <AlertDialogContent>
-          {QuestOrSolution?.published ? (
-            <Text>PUBLISHED</Text>
-          ) : type === "QUEST" ? (
-            <>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                Confirm Publish
-              </AlertDialogHeader>
+    <Center>
+      <Button
+        w="100%"
+        colorScheme="blue"
+        mt={3}
+        onClick={() => {
+          onOpen();
 
-              <AlertDialogBody>
-                {errorMessage && <Text color="red">{errorMessage}</Text>}
-                You will pay {(QuestOrSolution as Quest)?.reward || 0} for
-                publishing the quest.
-                <Text>
-                  Note: Once the publisher viewed the solution, the quest can
-                  not be unpublished or deleted.
-                </Text>
-              </AlertDialogBody>
-            </>
-          ) : (
-            <></>
-          )}
+          validate();
+          setErrorMessage(undefined);
+        }}
+      >
+        Publish
+      </Button>
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            {QuestOrSolution?.published ? (
+              <Text>PUBLISHED</Text>
+            ) : type === "QUEST" ? (
+              <>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Confirm Publish
+                </AlertDialogHeader>
 
-          <AlertDialogFooter gap={2}>
-            <Button ref={cancelRef} onClick={onClose} colorScheme="red">
-              Close
-            </Button>
+                <AlertDialogBody>
+                  {errorMessage && <Text color="red">{errorMessage}</Text>}
+                  You will pay {(QuestOrSolution as Quest)?.reward || 0} for
+                  publishing the quest.
+                  <Text>
+                    Note: Once the publisher viewed the solution, the quest can
+                    not be unpublished or deleted.
+                  </Text>
+                </AlertDialogBody>
+              </>
+            ) : (
+              <></>
+            )}
 
-            <Spacer />
-            <Button
-              colorScheme="gray"
-              onClick={() => {
-                validate();
-                onPreviewOpen();
-              }}
-            >
-              Preview
-            </Button>
-            <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="2xl">
-              <ModalOverlay />
-              <ModalContent>
-                <ModalHeader>Preview</ModalHeader>
-                <ModalCloseButton />
-                <ModalBody>
-                  {type === "QUEST" ? (
-                    <Preview
-                      quest={QuestOrSolution}
-                      content={QuestOrSolution?.content}
-                      type="QUEST"
-                    />
-                  ) : (
-                    <Preview
-                      solution={QuestOrSolution}
-                      content={QuestOrSolution?.content}
-                      type="SOLUTION"
-                    />
-                  )}
-                </ModalBody>
+            <AlertDialogFooter gap={2}>
+              <Button ref={cancelRef} onClick={onClose} colorScheme="red">
+                Close
+              </Button>
 
-                <ModalFooter>
-                  <Button colorScheme="blue" mr={3} onClick={onPreviewClose}>
-                    Close
-                  </Button>
-                  <Button
-                    colorScheme="green"
-                    isDisabled={!!errorMessage}
-                    onClick={() => {
-                      const validationResult = validate();
-                      if (validationResult) {
+              <Spacer />
+              <Button
+                colorScheme="gray"
+                onClick={() => {
+                  onPreviewOpen();
+                }}
+              >
+                Preview
+              </Button>
+              <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="2xl">
+                <ModalOverlay />
+                <ModalContent>
+                  <ModalHeader>Preview</ModalHeader>
+                  <ModalCloseButton />
+                  <ModalBody>
+                    {type === "QUEST" ? (
+                      <Preview
+                        quest={QuestOrSolution}
+                        content={QuestOrSolution?.content}
+                        type="QUEST"
+                      />
+                    ) : (
+                      <Preview
+                        solution={QuestOrSolution}
+                        content={QuestOrSolution?.content}
+                        type="SOLUTION"
+                      />
+                    )}
+                  </ModalBody>
+
+                  <ModalFooter>
+                    <Button colorScheme="blue" mr={3} onClick={onPreviewClose}>
+                      Close
+                    </Button>
+                    <Button
+                      colorScheme="green"
+                      isDisabled={!!errorMessage}
+                      onClick={() => {
                         handlePublish({ questId, solutionId });
-                      }
-                    }}
-                  >
-                    Publish
-                  </Button>
-                </ModalFooter>
-              </ModalContent>
-            </Modal>
-            <Button
-              colorScheme="green"
-              onClick={() => {
-                const validationResult = validate();
-                if (validationResult) {
+                      }}
+                    >
+                      Publish
+                    </Button>
+                  </ModalFooter>
+                </ModalContent>
+              </Modal>
+              <Button
+                colorScheme="green"
+                onClick={() => {
                   handlePublish({ questId, solutionId });
-                }
-              }}
-              isDisabled={!!errorMessage}
-            >
-              Publish
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogOverlay>
-    </AlertDialog>
+                }}
+                isDisabled={!!errorMessage}
+              >
+                Publish
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </Center>
   );
 };
 export default Publish;

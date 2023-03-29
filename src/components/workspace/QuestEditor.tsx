@@ -32,9 +32,7 @@ import {
 
 const QuestEditor = ({ id }: { id: string }) => {
   const [quest, setQuest] = useState<Quest | null | undefined>(undefined);
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(
-    undefined
-  );
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const questVersion = JSON.parse(
     localStorage.getItem(id) as string
@@ -203,19 +201,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         isOpen={isOpen}
         onClose={onClose}
         onOpen={onOpen}
-        errorMessage={errorMessage}
-        setErrorMessage={setErrorMessage}
       />
-      <Button
-        colorScheme="blue"
-        mt={3}
-        onClick={() => {
-          onOpen();
-          setErrorMessage(undefined);
-        }}
-      >
-        Publish
-      </Button>
     </>
   );
 };

@@ -3,6 +3,8 @@ import { createNextApiHandler } from "@trpc/server/adapters/next";
 import { env } from "~/env.mjs";
 import { createContext } from "~/server/api/trpc";
 import { appRouter } from "~/server/api/root";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { NextRequest } from "next/server";
 
 // export API handler
 export default createNextApiHandler({
@@ -17,3 +19,5 @@ export default createNextApiHandler({
         }
       : undefined,
 });
+
+// export API handler
