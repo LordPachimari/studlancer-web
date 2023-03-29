@@ -10,7 +10,6 @@ import {
   Heading,
   HStack,
   IconButton,
-  Link,
   Skeleton,
   SkeletonCircle,
   SkeletonText,
@@ -22,6 +21,7 @@ import Paragraph from "@tiptap/extension-paragraph";
 import _Text from "@tiptap/extension-text";
 import { generateHTML } from "@tiptap/html";
 import parse, { attributesToProps } from "html-react-parser";
+import Link from "next/link";
 import { useMemo } from "react";
 import { PublishedQuest } from "~/types/main";
 import { FromNow } from "~/utils/dayjs";
@@ -70,7 +70,7 @@ export default function QuestComponent({
     <Link href={`/quests/${quest.id}`}>
       <Card w="100%" h="64" borderRadius="2xl" cursor="pointer">
         {" "}
-        <CardHeader>
+        <CardHeader p={4}>
           <Flex gap={5} flexWrap="wrap">
             <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
               <Link href={`/profile/${quest.creatorId}`}>
@@ -78,18 +78,18 @@ export default function QuestComponent({
                   name="Segun Adebayo"
                   src="https://bit.ly/sage-adebayo"
                 />
-
-                <Heading size="sm">{quest.creatorUsername}</Heading>
               </Link>
 
               <Box>
-                <Text>{publishedDateToDateString}</Text>
-                <Badge colorScheme="blue" ml={2}>
+                <Flex gap={2} alignItems="center">
+                  <Heading size="sm">{quest.creatorUsername}</Heading>
+                  <Text>{FromNow({ date: publishedDateToDateString })}</Text>
+                </Flex>
+
+                <Badge colorScheme="blue">
                   {`due ${FromNow({ date: dueDateToDateString })} `}
                 </Badge>
-                <Badge colorScheme="blue" ml={2}>
-                  {`${dueDateToLocalDate}`}
-                </Badge>
+                <Badge colorScheme="blue">{`${dueDateToLocalDate}`}</Badge>
                 <Flex mt={2} gap={2}>
                   <Badge colorScheme="red">{quest.topic}</Badge>
                   {quest.subtopic.map((subtopic, i) => (
@@ -116,10 +116,10 @@ export default function QuestComponent({
           </Flex>
         </CardHeader>
         {includeContent && (
-          <CardBody>{parse(output, HtmlParseOptions)}</CardBody>
+          <CardBody p={4}>{parse(output, HtmlParseOptions)}</CardBody>
         )}
         {includeDetails && (
-          <CardFooter>
+          <CardFooter p={4}>
             <HStack>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -1,18 +1,14 @@
-import { create } from "zustand";
 import produce, { enableMapSet } from "immer";
+import { create } from "zustand";
 
+import { TEST_USER } from "../constants/TEST_USER";
 import {
-  ObjectTypesType,
   Quest,
-  QuestListComponent,
-  TransactionQueue,
   Solution,
-  SolutionListComponent,
+  TransactionQueue,
   UpdateTransaction,
   WorkspaceList,
 } from "../types/main";
-import { TEST_USER } from "../constants/TEST_USER";
-import { JSONContent } from "@tiptap/react";
 enableMapSet();
 interface WorkspaceState {
   transactionQueue: TransactionQueue;

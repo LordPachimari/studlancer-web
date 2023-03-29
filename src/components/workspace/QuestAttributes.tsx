@@ -7,6 +7,7 @@ import {
 } from "../../types/main";
 
 import {
+  Badge,
   Flex,
   Input,
   InputGroup,

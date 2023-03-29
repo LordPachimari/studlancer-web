@@ -22,9 +22,12 @@ import {
   Box,
   Button,
   Card,
+  Center,
   SkeletonText,
   useDisclosure,
 } from "@chakra-ui/react";
+import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
+import { useRouter } from "next/router";
 
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,
@@ -32,6 +35,7 @@ import {
 
 const QuestEditor = ({ id }: { id: string }) => {
   const [quest, setQuest] = useState<Quest | null | undefined>(undefined);
+  const router = useRouter();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const questVersion = JSON.parse(
@@ -178,6 +182,8 @@ const QuestEditor = ({ id }: { id: string }) => {
     <>
       {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
         <QuestAttributesSkeleton />
+      ) : quest.published ? (
+        <NonEditableQuestAttributes quest={quest} />
       ) : (
         <QuestAttributes
           quest={quest}
@@ -187,6 +193,8 @@ const QuestEditor = ({ id }: { id: string }) => {
       )}
       {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
         <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
+      ) : quest.published && quest.content ? (
+        <NonEditableContent content={quest.content} />
       ) : (
         <TiptapEditor
           id={quest.id}
@@ -194,14 +202,28 @@ const QuestEditor = ({ id }: { id: string }) => {
           updateAttributesHandler={updateQuestAttributesHandler}
         />
       )}
-
-      <Publish
-        questId={id}
-        type="QUEST"
-        isOpen={isOpen}
-        onClose={onClose}
-        onOpen={onOpen}
-      />
+      {quest && !quest.published && (
+        <Publish
+          questId={id}
+          type="QUEST"
+          isOpen={isOpen}
+          onClose={onClose}
+          onOpen={onOpen}
+          setQuest={setQuest}
+        />
+      )}
+      {quest && quest.published && (
+        <Center>
+          <Button
+            mt={3}
+            colorScheme="green"
+            w="100%"
+            onClick={() => router.push(`/quests/${quest.id}`)}
+          >
+            View Published Quest
+          </Button>
+        </Center>
+      )}
     </>
   );
 };

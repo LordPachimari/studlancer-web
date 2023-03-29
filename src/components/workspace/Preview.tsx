@@ -12,7 +12,7 @@ import FileExtension from "../Tiptap/FileExtension";
 import ImageExtension from "../Tiptap/ImageExtension";
 
 import styles from "./workspace.module.css";
-import { Badge, Box, Flex, Heading, Text } from "@chakra-ui/react";
+import { Badge, Box, Center, Flex, Heading, Text } from "@chakra-ui/react";
 import { FromNow } from "~/utils/dayjs";
 export const HtmlParseOptions = {
   replace: (domNode: any) => {
@@ -23,14 +23,16 @@ export const HtmlParseOptions = {
       };
 
       return (
-        <Image
-          width={Math.round(parseInt(props.width!))}
-          height={Math.round(parseInt(props.height!))}
-          src={props.src!}
-          loader={imageLoader}
-          alt="image"
-          sizes="(max-width: 768px) 90vw, (min-width: 1024px) 400px"
-        />
+        <Center>
+          <Image
+            width={Math.round(parseInt(props.width!))}
+            height={Math.round(parseInt(props.height!))}
+            src={props.src!}
+            loader={imageLoader}
+            alt="image"
+            sizes="(max-width: 768px) 90vw, (min-width: 1024px) 400px"
+          />
+        </Center>
       );
     }
 
@@ -117,7 +119,7 @@ const Reward = ({ reward }: { reward: number | undefined }) => {
 };
 const Slots = ({ slots }: { slots: number | undefined }) => {
   return (
-    <Flex id="slots">
+    <Flex id="slots" gap={2}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
@@ -137,7 +139,6 @@ const Slots = ({ slots }: { slots: number | undefined }) => {
 const DateComponent = ({ questDate }: { questDate: string }) => {
   const dueDate = new Date(questDate).toDateString();
   const exactDate = new Date(questDate).toLocaleDateString();
-  console.log(dueDate);
 
   return (
     <Flex gap={3}>
@@ -164,7 +165,7 @@ const DateComponent = ({ questDate }: { questDate: string }) => {
   );
 };
 
-const QuestAttributes = ({ quest }: { quest: Quest }) => {
+export const NonEditableQuestAttributes = ({ quest }: { quest: Quest }) => {
   return (
     <Flex flexDirection="column" gap={3}>
       <Title title={quest.title} />
@@ -177,10 +178,14 @@ const QuestAttributes = ({ quest }: { quest: Quest }) => {
     </Flex>
   );
 };
-const SolutionAttributes = ({ solution }: { solution: Solution }) => {
+export const NonEditableSolutionAttributes = ({
+  solution,
+}: {
+  solution: Solution;
+}) => {
   return <Heading as="h2" title={solution.title} />;
 };
-const Content = ({ content }: { content: string }) => {
+export const NonEditableContent = ({ content }: { content: string }) => {
   const contentJSON = JSON.parse(content);
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
@@ -210,17 +215,17 @@ const Preview = ({
   if (type === "QUEST" && quest) {
     return (
       <>
-        <QuestAttributes quest={quest} />
+        <NonEditableQuestAttributes quest={quest} />
 
-        {content && <Content content={content} />}
+        {content && <NonEditableContent content={content} />}
       </>
     );
   }
   if (type === "SOLUTION" && solution) {
     return (
       <>
-        <SolutionAttributes solution={solution} />
-        {content && <Content content={content} />}
+        <NonEditableSolutionAttributes solution={solution} />
+        {content && <NonEditableContent content={content} />}
       </>
     );
   }

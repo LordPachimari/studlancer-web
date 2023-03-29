@@ -1,4 +1,5 @@
 .listContainer {
+  position: relative;
   background: white;
   left: -560px;
   width: 256px;

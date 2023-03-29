@@ -33,7 +33,9 @@ import {
   Spacer,
   Text,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
+import produce from "immer";
 
 const Publish = ({
   solutionId,
@@ -43,6 +45,8 @@ const Publish = ({
   isOpen,
   onOpen,
   onClose,
+  setQuest,
+  setSolution,
 }: {
   solutionId?: string;
 
@@ -51,11 +55,15 @@ const Publish = ({
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  setQuest?: Dispatch<SetStateAction<Quest | null | undefined>>;
+
+  setSolution?: Dispatch<SetStateAction<Solution | null | undefined>>;
   type: "QUEST" | "SOLUTION";
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
     undefined
   );
+  const toast = useToast();
   const QuestAttributesZod = z.object({
     id: z.string(),
     title: z.string(),
@@ -159,9 +167,29 @@ const Publish = ({
               setQuestOrSolution(value);
               return value;
             });
+            onClose();
+            toast({
+              title: "Quest uploaded successfully",
+              status: "success",
+              isClosable: true,
+            });
+            if (setQuest) {
+              setQuest(
+                produce((val) => {
+                  if (val) {
+                    val.published = true;
+                  }
+                })
+              );
+            }
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);
+            toast({
+              title: "Quest failed to upload",
+              status: "error",
+              isClosable: true,
+            });
           },
         }
       );
@@ -181,14 +209,35 @@ const Publish = ({
               setQuestOrSolution(value);
               return value;
             });
+            onClose();
+            toast({
+              title: "Solution uploaded successfully",
+              status: "success",
+              isClosable: true,
+            });
+            if (setSolution) {
+              setSolution(
+                produce((val) => {
+                  if (val) {
+                    val.published = true;
+                  }
+                })
+              );
+            }
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);
+            toast({
+              title: "Solution failed to upload",
+              status: "error",
+              isClosable: true,
+            });
           },
         }
       );
     }
   };
+
   return (
     <Center>
       <Button
@@ -211,9 +260,7 @@ const Publish = ({
       >
         <AlertDialogOverlay>
           <AlertDialogContent>
-            {QuestOrSolution?.published ? (
-              <Text>PUBLISHED</Text>
-            ) : type === "QUEST" ? (
+            {type === "QUEST" ? (
               <>
                 <AlertDialogHeader fontSize="lg" fontWeight="bold">
                   Confirm Publish
@@ -272,15 +319,6 @@ const Publish = ({
                     <Button colorScheme="blue" mr={3} onClick={onPreviewClose}>
                       Close
                     </Button>
-                    <Button
-                      colorScheme="green"
-                      isDisabled={!!errorMessage}
-                      onClick={() => {
-                        handlePublish({ questId, solutionId });
-                      }}
-                    >
-                      Publish
-                    </Button>
                   </ModalFooter>
                 </ModalContent>
               </Modal>
@@ -290,6 +328,7 @@ const Publish = ({
                   handlePublish({ questId, solutionId });
                 }}
                 isDisabled={!!errorMessage}
+                isLoading={publishQuest.isLoading || publishSolution.isLoading}
               >
                 Publish
               </Button>

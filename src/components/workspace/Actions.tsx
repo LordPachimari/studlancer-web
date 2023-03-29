@@ -17,6 +17,7 @@ export const storeQuestOrSolution = ({
   id: string;
   type: "QUEST" | "SOLUTION";
 }) => {
+  const newDate = new Date().toISOString();
   if (type === "QUEST") {
     const versions = { server: 1, local: 1 };
     localStorage.setItem(id, JSON.stringify(versions));
@@ -24,10 +25,10 @@ export const storeQuestOrSolution = ({
     const newQuest: Quest = {
       id,
       published: false,
-      createdAt: new Date().toISOString(),
+      createdAt: newDate,
       creatorId: TEST_USER.id,
       inTrash: false,
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: newDate,
       type: "QUEST",
     };
     set(id, newQuest);
@@ -35,11 +36,11 @@ export const storeQuestOrSolution = ({
     const newSolution: Solution = {
       id,
       published: false,
-      createdAt: new Date().toISOString(),
+      createdAt: newDate,
       creatorId: TEST_USER.id,
       inTrash: false,
 
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: newDate,
       type: "SOLUTION",
     };
 

@@ -1,3 +1,5 @@
+import { useAuth } from "@clerk/nextjs";
+import { del, get } from "idb-keyval";
 import {
   Quest,
   QuestListComponent,
@@ -6,32 +8,31 @@ import {
   Versions,
   WorkspaceList,
 } from "../../types/main";
-import { useAuth } from "@clerk/nextjs";
-import { del, get, update } from "idb-keyval";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
-import { ulid } from "ulid";
-import { WorkspaceStore } from "../../zustand/workspace";
-import { storeQuestOrSolution } from "./Actions";
-import styles from "./workspace.module.css";
-import { trpc } from "~/utils/api";
+// import Link from "next/link";
 import {
   Accordion,
   AccordionButton,
   AccordionIcon,
   AccordionItem,
   AccordionPanel,
-  Box,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Button,
   Circle,
   Divider,
   Flex,
   FormControl,
-  FormLabel,
-  Heading,
   IconButton,
   Input,
+  Link,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -45,6 +46,15 @@ import {
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
+import produce from "immer";
+import NextLink from "next/link";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { ulid } from "ulid";
+import { trpc } from "~/utils/api";
+import { WorkspaceStore } from "../../zustand/workspace";
+import { storeQuestOrSolution } from "./Actions";
+import styles from "./workspace.module.css";
 const List = ({
   showList,
   toggleShowList,
@@ -56,7 +66,7 @@ const List = ({
   for (let i = 0; i < 3; i++) {
     emptyLists.push({});
   }
-  const { userId, isLoaded } = useAuth();
+  const { isLoaded } = useAuth();
   const router = useRouter();
   const createQuest = trpc.quest.createQuest.useMutation();
   const createSolution = trpc.solution.createSolution.useMutation();
@@ -84,128 +94,57 @@ const List = ({
   const deleteQuestOrSolution = WorkspaceStore(
     (state) => state.deleteQuestOrSolution
   );
-  const [trash, setTrash] = useState<WorkspaceList>({
+  const [trash, setTrash] = useState<{
+    quests: Quest[];
+    solutions: Solution[];
+  }>({
     quests: [],
     solutions: [],
   });
-
-  const fetchDeletedQuestList = useCallback(() => {
-    //fetch quest list in trash
-  }, []);
+  const {
+    isOpen: isOpenTrashModal,
+    onOpen: onOpenTrashModal,
+    onClose: onCloseTrashModal,
+  } = useDisclosure();
 
   //deleteQuest deletes quest in local storage and the server (not actually deletes but marks as inTrash)
   const deleteListComponent = ({ id }: { id: string }) => {
-    get(id).then(
-      (listComponent: QuestListComponent | SolutionListComponent) => {
-        if (listComponent.type === "QUEST") {
-          const quest = listComponent as Quest;
-          if (quest && (quest.title !== "" || quest.content)) {
-            console.log("saving...");
-
-            update(`TRASH#${userId}`, (item) => {
-              const list = item as WorkspaceList;
-              if (!list) {
-                const newTrashList: WorkspaceList = {
-                  quests: [
-                    {
-                      id: quest.id,
-                      inTrash: quest.inTrash,
-                      lastUpdated: quest.lastUpdated,
-                      topic: quest.topic ? quest.topic : undefined,
-                      type: "QUEST",
-                    },
-                  ],
-                  solutions: [],
-                };
-                return newTrashList;
-              } else {
-                list.quests.push({
-                  id: quest.id,
-                  inTrash: quest.inTrash,
-                  lastUpdated: quest.lastUpdated,
-                  topic: quest.topic ? quest.topic : undefined,
-                  type: "QUEST",
-                });
-                return list;
-              }
-            });
-            deleteQuest.mutate({ id: quest.id });
-          } else {
-            deleteQuestPermanently.mutate({ id: quest.id });
-
-            deletePermanentlyFromLocalStorage({ id: quest.id, type: "QUEST" });
-          }
-          deleteQuestOrSolution({ id, type: "QUEST" });
-        } else if (listComponent.type === "SOLUTION") {
-          const solution = listComponent as Solution;
-          if (solution && solution.content) {
-            console.log("saving...");
-            update(`TRASH#${userId}`, (item) => {
-              const list = item as WorkspaceList;
-              if (!list) {
-                const newTrashList: WorkspaceList = {
-                  quests: [],
-                  solutions: [
-                    {
-                      id: solution.id,
-                      inTrash: solution.inTrash,
-                      lastUpdated: solution.lastUpdated,
-                      type: "SOLUTION",
-                    },
-                  ],
-                };
-                return newTrashList;
-              } else {
-                list.solutions.push({
-                  id: solution.id,
-                  inTrash: solution.inTrash,
-                  lastUpdated: solution.lastUpdated,
-                  type: "SOLUTION",
-                });
-                return list;
-              }
-            });
-            deleteSolution.mutate({ id: solution.id });
-          } else {
-            deleteSolutionPermanently.mutate({ id: solution.id });
-            deletePermanentlyFromLocalStorage({
-              id: solution.id,
-              type: "SOLUTION",
-            });
-          }
-
-          deleteQuestOrSolution({ id, type: "SOLUTION" });
+    get(id).then((component: Quest | Solution) => {
+      if (component.type === "QUEST") {
+        const quest = component as Quest;
+        if (quest && (quest.title !== "" || quest.content)) {
+          //saving quest if content exist
+          deleteQuest.mutate({ id: quest.id });
+        } else {
+          deleteQuestPermanently.mutate({ id: quest.id });
         }
-
-        del(id);
-
-        localStorage.removeItem(id);
-        router.push("/workspace");
+        deleteQuestOrSolution({ id, type: "QUEST" });
+        setTrash(
+          produce((trash) => {
+            trash.quests.push(component);
+          })
+        );
+      } else if (component.type === "SOLUTION") {
+        const solution = component as Solution;
+        if (solution && solution.content) {
+          //saving solution if content exist
+          deleteSolution.mutate({ id: solution.id });
+        } else {
+          deleteSolutionPermanently.mutate({ id: solution.id });
+        }
+        deleteQuestOrSolution({ id, type: "SOLUTION" });
+        setTrash(
+          produce((trash) => {
+            trash.quests.push(component);
+          })
+        );
       }
-    );
-  };
-  const deletePermanentlyFromLocalStorage = ({
-    id,
-    type,
-  }: {
-    id: string;
-    type: "QUEST" | "SOLUTION";
-  }) => {
-    update(`TRASH#${userId}`, (item) => {
-      const list = item as WorkspaceList;
-      if (type === "QUEST") {
-        const newQuests = list.quests.filter((q) => q.id !== id);
-        list.quests = newQuests;
-      } else if (type === "SOLUTION") {
-        const newSolutions = list.solutions.filter((s) => s.id !== id);
-        list.solutions = newSolutions;
-      }
-
-      setTrash(list);
-
-      return list;
+      del(id);
+      localStorage.removeItem(id);
+      router.push("/workspace");
     });
   };
+
   const restoreQuest = ({ id }: { id: string }) => {
     //fetch the quest from the server and push it to the list.
   };
@@ -241,6 +180,7 @@ const List = ({
       );
     }
   };
+
   useEffect(() => {
     if (serverWorkspaceList.data) {
       const nonDeletedQuests: Quest[] = [];
@@ -324,7 +264,43 @@ const List = ({
           </svg>
         </IconButton>
       </Flex>
-      <ListSettings trash={trash} />
+      <ListSettings>
+        <Button
+          pos="absolute"
+          bottom="0"
+          left="0"
+          justifyContent="flex-start"
+          pl="2"
+          borderRadius={0}
+          bg="none"
+          onClick={onOpenTrashModal}
+          leftIcon={
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+            >
+              <path fill="none" d="M0 0h24v24H0z" />
+              <path
+                d="M17 6h5v2h-2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8H2V6h5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3zm1 2H6v12h12V8zm-9 3h2v6H9v-6zm4 0h2v6h-2v-6zM9 4v2h6V4H9z"
+                fill="var(--blue)"
+              />
+            </svg>
+          }
+          w="100%"
+          color="gray.500"
+        >
+          Trash
+        </Button>
+        <TrashComponent
+          isOpen={isOpenTrashModal}
+          onOpen={onOpenTrashModal}
+          onClose={onCloseTrashModal}
+          trash={trash}
+          setTrash={setTrash}
+        />
+      </ListSettings>
       <Divider />
       <Accordion defaultIndex={[0]} allowMultiple>
         <AccordionItem>
@@ -389,6 +365,7 @@ const List = ({
               }
               w="100%"
               color="gray.500"
+              isLoading={createQuest.isLoading}
             >
               Add quest
             </Button>
@@ -460,6 +437,7 @@ const List = ({
               w="100%"
               color="gray.500"
               onClick={() => createQuestOrSolutionHandler({ type: "SOLUTION" })}
+              isLoading={createSolution.isLoading}
             >
               Add Solution
             </Button>
@@ -470,17 +448,13 @@ const List = ({
   );
 };
 
-const ListSettings = ({ trash }: { trash: WorkspaceList }) => {
+const ListSettings = ({ children }: { children: React.ReactNode }) => {
   const {
     isOpen: isOpenSearchModal,
     onOpen: onOpenSearchModal,
     onClose: onCloseSearchModal,
   } = useDisclosure();
-  const {
-    isOpen: isOpenTrashModal,
-    onOpen: onOpenTrashModal,
-    onClose: onCloseTrashModal,
-  } = useDisclosure();
+
   return (
     <>
       <Button
@@ -537,40 +511,7 @@ const ListSettings = ({ trash }: { trash: WorkspaceList }) => {
       >
         Import
       </Button>
-      <Button
-        pos="absolute"
-        bottom="0"
-        left="0"
-        justifyContent="flex-start"
-        pl="2"
-        borderRadius={0}
-        bg="none"
-        onClick={onOpenTrashModal}
-        leftIcon={
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="24"
-            height="24"
-          >
-            <path fill="none" d="M0 0h24v24H0z" />
-            <path
-              d="M17 6h5v2h-2v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8H2V6h5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3zm1 2H6v12h12V8zm-9 3h2v6H9v-6zm4 0h2v6h-2v-6zM9 4v2h6V4H9z"
-              fill="var(--blue)"
-            />
-          </svg>
-        }
-        w="100%"
-        color="gray.500"
-      >
-        Trash
-      </Button>
-      <TrashComponent
-        isOpen={isOpenTrashModal}
-        onOpen={onOpenTrashModal}
-        onClose={onCloseTrashModal}
-        trash={trash}
-      />
+      {children}
     </>
   );
 };
@@ -584,6 +525,9 @@ const SearchComponent = ({
   onClose: () => void;
 }) => {
   const initialRef = React.useRef(null);
+  // const searchText = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   values().then((values) => console.log(values));
+  // };
   return (
     <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
@@ -595,6 +539,7 @@ const SearchComponent = ({
             <Input
               ref={initialRef}
               placeholder="Search for quests and solutions..."
+              onChange={(e) => {}}
             />
           </FormControl>
         </ModalBody>
@@ -614,61 +559,290 @@ const TrashComponent = ({
   onClose,
   onOpen,
   isOpen,
+  setTrash,
 }: {
   trash: WorkspaceList;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  setTrash: React.Dispatch<
+    React.SetStateAction<{
+      quests: Quest[];
+      solutions: Solution[];
+    }>
+  >;
 }) => {
   const initialRef = React.useRef(null);
+  const {
+    isOpen: isAlertOpen,
+    onOpen: onAlertOpen,
+    onClose: onAlertClose,
+  } = useDisclosure();
+  const cancelRef = React.useRef();
+  const deleteQuestPermanently =
+    trpc.quest.deleteQuestPermanently.useMutation();
+  const deleteSolutionPermanently =
+    trpc.solution.deleteSolutionPermanently.useMutation();
+
   return (
     <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Search</ModalHeader>
+        <ModalHeader>Trash</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
           <FormControl>
             <Input
               ref={initialRef}
-              placeholder="Search for quests and solutions..."
+              placeholder="Search for deleted quests and solutions..."
             />
           </FormControl>
 
           {trash &&
-            trash.quests.map((c, i) => (
-              <Button
-                justifyContent="flex-start"
-                pl="2"
-                borderRadius={0}
-                bg="none"
-                leftIcon={
-                  <Circle size="24px" bg="tomato" color="white"></Circle>
-                }
-                w="100%"
-                color="black"
-                key={i}
-              >
-                {c.title || "Untitled"}
-              </Button>
-            ))}
+            trash.quests
+              .slice(0)
+              .reverse()
+              .map((q, i) => (
+                <Flex
+                  mt={2}
+                  _hover={{ bg: "gray.100" }}
+                  cursor="pointer"
+                  pl="2"
+                  borderRadius={4}
+                  bg="none"
+                  w="100%"
+                  h="10"
+                  color="black"
+                  key={i}
+                  gap={2}
+                  alignItems="center"
+                >
+                  <Circle
+                    size="24px"
+                    borderWidth="1px"
+                    borderColor="black"
+                    bg={q.topic ? TopicColor({ topic: q.topic }) : "white"}
+                  ></Circle>
+                  <Text
+                    fontSize="md"
+                    fontWeight="semibold"
+                    whiteSpace="nowrap"
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                  >
+                    {q.title || "Untitled"}
+                  </Text>
+                  <Spacer />
+                  <IconButton
+                    size="sm"
+                    aria-label="restore"
+                    icon={
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                      >
+                        <path fill="none" d="M0 0h24v24H0z" />
+                        <path
+                          d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
+                          fill="var(--gray)"
+                        />
+                      </svg>
+                    }
+                  ></IconButton>
+
+                  <IconButton
+                    mr={1}
+                    size="sm"
+                    aria-label="restore"
+                    onClick={() => {
+                      onAlertOpen();
+                    }}
+                    icon={
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                      >
+                        <path fill="none" d="M0 0h24v24H0z" />
+                        <path
+                          d="M7 4V2h10v2h5v2h-2v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6H2V4h5zM6 6v14h12V6H6zm3 3h2v8H9V9zm4 0h2v8h-2V9z"
+                          fill="var(--gray)"
+                        />
+                      </svg>
+                    }
+                  ></IconButton>
+
+                  <AlertDialog
+                    isOpen={isAlertOpen}
+                    leastDestructiveRef={cancelRef}
+                    onClose={onAlertClose}
+                  >
+                    <AlertDialogOverlay>
+                      <AlertDialogContent>
+                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                          Permanently Delete Quest
+                        </AlertDialogHeader>
+
+                        <AlertDialogBody>
+                          Are you sure? You can't undo this action afterwards.
+                        </AlertDialogBody>
+
+                        <AlertDialogFooter>
+                          <Button ref={cancelRef} onClick={onAlertClose}>
+                            Cancel
+                          </Button>
+                          <Button
+                            colorScheme="red"
+                            isLoading={deleteQuestPermanently.isLoading}
+                            onClick={() => {
+                              deleteQuestPermanently.mutate(
+                                { id: q.id },
+                                {
+                                  onSuccess: () => {
+                                    setTrash(
+                                      produce((trash) => {
+                                        const filteredQuests =
+                                          trash.quests.filter(
+                                            (q) => q.id !== q.id
+                                          );
+                                        trash.quests = filteredQuests;
+                                      })
+                                    );
+                                    onAlertClose();
+                                  },
+                                }
+                              );
+                            }}
+                            ml={3}
+                          >
+                            Delete
+                          </Button>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialogOverlay>
+                  </AlertDialog>
+                </Flex>
+              ))}
 
           {trash &&
-            trash.solutions.map((c, i) => (
-              <Button
-                justifyContent="flex-start"
+            trash.solutions.map((s, i) => (
+              <Flex
+                mt={2}
+                borderWidth="1px"
+                borderColor="blue"
                 pl="2"
-                borderRadius={0}
+                borderRadius={4}
                 bg="none"
-                leftIcon={
-                  <Circle size="24px" bg="tomato" color="white"></Circle>
-                }
                 w="100%"
                 color="black"
                 key={i}
+                alignItems="center"
               >
-                {c.title || "Untitled"}
-              </Button>
+                <Text
+                  fontSize="md"
+                  fontWeight="semibold"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  textOverflow="ellipsis"
+                >
+                  {s.title || "Untitled"}
+                </Text>
+
+                <Spacer />
+                <IconButton
+                  size="sm"
+                  aria-label="restore"
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                    >
+                      <path fill="none" d="M0 0h24v24H0z" />
+                      <path
+                        d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
+                        fill="var(--gray)"
+                      />
+                    </svg>
+                  }
+                ></IconButton>
+
+                <IconButton
+                  mr={1}
+                  size="sm"
+                  aria-label="restore"
+                  onClick={() => {
+                    onAlertOpen();
+                  }}
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                    >
+                      <path fill="none" d="M0 0h24v24H0z" />
+                      <path
+                        d="M7 4V2h10v2h5v2h-2v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6H2V4h5zM6 6v14h12V6H6zm3 3h2v8H9V9zm4 0h2v8h-2V9z"
+                        fill="var(--gray)"
+                      />
+                    </svg>
+                  }
+                ></IconButton>
+                <AlertDialog
+                  isOpen={isAlertOpen}
+                  leastDestructiveRef={cancelRef}
+                  onClose={onAlertClose}
+                >
+                  <AlertDialogOverlay>
+                    <AlertDialogContent>
+                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                        Permanently Delete Solution
+                      </AlertDialogHeader>
+
+                      <AlertDialogBody>
+                        Are you sure? You can't undo this action afterwards.
+                      </AlertDialogBody>
+
+                      <AlertDialogFooter>
+                        <Button ref={cancelRef} onClick={onAlertClose}>
+                          Cancel
+                        </Button>
+                        <Button
+                          colorScheme="red"
+                          isLoading={deleteSolutionPermanently.isLoading}
+                          onClick={() => {
+                            deleteSolutionPermanently.mutate(
+                              { id: s.id },
+                              {
+                                onSuccess: () => {
+                                  onAlertClose();
+                                  setTrash(
+                                    produce((trash) => {
+                                      const filteredQuests =
+                                        trash.quests.filter(
+                                          (q) => q.id !== q.id
+                                        );
+                                      trash.quests = filteredQuests;
+                                    })
+                                  );
+                                },
+                              }
+                            );
+                          }}
+                          ml={3}
+                        >
+                          Delete
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialogOverlay>
+                </AlertDialog>
+              </Flex>
             ))}
         </ModalBody>
 
@@ -681,6 +855,27 @@ const TrashComponent = ({
       </ModalContent>
     </Modal>
   );
+};
+// <Link
+//         href={`/workspace/quests/${questListComponent.id}`}
+//       ></Link>
+const TopicColor = ({ topic }: { topic: string }) => {
+  if (topic === "BUSINESS") {
+    return "green.200";
+  }
+  if (topic === "PROGRAMMING") {
+    return "purple.200";
+  }
+  if (topic === "MARKETING") {
+    return "red.200";
+  }
+  if (topic === "SCIENCE") {
+    return "greenyellow";
+  }
+  if (topic === "VIDEOGRAPHY") {
+    return "blue.200";
+  }
+  return "white";
 };
 const ListComponent = ({
   listComponent,
@@ -695,80 +890,182 @@ const ListComponent = ({
   if (type === "QUEST") {
     const questListComponent = listComponent as QuestListComponent;
     return (
-      <Link
-        className={styles.listComponentContent}
-        href={`/workspace/quests/${listComponent.id}`}
+      <Flex
+        pl="2"
+        borderRadius={0}
+        bg="none"
+        w="100%"
+        h="10"
+        color="black"
+        gap={2}
+        alignItems="center"
+        // _hover={{
+        //   bg: "gray.100",
+        //   ".actionButton": {
+        //     visibility: "visible",
+        //   },
+        // }}
+        className="listComponent"
       >
-        <Flex
-          pl="2"
-          borderRadius={0}
-          bg="none"
-          w="100%"
-          h="10"
-          color="black"
+        <Link
+          width="100%"
+          href={`/workspace/quests/${questListComponent.id}`}
+          as={NextLink}
+          display="flex"
           gap={2}
-          alignItems="center"
           _hover={{
-            bg: "gray.100",
-            ".actionButton": {
-              display: "flex",
-            },
+            textDecor: "none",
           }}
-          className="listComponent"
+          whiteSpace="nowrap"
+          overflow="hidden"
+          textOverflow="ellipsis"
         >
-          <Circle size="24px" bg="tomato" color="white"></Circle>
-          <Text fontSize="lg" fontWeight="bold">
-            {listComponent.title || "Untitled"}
+          <Circle
+            size="24px"
+            bg={
+              questListComponent.topic
+                ? TopicColor({ topic: questListComponent.topic })
+                : "gray.100"
+            }
+            color="black"
+            fontWeight="bold"
+          >
+            {questListComponent.topic && questListComponent.topic[0]}
+          </Circle>
+          <Text
+            fontSize="md"
+            fontWeight="semibold"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            textOverflow="ellipsis"
+          >
+            {questListComponent.title || "Untitled"}
           </Text>
-          <Spacer />
-          <IconButton
+        </Link>
+
+        <Spacer />
+
+        <Menu>
+          <MenuButton
             bg="none"
             _hover={{
               bg: "gray.200",
             }}
-            size="sm"
-            mr={1}
-            display="none"
-            aria-label="delete list component"
+            borderRadius="sm"
             className="actionButton"
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-              >
-                <path fill="none" d="M0 0h24v24H0z" />
-                <path
-                  d="M12 3c-.825 0-1.5.675-1.5 1.5S11.175 6 12 6s1.5-.675 1.5-1.5S12.825 3 12 3zm0 15c-.825 0-1.5.675-1.5 1.5S11.175 21 12 21s1.5-.675 1.5-1.5S12.825 18 12 18zm0-7.5c-.825 0-1.5.675-1.5 1.5s.675 1.5 1.5 1.5 1.5-.675 1.5-1.5-.675-1.5-1.5-1.5z"
-                  fill="var(--blue)"
-                />
-              </svg>
-            }
-          ></IconButton>
-        </Flex>
-      </Link>
+            // visibility="hidden"
+            transition="all 0s"
+            as={Button}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+            >
+              <path fill="none" d="M0 0h24v24H0z" />
+              <path
+                d="M12 3c-.825 0-1.5.675-1.5 1.5S11.175 6 12 6s1.5-.675 1.5-1.5S12.825 3 12 3zm0 15c-.825 0-1.5.675-1.5 1.5S11.175 21 12 21s1.5-.675 1.5-1.5S12.825 18 12 18zm0-7.5c-.825 0-1.5.675-1.5 1.5s.675 1.5 1.5 1.5 1.5-.675 1.5-1.5-.675-1.5-1.5-1.5z"
+                fill="var(--blue)"
+              />
+            </svg>
+          </MenuButton>
+          <MenuList>
+            <MenuItem>{"Duplicate (in progress)"} </MenuItem>
+            <MenuItem
+              onClick={() => deleteListComponent({ id: questListComponent.id })}
+            >
+              {"Delete"}
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      </Flex>
     );
   }
   if (type === "SOLUTION") {
+    const SolutionListComponent = listComponent as SolutionListComponent;
     return (
-      <Link
-        className={styles.listComponentContent}
-        href={`/workspace/solutions/${listComponent.id}`}
-        key={listComponent.id}
+      <Flex
+        pl="2"
+        borderRadius={0}
+        bg="none"
+        w="100%"
+        h="10"
+        color="black"
+        gap={2}
+        alignItems="center"
+        _hover={{
+          bg: "gray.100",
+          ".actionButton": {
+            visibility: "visible",
+          },
+        }}
+        className="listComponent"
       >
-        <Button
-          justifyContent="flex-start"
-          pl="2"
-          borderRadius={0}
-          bg="none"
-          leftIcon={<Circle size="24px" bg="tomato" color="white"></Circle>}
-          w="100%"
-          color="black"
+        <Link
+          as={NextLink}
+          gap={2}
+          display="flex"
+          _hover={{
+            textDecor: "none",
+          }}
+          whiteSpace="nowrap"
+          overflow="hidden"
+          textOverflow="ellipsis"
+          href={`/workspace/solutions/${listComponent.id}`}
         >
-          title
-        </Button>
-      </Link>
+          <Circle size="24px" bg="blue" color="black" fontWeight="bold">
+            {"S"}
+          </Circle>
+          <Text
+            fontSize="md"
+            fontWeight="semibold"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            textOverflow="ellipsis"
+          >
+            {SolutionListComponent.title || "Untitled"}
+          </Text>
+        </Link>
+
+        <Spacer />
+
+        <Menu>
+          <MenuButton
+            bg="none"
+            _hover={{
+              bg: "gray.200",
+            }}
+            borderRadius="sm"
+            visibility="hidden"
+            className="actionButton"
+            as={Button}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+            >
+              <path fill="none" d="M0 0h24v24H0z" />
+              <path
+                d="M12 3c-.825 0-1.5.675-1.5 1.5S11.175 6 12 6s1.5-.675 1.5-1.5S12.825 3 12 3zm0 15c-.825 0-1.5.675-1.5 1.5S11.175 21 12 21s1.5-.675 1.5-1.5S12.825 18 12 18zm0-7.5c-.825 0-1.5.675-1.5 1.5s.675 1.5 1.5 1.5 1.5-.675 1.5-1.5-.675-1.5-1.5-1.5z"
+                fill="var(--blue)"
+              />
+            </svg>
+          </MenuButton>
+          <MenuList transition="none">
+            <MenuItem>{"Duplicate (in progress)"} </MenuItem>
+            <MenuItem
+              onClick={() =>
+                deleteListComponent({ id: SolutionListComponent.id })
+              }
+            >
+              {"Delete"}
+            </MenuItem>
+          </MenuList>
+        </Menu>
+      </Flex>
     );
   }
   return <></>;

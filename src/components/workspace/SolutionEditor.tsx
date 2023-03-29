@@ -23,6 +23,7 @@ import { mapReplacer } from "~/utils/mapReplacer";
 import { Box, SkeletonText, useDisclosure } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import TiptapEditor from "./TiptapEditor";
+import { NonEditableContent } from "./Preview";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
@@ -184,6 +185,8 @@ const SolutionEditor = ({ id }: { id: string }) => {
       )}
       {solution === undefined || (serverSolution.isLoading && shouldUpdate) ? (
         <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
+      ) : solution.published && solution.content ? (
+        <NonEditableContent content={solution.content} />
       ) : (
         <TiptapEditor
           id={solution.id}
@@ -191,7 +194,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           updateAttributesHandler={updateSolutionAttributesHandler}
         />
       )}
-      {solution && (
+      {solution && !solution.published && (
         <Publish
           solutionId={solution.id}
           isOpen={isOpen}
