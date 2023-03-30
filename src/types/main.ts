@@ -14,14 +14,14 @@ const questAttributes = [
   "slots",
   "deadline",
   "content",
-  "lastUpdated"
+  "lastUpdated",
 ] as const;
 export const Topics = [
   "MARKETING",
   "BUSINESS",
   "PROGRAMMING",
   "SCIENCE",
-  "VIDEOGRAPHY"
+  "VIDEOGRAPHY",
 ] as const;
 
 export const TopicsObject = {
@@ -56,7 +56,7 @@ export const UserZod = z.object({
   balance: z.number(),
   level: z.number(),
   experience: z.number(),
-  topics: z.optional(z.enum(Topics)),
+  topics: z.optional(z.array(z.enum(Topics))),
   subtopics: z.optional(z.array(z.string())),
   guildId: z.optional(z.string()),
   createdAt: z.string(),
@@ -125,7 +125,6 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   solverCount: z.number(),
   allowUnpublish: z.boolean(),
 }).omit({
-  lastUpdated: true,
   inTrash: true,
   createdAt: true,
 });
@@ -209,6 +208,7 @@ const SolutionPartialZod = z
     id: z.string(),
     content: z.string(),
     creatorId: z.string(),
+    topic: z.enum(Topics),
     contributors: z.set(z.string()),
     inTrash: z.boolean(),
     createdAt: z.string(),
@@ -236,14 +236,13 @@ export const SolutionZod = SolutionPartialZod.required({
 export type Solution = z.infer<typeof SolutionZod>;
 export const PublishedSolutionZod = SolutionPartialZod.omit({
   inTrash: true,
-  lastUpdated: true,
   createdAt: true,
 })
   .required()
   .extend({
     status: z.optional(z.enum(SolutionStatus)),
   })
-  .partial({ contributors: true });
+  .partial({ contributors: true, topic: true });
 export type PublishedSolution = z.infer<typeof PublishedSolutionZod>;
 export const SolutionDynamoZod = SolutionZod.extend({
   PK: z.string(),
@@ -252,8 +251,9 @@ export const SolutionDynamoZod = SolutionZod.extend({
 export type SolutionDynamo = z.infer<typeof SolutionDynamoZod>;
 export type SolutionListComponent = Pick<
   Solution,
-  "id" | "title" | "lastUpdated" | "inTrash" | "type"
+  "id" | "title" | "topic" | "lastUpdated" | "inTrash" | "type"
 >;
+
 export type WorkspaceList = {
   quests: QuestListComponent[];
   solutions: SolutionListComponent[];

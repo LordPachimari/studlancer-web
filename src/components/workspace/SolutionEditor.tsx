@@ -64,7 +64,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
 
   const updateSolutionAttributesHandler = useCallback(
     debounce(
-      async ({
+      ({
         transactionQueue,
         //last transaction needs to be pushed into transactionQueue,
         //as the last addTransaction function is executed in parallel with updateQuestAttributeHandler,
@@ -151,7 +151,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
       },
       1000
     ),
-    []
+    [debounce]
   );
 
   useEffect(() => {
@@ -173,7 +173,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
         setSolution(val);
       });
     }
-  }, [serverSolution.data, id]);
+  }, [serverSolution.data, id, shouldUpdate]);
 
   if (solution === null) {
     return <Box>Quest does not exist</Box>;

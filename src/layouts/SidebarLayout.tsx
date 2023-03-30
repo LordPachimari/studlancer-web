@@ -1,13 +1,4 @@
-import {
-  Box,
-  Button,
-  Center,
-  Flex,
-  IconButton,
-  Input,
-  InputGroup,
-  InputRightElement,
-} from "@chakra-ui/react";
+import { Center, Flex, IconButton, Input } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import styles from "./sidebar.module.css";

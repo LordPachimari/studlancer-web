@@ -9,7 +9,7 @@ import {
   Heading,
   Input,
 } from "@chakra-ui/react";
-import { Field, Form, Formik } from "formik";
+import { Field, Form, Formik, FormikProps } from "formik";
 import { useRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
 import { z } from "zod";
@@ -19,8 +19,8 @@ const UsernameFormValues = z.object({
 });
 type UsernameFormValuesType = z.infer<typeof UsernameFormValues>;
 export default function Username({
-  componentName,
-  setComponentName,
+  // componentName,
+  // setComponentName,
   userId,
 }: {
   componentName: "USERNAME" | "CHARACTER";
@@ -56,6 +56,7 @@ export default function Username({
     >
       {(props) => (
         <Form>
+          {" "}
           <Card
             bg="white"
             w={{ base: "100%", md: "md" }}
@@ -67,12 +68,18 @@ export default function Username({
             </CardHeader>
             <CardBody>
               <Field name="username" validate={validateUsername}>
-                {({ field, form }) => (
+                {({
+                  field,
+                  form,
+                }: {
+                  field: typeof Field;
+                  form: FormikProps<UsernameFormValuesType>;
+                }) => (
                   <FormControl
-                    isInvalid={form.errors.name && form.touched.name}
+                    isInvalid={!!form.errors.username && form.touched.username}
                   >
                     <Input {...field} placeholder="Enter Username" />
-                    <FormErrorMessage>{form.errors.name}</FormErrorMessage>
+                    <FormErrorMessage>{form.errors.username}</FormErrorMessage>
                   </FormControl>
                 )}
               </Field>

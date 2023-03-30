@@ -24,13 +24,14 @@ const SolutionAttributes = ({
   const { id } = solution;
 
   const updateSolutionListAttribute = WorkspaceStore(
-    (state) => state.updateSolutionState
+    (state) => state.updateListState
   );
   const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
   const titlePlaceholderText = "Write title here";
   const titleRef = useRef<HTMLDivElement>(null);
   const handleTitleChange = (e: FormEvent<HTMLDivElement>) => {
     updateSolutionListAttribute({
+      type: "SOLUTION",
       id,
       attribute: "title",
       value: e.currentTarget.textContent as string,
@@ -63,7 +64,7 @@ const SolutionAttributes = ({
       console.log("uo");
       const placeholder = document.createElement("div");
       placeholder.textContent = titlePlaceholderText;
-      placeholder.className = styles.titlePlaceholder!;
+      placeholder.className = styles.titlePlaceholder as string;
       titleRef.current.appendChild(placeholder);
     }
   };
@@ -83,8 +84,8 @@ const SolutionAttributes = ({
         if (e.key === "Backspace") {
           const title = document.getElementById("title");
           if (
-            !title?.childNodes[0]! ||
-            title?.childNodes[0]!.textContent === ""
+            !title?.childNodes[0] ||
+            title?.childNodes[0].textContent === ""
           ) {
             e.preventDefault();
           }

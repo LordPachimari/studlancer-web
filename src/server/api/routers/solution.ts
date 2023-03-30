@@ -297,6 +297,7 @@ export const solutionRouter = router({
             questId,
             views: 0,
             type: "SOLUTION",
+            lastUpdated:currentSolution.lastUpdated
           };
           PublishedSolutionZod.parse(publishedSolution);
           const params: TransactWriteCommandInput = {

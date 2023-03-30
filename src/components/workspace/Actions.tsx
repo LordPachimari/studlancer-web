@@ -1,15 +1,13 @@
-import styles from "./workspace.module.css";
-
 import { useRouter } from "next/navigation";
 
-import { Quest, Solution } from "../../types/main";
 import { set } from "idb-keyval";
 import { ulid } from "ulid";
 import { TEST_USER } from "../../constants/TEST_USER";
+import { Quest, Solution } from "../../types/main";
 
-import { WorkspaceStore } from "../../zustand/workspace";
+import { Button, Center } from "@chakra-ui/react";
 import { trpc } from "~/utils/api";
-import { Box, Button, Center, Flex } from "@chakra-ui/react";
+import { WorkspaceStore } from "../../zustand/workspace";
 export const storeQuestOrSolution = ({
   id,
   type,
@@ -31,7 +29,7 @@ export const storeQuestOrSolution = ({
       lastUpdated: newDate,
       type: "QUEST",
     };
-    set(id, newQuest);
+    void set(id, newQuest);
   } else if (type === "SOLUTION") {
     const newSolution: Solution = {
       id,
@@ -49,6 +47,7 @@ export const storeQuestOrSolution = ({
 
   return true;
 };
+//hello world
 const Actions = () => {
   const router = useRouter();
   const createQuestOrSolutionState = WorkspaceStore(
@@ -83,9 +82,8 @@ const Actions = () => {
         colorScheme="blue"
         w={{ base: "90%", md: "60" }}
         isLoading={createSolution.isLoading}
-        onClick={async () => {
+        onClick={() => {
           const id = ulid();
-
           createQuestOrSolutionState({ id, type: "SOLUTION" });
           storeQuestOrSolution({ id, type: "SOLUTION" });
           createSolution.mutate(

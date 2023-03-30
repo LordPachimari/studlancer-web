@@ -172,7 +172,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         }
       });
     }
-  }, [serverQuest.data, id]);
+  }, [serverQuest.data, id, shouldUpdate]);
 
   if (quest === null) {
     return <Box>Quest does not exist</Box>;

@@ -1,4 +1,5 @@
-import { TransactionQueue, UpdateTransaction } from "../../types/main";
+import { Box } from "@chakra-ui/react";
+import Placeholder from "@tiptap/extension-placeholder";
 import {
   BubbleMenu,
   EditorContent,
@@ -6,13 +7,12 @@ import {
   useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { ChangeEvent, useCallback, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useRef } from "react";
+import { TransactionQueue, UpdateTransaction } from "../../types/main";
+import { WorkspaceStore } from "../../zustand/workspace";
 import FileExtension from "../Tiptap/FileExtension";
 import ImageExtension from "../Tiptap/ImageExtension";
-import { WorkspaceStore } from "../../zustand/workspace";
 import styles from "./workspace.module.css";
-import { Box, SkeletonText } from "@chakra-ui/react";
-import Placeholder from "@tiptap/extension-placeholder";
 
 const TiptapEditor = (props: {
   id: string;

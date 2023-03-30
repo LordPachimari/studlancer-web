@@ -1,10 +1,7 @@
-import { Box, Card, CardHeader, Center, ScaleFade } from "@chakra-ui/react";
+import { Card, CardHeader, Center, ScaleFade } from "@chakra-ui/react";
 import { useAuth } from "@clerk/nextjs";
 import { ReactElement, useState } from "react";
-import { z } from "zod";
 import GlobalLayout from "~/layouts/GlobalLayout";
-import WelcomeLayout from "~/layouts/WelcomeLayout";
-import Character from "../../components/create-user/Character";
 import Username from "../../components/create-user/Username";
 
 export default function CreateUser() {

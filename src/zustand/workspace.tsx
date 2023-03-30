@@ -4,7 +4,9 @@ import { create } from "zustand";
 import { TEST_USER } from "../constants/TEST_USER";
 import {
   Quest,
+  QuestListComponent,
   Solution,
+  SolutionListComponent,
   TransactionQueue,
   UpdateTransaction,
   WorkspaceList,
@@ -30,15 +32,14 @@ interface WorkspaceState {
     type: "QUEST" | "SOLUTION";
   }) => void;
   setWorkspaceList: ({ quests, solutions }: WorkspaceList) => void;
-  updateQuestState: (props: {
+  updateListState: <
+    Attr extends "title" | "topic",
+    Value extends QuestListComponent[Attr]
+  >(props: {
+    type: "QUEST" | "SOLUTION";
     id: string;
-    attribute: "title" | "topic";
-    value: string;
-  }) => void;
-  updateSolutionState: (props: {
-    id: string;
-    attribute: "title" | "topic";
-    value: string;
+    attribute: Attr;
+    value: Value;
   }) => void;
 }
 
@@ -62,8 +63,11 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
             transactions.transactions.push(newTransaction);
             state.transactionQueue.set(id, transactions);
           } else {
-            transactions.transactions[transactionIndex]!.value = value;
-            state.transactionQueue.set(id, transactions);
+            const transaction = transactions.transactions[transactionIndex];
+            if (transaction) {
+              transaction.value = value;
+              state.transactionQueue.set(id, transactions);
+            }
           }
         }
       })
@@ -129,27 +133,36 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ workspaceList: { quests, solutions } });
   },
 
-  updateQuestState: ({ id, attribute, value }) =>
+  updateListState: ({ id, attribute, value, type }) =>
     set(
       produce((state: WorkspaceState) => {
-        const index = state.workspaceList.quests.findIndex((q) => q.id === id);
-        if (index < 0) {
-          return;
-        }
+        if (type === "QUEST") {
+          const index = state.workspaceList.quests.findIndex(
+            (q) => q.id === id
+          );
+          if (index < 0) {
+            return;
+          }
 
-        state.workspaceList.quests[index]![attribute] = value;
-      })
-    ),
-  updateSolutionState: ({ id, attribute, value }) =>
-    set(
-      produce((state: WorkspaceState) => {
-        const index = state.workspaceList.solutions.findIndex(
-          (q) => q.id === id
-        );
-        if (index < 0) {
-          return;
+          const quest = state.workspaceList.quests[index];
+          if (quest) {
+            quest[attribute] = value;
+            state.workspaceList.quests[index] = quest;
+          }
         }
-        state.workspaceList.solutions[index]![attribute] = value;
+        if (type === "SOLUTION") {
+          const index = state.workspaceList.solutions.findIndex(
+            (q) => q.id === id
+          );
+          if (index < 0) {
+            return;
+          }
+          const solution = state.workspaceList.solutions[index];
+          if (solution) {
+            solution[attribute] = value;
+            state.workspaceList.solutions[index] = solution;
+          }
+        }
       })
     ),
 }));

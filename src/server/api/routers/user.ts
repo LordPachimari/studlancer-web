@@ -1,4 +1,14 @@
 import {
+  GetCommand,
+  GetCommandInput,
+  PutCommand,
+  PutCommandInput,
+  UpdateCommand,
+  UpdateCommandInput,
+} from "@aws-sdk/lib-dynamodb";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import {
   CreateUserZod,
   UpdateUserAttributes,
   UpdateUserAttributesZod,
@@ -7,18 +17,6 @@ import {
   UserDynamo,
   UserDynamoZod,
 } from "../../../types/main";
-import {
-  GetCommand,
-  GetCommandInput,
-  TransactWriteCommand,
-  TransactWriteCommandInput,
-  UpdateCommand,
-  UpdateCommandInput,
-  PutCommandInput,
-  PutCommand,
-} from "@aws-sdk/lib-dynamodb";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 import { dynamoClient } from "../../../constants/dynamoClient";
 

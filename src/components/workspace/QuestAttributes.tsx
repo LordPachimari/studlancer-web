@@ -7,7 +7,6 @@ import {
 } from "../../types/main";
 
 import {
-  Badge,
   Flex,
   Input,
   InputGroup,
@@ -64,8 +63,8 @@ const Title = ({
           console.log("backspace called");
           const title = document.getElementById("title");
           if (
-            !title?.childNodes[0]! ||
-            title?.childNodes[0]!.textContent === ""
+            !title?.childNodes[0] ||
+            title?.childNodes[0].textContent === ""
           ) {
             e.preventDefault();
           }
@@ -343,7 +342,7 @@ const QuestAttributes = ({
   }) => void;
 }) => {
   const updateQuestAttributesListAttribute = WorkspaceStore(
-    (state) => state.updateQuestState
+    (state) => state.updateListState
   );
   const addTransaction = WorkspaceStore((state) => state.addTransaction);
   const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
@@ -357,6 +356,7 @@ const QuestAttributes = ({
     });
     updateQuestAttributesListAttribute({
       id: quest.id,
+      type: "QUEST",
       attribute: "title",
       value: e.currentTarget.textContent as string,
     });
@@ -373,6 +373,7 @@ const QuestAttributes = ({
 
   const handleTopicChange = (e: ChangeEvent<HTMLSelectElement>) => {
     console.log("event, ", e);
+    const value = e.target.value as TopicsType;
     addTransaction({
       id: quest.id,
       attribute: "topic",
@@ -381,7 +382,8 @@ const QuestAttributes = ({
     updateQuestAttributesListAttribute({
       id: quest.id,
       attribute: "topic",
-      value: e.target.value,
+      type: "QUEST",
+      value: value,
     });
     updateQuestAttributesHandler({
       transactionQueue,

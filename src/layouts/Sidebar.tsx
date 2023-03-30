@@ -3,11 +3,7 @@ import {
   Button,
   Center,
   Divider,
-  Drawer,
-  DrawerContent,
-  DrawerOverlay,
   Flex,
-  Heading,
   IconButton,
   Spacer,
   Stack,
@@ -18,7 +14,6 @@ import {
 import { useAuth, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useState } from "react";
 import styles from "./sidebar.module.css";
 const Sidebar = ({
   showSidebar,

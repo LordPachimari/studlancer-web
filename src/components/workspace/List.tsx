@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/nextjs";
-import { del, get, update, values } from "idb-keyval";
+import { get, update, values } from "idb-keyval";
 import {
   Quest,
   QuestListComponent,
@@ -50,7 +50,7 @@ import {
 import produce from "immer";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { RefObject, useEffect, useState } from "react";
 import { ulid } from "ulid";
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "../../zustand/workspace";
@@ -113,7 +113,7 @@ const List = ({
   const deleteListComponent = ({ id }: { id: string }) => {
     get(id).then((component: Quest | Solution) => {
       if (component.type === "QUEST") {
-        const quest = component as Quest;
+        const quest = component satisfies Quest;
         if (quest && (quest.title !== "" || quest.content)) {
           //saving quest if content exist
           deleteQuest.mutate({ id: quest.id });
@@ -127,7 +127,7 @@ const List = ({
           })
         );
       } else if (component.type === "SOLUTION") {
-        const solution = component as Solution;
+        const solution = component satisfies Solution;
         if (solution && solution.content) {
           //saving solution if content exist
           deleteSolution.mutate({ id: solution.id });
@@ -141,7 +141,7 @@ const List = ({
           })
         );
       }
-      update(id, (val) => {
+      void update(id, (val) => {
         val.inTrash = true;
         return val;
       });
@@ -153,7 +153,7 @@ const List = ({
   const restoreQuest = ({ id }: { id: string }) => {
     //fetch the quest from the server and push it to the list.
   };
-  const createQuestOrSolutionHandler = async ({
+  const createQuestOrSolutionHandler = ({
     type,
   }: {
     type: "QUEST" | "SOLUTION";
@@ -726,7 +726,7 @@ const TrashComponent = ({
     onOpen: onAlertOpen,
     onClose: onAlertClose,
   } = useDisclosure();
-  const cancelRef = React.useRef();
+  const cancelRef = React.useRef(null);
   const deleteQuestPermanently =
     trpc.quest.deleteQuestPermanently.useMutation();
   const deleteSolutionPermanently =
@@ -769,8 +769,6 @@ const TrashComponent = ({
       solutions: filteredSolution,
     });
   }, 500);
-  console.log("list", QuestOrSolutionList);
-  console.log("trash", trash);
 
   return (
     <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
@@ -876,7 +874,9 @@ const TrashComponent = ({
                         </AlertDialogHeader>
 
                         <AlertDialogBody>
-                          Are you sure? You can't undo this action afterwards.
+                          {
+                            "Are you sure? You can't undo this action afterwards."
+                          }
                         </AlertDialogBody>
 
                         <AlertDialogFooter>
@@ -994,7 +994,7 @@ const TrashComponent = ({
                       </AlertDialogHeader>
 
                       <AlertDialogBody>
-                        Are you sure? You can't undo this action afterwards.
+                        {"Are you sure? You can't undo this action afterwards."}
                       </AlertDialogBody>
 
                       <AlertDialogFooter>

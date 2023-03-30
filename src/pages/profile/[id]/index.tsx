@@ -3,12 +3,10 @@ import {
   Button,
   Card,
   Center,
-  Container,
   Flex,
   Heading,
   Text,
 } from "@chakra-ui/react";
-import { getAuth } from "@clerk/nextjs/server";
 import { GetServerSidePropsContext } from "next";
 import { ReactElement } from "react";
 import GlobalLayout from "~/layouts/GlobalLayout";
@@ -104,7 +102,7 @@ export async function getServerSideProps(
 ) {
   const ssg = createProxySSGHelpers({
     router: appRouter,
-    ctx: await createContextInner({ user: null }),
+    ctx: createContextInner({ user: null }),
     transformer: superjson,
   });
   const id = context.params?.id as string;

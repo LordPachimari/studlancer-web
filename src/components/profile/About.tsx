@@ -13,7 +13,6 @@ export default function AboutUser({
   username,
   about,
   level,
-  experience,
 }: {
   username: string;
   about: string | undefined;

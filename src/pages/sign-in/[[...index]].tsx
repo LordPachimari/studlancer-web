@@ -1,4 +1,4 @@
-import { SignIn, SignUp } from "@clerk/nextjs";
+import { SignIn } from "@clerk/nextjs";
 import { ReactElement } from "react";
 import GlobalLayout from "../../layouts/GlobalLayout";
 import WelcomeLayout from "../../layouts/WelcomeLayout";

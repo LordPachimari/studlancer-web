@@ -15,7 +15,7 @@ export const EventHandler = Extension.create({
               console.log("hello from underworld", view);
               console.log("lastSelectedViewDesc", view.state);
               const selection = document.getSelection();
-              let range = selection?.getRangeAt(0);
+              const range = selection?.getRangeAt(0);
               console.log("range", range?.cloneContents().childNodes);
               if (range?.cloneContents().childNodes.length !== 0) {
                 console.log("yoooo");

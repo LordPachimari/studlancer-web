@@ -4,7 +4,6 @@ import GlobalLayout from "../../layouts/GlobalLayout";
 import SidebarLayout from "../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../layouts/WorkspaceLayout";
 import { NextPageWithLayout } from "../_app";
-import styles from "./workspace.module.css";
 import { Box } from "@chakra-ui/react";
 const Workspace: NextPageWithLayout = () => {
   return (

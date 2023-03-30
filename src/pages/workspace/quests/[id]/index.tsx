@@ -1,5 +1,5 @@
 // import Editor from "./Editor";
-import { Card, Center, Spinner } from "@chakra-ui/react";
+import { Spinner } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { ReactElement } from "react";

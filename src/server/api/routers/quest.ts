@@ -372,6 +372,7 @@ export const questRouter = router({
             creatorUsername: creator.username,
             publishedAt: new Date().toISOString(),
             type: "QUEST",
+            lastUpdated:currentQuest.lastUpdated,
 
             allowUnpublish: true,
             views: 0,

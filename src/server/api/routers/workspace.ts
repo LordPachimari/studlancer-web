@@ -1,3 +1,4 @@
+import { QueryCommand, QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import {
   Quest,
   QuestDynamo,
@@ -5,13 +6,12 @@ import {
   SolutionDynamo,
   UserDynamo,
 } from "../../../types/main";
-import { QueryCommand, QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 
 import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
 
 export const workspaceRouter = router({
-  workspaceList: protectedProcedure.query(async ({ input, ctx }) => {
+  workspaceList: protectedProcedure.query(async ({ ctx }) => {
     const { user } = ctx;
     const queryParams: QueryCommandInput = {
       TableName: process.env.MAIN_TABLE_NAME,

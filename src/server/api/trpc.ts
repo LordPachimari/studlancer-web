@@ -18,10 +18,9 @@ import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { User } from "@clerk/nextjs/api";
 import { getAuth, clerkClient } from "@clerk/nextjs/server";
 /** Replace this with an object if you want to pass things to `createContextInner`. */
-type CreateContextOptions = Record<string, never>;
 type TEST_USER = {
   id: string;
-  name: string;
+  username: string;
   email: string;
 };
 type IUserProps = {
@@ -38,7 +37,7 @@ type IUserProps = {
  * @see https://create.t3.gg/en/usage/trpc#-servertrpccontextts
  */
 
-export const createContextInner = async ({ user }: IUserProps) => {
+export const createContextInner = ({ user }: IUserProps) => {
   return {
     user,
     // prisma,
@@ -64,7 +63,7 @@ export const createContext = async (opts: CreateNextContextOptions) => {
   const user = await getUser();
   console.log("activated");
 
-  return await createContextInner({ user });
+  return createContextInner({ user });
 };
 
 /**

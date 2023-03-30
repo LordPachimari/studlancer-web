@@ -6,7 +6,7 @@ interface GeneralState {
   setRedirectUrl: (url: string) => void;
 }
 
-export const GeneralStore = create<GeneralState>((set, get) => ({
+export const GeneralStore = create<GeneralState>((set) => ({
   redirectUrl: undefined,
   setRedirectUrl: (url) => set({ redirectUrl: url }),
 }));

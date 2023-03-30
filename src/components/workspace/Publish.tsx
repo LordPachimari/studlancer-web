@@ -1,18 +1,8 @@
-import { Quest, Solution } from "../../types/main";
 import { get, update } from "idb-keyval";
-import React, {
-  Dispatch,
-  RefObject,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 import { z } from "zod";
+import { Quest, Solution } from "../../types/main";
 
-import Preview from "./Preview";
-import styles from "./workspace.module.css";
-import { trpc } from "~/utils/api";
 import {
   AlertDialog,
   AlertDialogBody,
@@ -20,7 +10,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
-  Box,
   Button,
   Center,
   Modal,
@@ -36,6 +25,8 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import produce from "immer";
+import { trpc } from "~/utils/api";
+import Preview from "./Preview";
 
 const Publish = ({
   solutionId,

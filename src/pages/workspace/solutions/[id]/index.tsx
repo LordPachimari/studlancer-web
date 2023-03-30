@@ -1,4 +1,4 @@
-import { Box, Card, Center, Spinner } from "@chakra-ui/react";
+import { Box, Spinner } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { ReactElement } from "react";

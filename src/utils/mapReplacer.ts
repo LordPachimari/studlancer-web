@@ -1,4 +1,4 @@
-export function mapReplacer(key: string, value: any) {
+export function mapReplacer(key: string, value: unknown) {
   if (value instanceof Map) {
     return {
       dataType: "Map",
