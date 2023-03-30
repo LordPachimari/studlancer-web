@@ -1,6 +1,7 @@
 import { Card, CardHeader, Heading } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 
+//hi
 const Character = () => {
   // const {userId} = useAuth()
   const router = useRouter();
