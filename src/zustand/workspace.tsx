@@ -133,13 +133,10 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
     set(
       produce((state: WorkspaceState) => {
         const index = state.workspaceList.quests.findIndex((q) => q.id === id);
-        console.log("index", index);
         if (index < 0) {
-          console.log("hellooooooo");
           return;
         }
 
-        console.log("all good");
         state.workspaceList.quests[index]![attribute] = value;
       })
     ),

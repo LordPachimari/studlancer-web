@@ -32,13 +32,7 @@ export default function WorkspaceSolution() {
     );
   }
 
-  return (
-    <Center mt={10}>
-      <Card w="85%" bg="white" p={5}>
-        <Editor id={id} />
-      </Card>
-    </Center>
-  );
+  return <Editor id={id} />;
 }
 WorkspaceSolution.getLayout = function getLayout(page: ReactElement) {
   return (

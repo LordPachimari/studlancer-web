@@ -179,29 +179,31 @@ const QuestEditor = ({ id }: { id: string }) => {
   }
 
   return (
-    <>
-      {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
-        <QuestAttributesSkeleton />
-      ) : quest.published ? (
-        <NonEditableQuestAttributes quest={quest} />
-      ) : (
-        <QuestAttributes
-          quest={quest}
-          // isLoading={shouldUpdate && serverQuest.isLoading}
-          updateQuestAttributesHandler={updateQuestAttributesHandler}
-        />
-      )}
-      {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
-        <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
-      ) : quest.published && quest.content ? (
-        <NonEditableContent content={quest.content} />
-      ) : (
-        <TiptapEditor
-          id={quest.id}
-          content={quest.content}
-          updateAttributesHandler={updateQuestAttributesHandler}
-        />
-      )}
+    <Center mt={10} flexDirection="column">
+      <Card w="85%" bg="white" p={5} maxW="2xl" borderRadius="2xl">
+        {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
+          <QuestAttributesSkeleton />
+        ) : quest.published ? (
+          <NonEditableQuestAttributes quest={quest} />
+        ) : (
+          <QuestAttributes
+            quest={quest}
+            // isLoading={shouldUpdate && serverQuest.isLoading}
+            updateQuestAttributesHandler={updateQuestAttributesHandler}
+          />
+        )}
+        {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
+          <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
+        ) : quest.published && quest.content ? (
+          <NonEditableContent content={quest.content} />
+        ) : (
+          <TiptapEditor
+            id={quest.id}
+            content={quest.content}
+            updateAttributesHandler={updateQuestAttributesHandler}
+          />
+        )}
+      </Card>
       {quest && !quest.published && (
         <Publish
           questId={id}
@@ -224,7 +226,7 @@ const QuestEditor = ({ id }: { id: string }) => {
           </Button>
         </Center>
       )}
-    </>
+    </Center>
   );
 };
 export default QuestEditor;

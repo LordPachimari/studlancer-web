@@ -34,13 +34,7 @@ const WorkspaceQuest: NextPageWithLayout = () =>
       );
     }
 
-    return (
-      <Center mt={10} flexDirection="column">
-        <Card w="85%" bg="white" p={5} maxW="2xl" borderRadius="2xl">
-          <Editor id={id} />
-        </Card>
-      </Center>
-    );
+    return <Editor id={id} />;
   };
 WorkspaceQuest.getLayout = function getLayout(page: ReactElement) {
   return (

@@ -20,7 +20,13 @@ import SolutionAttributes, {
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "~/zustand/workspace";
 import { mapReplacer } from "~/utils/mapReplacer";
-import { Box, SkeletonText, useDisclosure } from "@chakra-ui/react";
+import {
+  Box,
+  Card,
+  Center,
+  SkeletonText,
+  useDisclosure,
+} from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import TiptapEditor from "./TiptapEditor";
 import { NonEditableContent } from "./Preview";
@@ -174,26 +180,31 @@ const SolutionEditor = ({ id }: { id: string }) => {
   }
 
   return (
-    <>
-      {solution === undefined || (serverSolution.isLoading && shouldUpdate) ? (
-        <SolutionAttributesSkeleton />
-      ) : (
-        <SolutionAttributes
-          solution={solution}
-          updateSolutionAttributesHandler={updateSolutionAttributesHandler}
-        />
-      )}
-      {solution === undefined || (serverSolution.isLoading && shouldUpdate) ? (
-        <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
-      ) : solution.published && solution.content ? (
-        <NonEditableContent content={solution.content} />
-      ) : (
-        <TiptapEditor
-          id={solution.id}
-          content={solution.content}
-          updateAttributesHandler={updateSolutionAttributesHandler}
-        />
-      )}
+    <Center mt={10}>
+      <Card w="85%" bg="white" p={5}>
+        {solution === undefined ||
+        (serverSolution.isLoading && shouldUpdate) ? (
+          <SolutionAttributesSkeleton />
+        ) : (
+          <SolutionAttributes
+            solution={solution}
+            updateSolutionAttributesHandler={updateSolutionAttributesHandler}
+          />
+        )}
+        {solution === undefined ||
+        (serverSolution.isLoading && shouldUpdate) ? (
+          <SkeletonText mt="10" noOfLines={5} spacing="4" skeletonHeight="2" />
+        ) : solution.published && solution.content ? (
+          <NonEditableContent content={solution.content} />
+        ) : (
+          <TiptapEditor
+            id={solution.id}
+            content={solution.content}
+            updateAttributesHandler={updateSolutionAttributesHandler}
+          />
+        )}
+      </Card>
+
       {solution && !solution.published && (
         <Publish
           solutionId={solution.id}
@@ -205,7 +216,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           questCreatorId={solution.questCreatorId}
         />
       )}
-    </>
+    </Center>
   );
 };
 export default SolutionEditor;
