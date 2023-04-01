@@ -42,6 +42,7 @@ import dynamic from "next/dynamic";
 import TiptapEditor from "./TiptapEditor";
 import { NonEditableContent } from "./Preview";
 import { useRouter } from "next/router";
+import { QuestComponentSkeleton } from "../QuestComponent";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
@@ -199,11 +200,13 @@ const SolutionEditor = ({ id }: { id: string }) => {
 
   return (
     <Center mt={10} flexDirection="column">
-      {!solution?.questId && (
+      {solution?.questId ? (
+        <Box w="85%" h="36" mb={10}></Box>
+      ) : (
         <Button
           onClick={onModalOpen}
           w="85%"
-          h="32"
+          h="36"
           borderWidth="2px"
           borderColor="gray.300"
           borderRadius="2xl"

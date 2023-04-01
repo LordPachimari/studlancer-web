@@ -115,6 +115,10 @@ export default function QuestComponent({
             </Badge>
           </Flex>
         </CardHeader>
+
+        <Text fontSize="2xl" fontWeight="bold" pl={4}>
+          {quest.title}
+        </Text>
         {includeContent && (
           <CardBody p={4}>{parse(output, HtmlParseOptions)}</CardBody>
         )}
