@@ -1,18 +1,27 @@
-import { Quest, Solution, TopicsType } from "../../types/main";
+import { PublishedQuest, Quest, Solution, TopicsType } from "../../types/main";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import _Text from "@tiptap/extension-text";
 import parse, { attributesToProps } from "html-react-parser";
 import { useMemo } from "react";
-
+import dayjs from "dayjs";
 import { generateHTML } from "@tiptap/html";
 import Image, { ImageLoaderProps } from "next/image";
 import FileExtension from "../Tiptap/FileExtension";
 import ImageExtension from "../Tiptap/ImageExtension";
 
 import styles from "./workspace.module.css";
-import { Badge, Box, Center, Flex, Heading, Text } from "@chakra-ui/react";
+import {
+  Badge,
+  Box,
+  Center,
+  Flex,
+  Heading,
+  HStack,
+  Spacer,
+  Text,
+} from "@chakra-ui/react";
 import { FromNow } from "~/utils/dayjs";
 export const HtmlParseOptions = {
   replace: (domNode: any) => {
@@ -113,7 +122,9 @@ const Reward = ({ reward }: { reward: number | undefined }) => {
           fill="var(--purple)"
         />
       </svg>
-      <Text fontWeight="bold">{reward}</Text>
+      <Text fontWeight="bold" color="purple.500">
+        {reward}
+      </Text>
     </Flex>
   );
 };
@@ -132,14 +143,13 @@ const Slots = ({ slots }: { slots: number | undefined }) => {
           fill="var(--gray)"
         />
       </svg>
-      <Text fontWeight="bold">{slots}</Text>
+      <Text fontWeight="bold" color="gray.500">
+        {slots}
+      </Text>
     </Flex>
   );
 };
 const DateComponent = ({ questDate }: { questDate: string }) => {
-  const dueDate = new Date(questDate).toDateString();
-  const exactDate = new Date(questDate).toLocaleDateString();
-
   return (
     <Flex gap={3}>
       <Text>DUE</Text>
@@ -150,7 +160,7 @@ const DateComponent = ({ questDate }: { questDate: string }) => {
         alignItems="center"
         borderRadius="md"
       >
-        {FromNow({ date: dueDate })}
+        {FromNow({ date: questDate })}
       </Badge>
       <Badge
         colorScheme="blue"
@@ -159,22 +169,70 @@ const DateComponent = ({ questDate }: { questDate: string }) => {
         alignItems="center"
         borderRadius="md"
       >
-        {exactDate}
+        {dayjs(questDate).format("MMM D, YYYY")}
       </Badge>
     </Flex>
   );
 };
+const Views = ({ views }: { views: number }) => {
+  return (
+    <Flex gap={2}>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+      >
+        <path fill="none" d="M0 0h24v24H0z" />
+        <path
+          d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 3a5 5 0 1 1-4.78 3.527A2.499 2.499 0 0 0 12 9.5a2.5 2.5 0 0 0-1.473-2.28c.466-.143.96-.22 1.473-.22z"
+          fill="#718096"
+        />
+      </svg>
+      <Text fontWeight="bold" color="gray.500">
+        {views}
+      </Text>
+    </Flex>
+  );
+};
 
-export const NonEditableQuestAttributes = ({ quest }: { quest: Quest }) => {
+export const NonEditableQuestAttributes = ({
+  quest,
+}: {
+  quest: Quest | PublishedQuest;
+}) => {
+  const publishedQuest = quest as PublishedQuest;
   return (
     <Flex flexDirection="column" gap={3}>
-      <Title title={quest.title} />
-
+      {quest.published ? (
+        <Flex>
+          <Title title={quest.title} />
+          <Spacer />
+          <Badge
+            fontSize="md"
+            h="8"
+            minW="16"
+            variant="solid"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            colorScheme="green"
+            borderRadius="md"
+          >
+            {publishedQuest.status}
+          </Badge>
+        </Flex>
+      ) : (
+        <Title title={quest.title} />
+      )}
       {quest.deadline && <DateComponent questDate={quest.deadline} />}
       <Topic topic={quest.topic} />
       <Subtopic subtopic={quest.subtopic} />
-      <Reward reward={quest.reward} />
-      <Slots slots={quest.slots} />
+      <Flex gap={2}>
+        <Reward reward={quest.reward} />
+        <Slots slots={quest.slots} />
+        {quest.published && <Views views={publishedQuest.views} />}
+      </Flex>
     </Flex>
   );
 };

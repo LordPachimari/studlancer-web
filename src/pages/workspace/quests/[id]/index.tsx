@@ -1,5 +1,5 @@
 // import Editor from "./Editor";
-import { Spinner } from "@chakra-ui/react";
+import { Center, Spinner } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { ReactElement } from "react";
@@ -24,13 +24,15 @@ const WorkspaceQuest: NextPageWithLayout = () =>
 
     if (!id) {
       return (
-        <Spinner
-          thickness="4px"
-          speed="0.65s"
-          emptyColor="gray.200"
-          color="blue.500"
-          size="xl"
-        />
+        <Center w="100vw" h="100vh">
+          <Spinner
+            thickness="4px"
+            speed="0.65s"
+            emptyColor="gray.200"
+            color="blue.500"
+            size="xl"
+          />
+        </Center>
       );
     }
 

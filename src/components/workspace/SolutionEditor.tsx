@@ -1,5 +1,5 @@
 import { get, set } from "idb-keyval";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Solution,
@@ -22,19 +22,37 @@ import { WorkspaceStore } from "~/zustand/workspace";
 import { mapReplacer } from "~/utils/mapReplacer";
 import {
   Box,
+  Button,
   Card,
   Center,
+  FormControl,
+  FormLabel,
+  Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   SkeletonText,
   useDisclosure,
 } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import TiptapEditor from "./TiptapEditor";
 import { NonEditableContent } from "./Preview";
+import { useRouter } from "next/router";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
     undefined
   );
+  const router = useRouter();
+  const {
+    isOpen: isModalOpen,
+    onOpen: onModalOpen,
+    onClose: onModalClose,
+  } = useDisclosure();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -180,8 +198,29 @@ const SolutionEditor = ({ id }: { id: string }) => {
   }
 
   return (
-    <Center mt={10}>
-      <Card w="85%" bg="white" p={5}>
+    <Center mt={10} flexDirection="column">
+      {!solution?.questId && (
+        <Button
+          onClick={onModalOpen}
+          w="85%"
+          h="32"
+          borderWidth="2px"
+          borderColor="gray.300"
+          borderRadius="2xl"
+          bg="gray.200"
+          mb={10}
+          color="gray.400"
+        >
+          + Add Quest
+        </Button>
+      )}
+
+      <QuestSearch
+        isModalOpen={isModalOpen}
+        onModalClose={onModalClose}
+        onModalOpen={onModalOpen}
+      />
+      <Card w="85%" bg="white" p={5} maxW="2xl" borderRadius="2xl">
         {solution === undefined ||
         (serverSolution.isLoading && shouldUpdate) ? (
           <SolutionAttributesSkeleton />
@@ -216,7 +255,53 @@ const SolutionEditor = ({ id }: { id: string }) => {
           questCreatorId={solution.questCreatorId}
         />
       )}
+      {solution && solution.published && (
+        <Center>
+          <Button
+            mt={3}
+            colorScheme="green"
+            w="100%"
+            onClick={() => router.push(`/solutions/${solution.id}`)}
+          >
+            View Published Quest
+          </Button>
+        </Center>
+      )}
     </Center>
+  );
+};
+const QuestSearch = ({
+  isModalOpen,
+  onModalOpen,
+  onModalClose,
+}: {
+  isModalOpen: boolean;
+  onModalOpen: () => void;
+  onModalClose: () => void;
+}) => {
+  const initialRef = useRef(null);
+  return (
+    <Modal
+      initialFocusRef={initialRef}
+      isOpen={isModalOpen}
+      onClose={onModalClose}
+      size="xl"
+    >
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Search for quests</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <FormControl>
+            <Input ref={initialRef} placeholder="Search for quests..." />
+          </FormControl>
+        </ModalBody>
+
+        <ModalFooter>
+          <Button onClick={onModalClose}>Cancel</Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 export default SolutionEditor;

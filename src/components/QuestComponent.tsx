@@ -19,6 +19,7 @@ import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import _Text from "@tiptap/extension-text";
 import { generateHTML } from "@tiptap/html";
+import dayjs from "dayjs";
 import parse, { attributesToProps } from "html-react-parser";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -48,11 +49,6 @@ export default function QuestComponent({
   includeContent: boolean;
   includeDetails: boolean;
 }) {
-  const dueDate = new Date(quest.deadline);
-  const dueDateToDateString = dueDate.toDateString();
-  const dueDateToLocalDate = dueDate.toLocaleDateString();
-  const publishedDate = new Date(quest.publishedAt);
-  const publishedDateToDateString = publishedDate.toDateString();
   const contentJSON = JSON.parse(quest.content);
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
@@ -68,7 +64,6 @@ export default function QuestComponent({
   return (
     <Link href={`/quests/${quest.id}`}>
       <Card w="100%" h="64" borderRadius="2xl" cursor="pointer">
-        {" "}
         <CardHeader p={4}>
           <Flex gap={5} flexWrap="wrap">
             <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
@@ -82,17 +77,23 @@ export default function QuestComponent({
               <Box>
                 <Flex gap={2} alignItems="center">
                   <Heading size="sm">{quest.creatorUsername}</Heading>
-                  <Text>{FromNow({ date: publishedDateToDateString })}</Text>
+                  <Text>{FromNow({ date: quest.publishedAt })}</Text>
                 </Flex>
-
                 <Badge colorScheme="blue">
-                  {`due ${FromNow({ date: dueDateToDateString })} `}
+                  {`due ${FromNow({ date: quest.deadline })} `}
                 </Badge>
-                <Badge colorScheme="blue">{`${dueDateToLocalDate}`}</Badge>
+                <Badge colorScheme="blue" ml={2}>{`${dayjs(
+                  quest.deadline
+                ).format("MMM D, YYYY")}`}</Badge>
                 <Flex mt={2} gap={2}>
                   <Badge colorScheme="red">{quest.topic}</Badge>
                   {quest.subtopic.map((subtopic, i) => (
-                    <Badge colorScheme="blue" key={i}>
+                    <Badge
+                      colorScheme="blue"
+                      key={i}
+                      borderWidth="2px"
+                      borderColor="blue.500"
+                    >
                       {quest.subtopic}
                     </Badge>
                   ))}

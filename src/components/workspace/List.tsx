@@ -1088,12 +1088,12 @@ const ListComponent = ({
         color="black"
         gap={2}
         alignItems="center"
-        // _hover={{
-        //   bg: "gray.100",
-        //   ".actionButton": {
-        //     visibility: "visible",
-        //   },
-        // }}
+        _hover={{
+          bg: "gray.100",
+          // ".actionButton": {
+          //   visibility: "visible",
+          // },
+        }}
         className="listComponent"
       >
         <Link

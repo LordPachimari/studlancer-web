@@ -39,9 +39,10 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
         {!showSidebar ? (
           <IconButton
             m={2}
-            position="absolute"
+            position="fixed"
             aria-label="Close Sidebar"
             onClick={() => toggleShowSidebar()}
+            zIndex={3}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -64,6 +65,8 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
           h="14"
           borderBottomWidth="1px"
           borderColor="gray.300"
+          position="fixed"
+          zIndex={2}
         >
           <Input
             size="lg"
