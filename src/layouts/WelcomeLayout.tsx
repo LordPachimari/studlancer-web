@@ -13,7 +13,7 @@ export default function WelcomeLayout({
         display={{ base: "none", lg: "block" }}
         minHeight="100vh"
       ></Box>
-      <Center w="100%" h="100vh" pr="1.5">
+      <Center w="100%" h="100vh">
         {children}
       </Center>
     </Center>

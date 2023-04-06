@@ -6,6 +6,7 @@ import {
   CardBody,
   CardFooter,
   CardHeader,
+  Divider,
   Flex,
   Heading,
   HStack,
@@ -62,66 +63,78 @@ export default function QuestComponent({
     ]);
   }, [contentJSON]);
   return (
-    <Link href={`/quests/${quest.id}`}>
-      <Card w="100%" h="64" borderRadius="2xl" cursor="pointer">
-        <CardHeader p={4}>
-          <Flex gap={5} flexWrap="wrap">
-            <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
-              <Link href={`/profile/${quest.creatorId}`}>
-                <Avatar
-                  name="Segun Adebayo"
-                  src="https://bit.ly/sage-adebayo"
-                />
-              </Link>
+    <Card w="100%" h={{ base: "80", md: "64" }} borderRadius="2xl">
+      <CardHeader p={4}>
+        <Flex gap={5} flexWrap="wrap">
+          <Flex flex="1" gap="4" alignItems="center">
+            {/* <Link href={`/profile/${quest.creatorId}`}> */}
+            <Avatar
+              name="Segun Adebayo"
+              // src="https://bit.ly/sage-adebayo"
+            />
+            {/* </Link> */}
 
-              <Box>
-                <Flex gap={2} alignItems="center">
-                  <Heading size="sm">{quest.creatorUsername}</Heading>
-                  <Text>{FromNow({ date: quest.publishedAt })}</Text>
-                </Flex>
+            <Box>
+              <Flex gap={2} alignItems="center">
+                <Heading size="sm">{quest.creatorUsername}</Heading>
+                <Text>{FromNow({ date: quest.publishedAt })}</Text>
+              </Flex>
+              <Flex>
                 <Badge colorScheme="blue">
                   {`due ${FromNow({ date: quest.deadline })} `}
                 </Badge>
                 <Badge colorScheme="blue" ml={2}>{`${dayjs(
                   quest.deadline
                 ).format("MMM D, YYYY")}`}</Badge>
-                <Flex mt={2} gap={2}>
-                  <Badge colorScheme="red">{quest.topic}</Badge>
-                  {quest.subtopic.map((subtopic, i) => (
-                    <Badge
-                      colorScheme="blue"
-                      key={i}
-                      borderWidth="2px"
-                      borderColor="blue.500"
-                    >
-                      {quest.subtopic}
-                    </Badge>
-                  ))}
-                </Flex>
-              </Box>
-            </Flex>
-            <Badge
-              fontSize="md"
-              h="8"
-              minW="16"
-              variant="solid"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              colorScheme="green"
-              borderRadius="md"
-            >
-              {quest.status}
-            </Badge>
-          </Flex>
-        </CardHeader>
+              </Flex>
 
+              <Flex mt={2} gap={2}>
+                <Badge colorScheme="red">{quest.topic}</Badge>
+                {quest.subtopic.map((subtopic, i) => (
+                  <Badge
+                    colorScheme="blue"
+                    key={i}
+                    borderWidth="2px"
+                    borderColor="blue.500"
+                  >
+                    {quest.subtopic}
+                  </Badge>
+                ))}
+              </Flex>
+            </Box>
+          </Flex>
+          <Badge
+            fontSize="md"
+            h="8"
+            minW="16"
+            variant="solid"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            colorScheme="green"
+            borderRadius="md"
+          >
+            {quest.status}
+          </Badge>
+        </Flex>
+      </CardHeader>
+
+      <Link href={`/quests/${quest.id}`}>
         <Text fontSize="2xl" fontWeight="bold" pl={4}>
           {quest.title}
         </Text>
         {includeContent && (
-          <CardBody p={4}>{parse(output, HtmlParseOptions)}</CardBody>
+          <CardBody
+            p={4}
+            overflow="hidden"
+            whiteSpace="nowrap"
+            textOverflow="ellipsis"
+          >
+            {parse(output, HtmlParseOptions)}
+          </CardBody>
         )}
+
+        <Divider color="gray.200" />
         {includeDetails && (
           <CardFooter p={4}>
             <HStack>
@@ -177,8 +190,8 @@ export default function QuestComponent({
             </HStack>
           </CardFooter>
         )}
-      </Card>
-    </Link>
+      </Link>
+    </Card>
   );
 }
 export const QuestComponentSkeleton = ({

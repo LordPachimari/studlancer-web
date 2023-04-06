@@ -49,6 +49,8 @@ import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { dynamoClient } from "~/constants/dynamoClient";
 import { rocksetClient } from "~/constants/rocksetClient";
 import { reviver } from "~/utils/mapReplacer";
+import { momento } from "~/constants/momentoClient";
+import { CacheGet, CacheSet } from "@gomomento/sdk";
 
 export const questRouter = router({
   publishedQuest: publicProcedure
@@ -148,14 +150,36 @@ export const questRouter = router({
       if (!topic && !subtopic && filter === "latest") {
         //rockset
         try {
-          const publishedQuests =
-            await rocksetClient.queryLambdas.executeQueryLambda(
-              "commons",
-              "LatestPublishedQuests",
-              "c62045e5c2280525",
-              undefined
+          const getResponse = await momento.get(
+            process.env.MOMENTO_CACHE_NAME!,
+            "LATEST_PUBLISHED_QUESTS"
+          );
+          if (getResponse instanceof CacheGet.Hit) {
+            return JSON.parse(getResponse.valueString()) as PublishedQuest[];
+          } else if (getResponse instanceof CacheGet.Miss) {
+            const publishedQuests =
+              await rocksetClient.queryLambdas.executeQueryLambda(
+                "commons",
+                "LatestPublishedQuests",
+                "c62045e5c2280525",
+                undefined
+              );
+
+            const setResponse = await momento.set(
+              process.env.MOMENTO_CACHE_NAME!,
+              "LATEST_PUBLISHED_QUESTS",
+              JSON.stringify(publishedQuests.results || "")
             );
-          return publishedQuests.results as PublishedQuest[];
+            if (setResponse instanceof CacheSet.Success) {
+              console.log("Key stored successfully!");
+            } else {
+              console.log(`Error setting key: ${setResponse.toString()}`);
+            }
+            return publishedQuests.results as PublishedQuest[];
+          } else if (getResponse instanceof CacheGet.Error) {
+            console.log(`Error: ${getResponse.message()}`);
+          }
+          return null;
         } catch (error) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -372,7 +396,7 @@ export const questRouter = router({
             creatorUsername: creator.username,
             publishedAt: new Date().toISOString(),
             type: "QUEST",
-            lastUpdated:currentQuest.lastUpdated,
+            lastUpdated: currentQuest.lastUpdated,
 
             allowUnpublish: true,
             views: 0,

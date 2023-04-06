@@ -12,6 +12,8 @@ const server = z.object({
   MAIN_TABLE_NAME: z.string(),
   ACCESS_KEY: z.string(),
   SECRET_KEY: z.string(),
+  MOMENTO_AUTH_TOKEN: z.string(),
+  MOMENTO_CACHE_NAME: z.string(),
 });
 
 /**
@@ -41,6 +43,8 @@ const processEnv = {
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   REGION: process.env.REGION,
   PUBLIC_BUCKET_NAME: process.env.PUBLIC_BUCKET_NAME,
+  MOMENTO_CACHE_NAME: process.env.MOMENTO_CACHE_NAME,
+  MOMENTO_AUTH_TOKEN: process.env.MOMENTO_AUTH_TOKEN,
 
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
