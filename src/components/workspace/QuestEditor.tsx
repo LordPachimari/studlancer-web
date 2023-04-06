@@ -2,13 +2,13 @@ import { get, set } from "idb-keyval";
 import { useCallback, useEffect, useState } from "react";
 import QuestAttributes, { QuestAttributesSkeleton } from "./QuestAttributes";
 
+import { update } from "idb-keyval";
 import {
   Quest,
   TransactionQueue,
   UpdateTransaction,
   Versions,
 } from "../../types/main";
-import { update } from "idb-keyval";
 
 import Publish from "./Publish";
 
@@ -17,7 +17,6 @@ import { mapReplacer } from "../../utils/mapReplacer";
 import { WorkspaceStore } from "../../zustand/workspace";
 import TiptapEditor from "./TiptapEditor";
 
-import { trpc } from "~/utils/api";
 import {
   Box,
   Button,
@@ -26,13 +25,13 @@ import {
   SkeletonText,
   useDisclosure,
 } from "@chakra-ui/react";
-import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
 import { useRouter } from "next/router";
+import { trpc } from "~/utils/api";
+import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
 
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,
 // });
-
 const QuestEditor = ({ id }: { id: string }) => {
   const [quest, setQuest] = useState<Quest | null | undefined>(undefined);
   const router = useRouter();
@@ -60,9 +59,10 @@ const QuestEditor = ({ id }: { id: string }) => {
     (state) => state.clearTransactionQueue
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateQuestAttributesHandler = useCallback(
     debounce(
-      async ({
+      ({
         transactionQueue,
         //last transaction needs to be pushed into transactionQueue,
         //as the last addTransaction function is executed in parallel with updateQuestAttributeHandler,
@@ -110,19 +110,30 @@ const QuestEditor = ({ id }: { id: string }) => {
         for (const [key, value] of _transactionQueue.entries()) {
           for (const item of value.transactions) {
             const { attribute, value, id } = item;
-            update(id, (quest) => {
-              quest[attribute] = value;
 
-              return quest;
+            update<
+              | Record<
+                  string,
+                  (string | number | string[]) &
+                    (string | number | string[] | undefined)
+                >
+              | undefined
+            >(id, (quest) => {
+              if (quest) {
+                quest[attribute] = value;
+
+                return quest;
+              }
             });
           }
 
           //updating the indexedb quest version after changes
 
-          update(key, (item) => {
-            const quest = item as Quest;
-            quest.lastUpdated = updateTime;
-            return quest;
+          update<Quest | undefined>(key, (quest) => {
+            if (quest) {
+              quest.lastUpdated = updateTime;
+              return quest;
+            }
           });
           //updating the localstorage quest versions after change
           const questVersion = JSON.parse(
@@ -164,7 +175,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         );
       }
     } else {
-      get(id).then((val) => {
+      get(id).then((val: Quest) => {
         setQuest(val);
         //if someone deleted local quest in indexedb, delete version so next time fetch from server
         if (!val) {
@@ -220,7 +231,9 @@ const QuestEditor = ({ id }: { id: string }) => {
             mt={3}
             colorScheme="green"
             w="100%"
-            onClick={() => router.push(`/quests/${quest.id}`)}
+            onClick={() => {
+              router.push(`/quests/${quest.id}`);
+            }}
           >
             View Published Quest
           </Button>

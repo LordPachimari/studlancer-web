@@ -48,15 +48,15 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import produce from "immer";
+import debounce from "lodash.debounce";
 import NextLink from "next/link";
 import { useRouter } from "next/navigation";
-import React, { RefObject, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ulid } from "ulid";
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "../../zustand/workspace";
 import { storeQuestOrSolution } from "./Actions";
 import styles from "./workspace.module.css";
-import debounce from "lodash.debounce";
 const List = ({
   showList,
   toggleShowList,
@@ -141,18 +141,20 @@ const List = ({
           })
         );
       }
-      void update(id, (val) => {
-        val.inTrash = true;
-        return val;
+      update<Quest | Solution | undefined>(id, (item) => {
+        if (item) {
+          item.inTrash = true;
+          return item;
+        }
       });
       localStorage.removeItem(id);
       router.push("/workspace");
     });
   };
 
-  const restoreQuest = ({ id }: { id: string }) => {
-    //fetch the quest from the server and push it to the list.
-  };
+  // const restoreQuest = ({ id }: { id: string }) => {
+  //   //fetch the quest from the server and push it to the list.
+  // };
   const createQuestOrSolutionHandler = ({
     type,
   }: {
@@ -1077,7 +1079,7 @@ const ListComponent = ({
   type: "QUEST" | "SOLUTION";
 }) => {
   if (type === "QUEST") {
-    const questListComponent = listComponent as QuestListComponent;
+    const questListComponent = listComponent satisfies QuestListComponent;
     return (
       <Flex
         pl="2"
@@ -1172,7 +1174,7 @@ const ListComponent = ({
     );
   }
   if (type === "SOLUTION") {
-    const SolutionListComponent = listComponent as SolutionListComponent;
+    const SolutionListComponent = listComponent satisfies SolutionListComponent;
     return (
       <Flex
         pl="2"

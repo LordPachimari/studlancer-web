@@ -9,9 +9,23 @@ type ImageLoaderProps = {
   width: number;
   quality?: number;
 };
+type Node = {
+  attrs: {
+    width: number;
+    height: number;
+    src: string;
+  };
+};
 export default function ImageComponent(props: {
   [key: string]: any;
   as?: React.ElementType;
+  node: Node;
+
+  selected: boolean;
+  updateAttributes: (props: {
+    width: number | "inherit";
+    height: number | "inherit";
+  }) => void;
 }) {
   const imageLoader = ({ src, width, quality }: ImageLoaderProps) => {
     return `${src}?w=${width}&q=${quality || 75}`;

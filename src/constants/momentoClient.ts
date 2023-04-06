@@ -1,7 +1,4 @@
 import {
-  CacheGet,
-  CreateCache,
-  CacheSet,
   CacheClient,
   Configurations,
   CredentialProvider,

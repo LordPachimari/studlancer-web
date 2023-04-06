@@ -29,7 +29,7 @@ export const storeQuestOrSolution = ({
       lastUpdated: newDate,
       type: "QUEST",
     };
-    void set(id, newQuest);
+    set(id, newQuest);
   } else if (type === "SOLUTION") {
     const newSolution: Solution = {
       id,

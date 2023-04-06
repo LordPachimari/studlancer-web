@@ -163,7 +163,7 @@ export default function PublishedQuestPage() {
                         isLoading={join.isLoading}
                         onClick={() => {
                           join.mutate(
-                            { questId: id as string },
+                            { questId: id },
                             {
                               onSuccess: () => {
                                 createSolution.mutate({
@@ -396,7 +396,7 @@ export async function getServerSideProps(
 ) {
   const ssg = createProxySSGHelpers({
     router: appRouter,
-    ctx: await createContextInner({ user: null }),
+    ctx: createContextInner({ user: null }),
     transformer: superjson,
   });
   const id = context.params?.id as string;

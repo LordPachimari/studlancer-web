@@ -27,6 +27,7 @@ import { z } from "zod";
 
 import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
+import { reviver } from "~/utils/mapReplacer";
 
 export const solutionRouter = router({
   publishedSolution: protectedProcedure
@@ -95,12 +96,12 @@ export const solutionRouter = router({
         return null;
       }
     }),
-  publishedSolutions: protectedProcedure
-    .input(z.object({ questId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const { user } = ctx;
-      const { questId } = input;
-    }),
+  // publishedSolutions: protectedProcedure
+  //   .input(z.object({ questId: z.string() }))
+  //   .query(async ({ ctx, input }) => {
+  //     const { user } = ctx;
+  //     const { questId } = input;
+  //   }),
 
   workspaceSolution: protectedProcedure
     .input(z.object({ id: z.string() }))
@@ -153,7 +154,7 @@ export const solutionRouter = router({
         creatorId: user.id,
         inTrash: false,
         published: false,
-        lastUpdated:new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         type: "SOLUTION",
 
@@ -181,14 +182,7 @@ export const solutionRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx;
       const { transactionsString } = input;
-      function reviver(key: string, value: any) {
-        if (typeof value === "object" && value !== null) {
-          if (value.dataType === "Map") {
-            return new Map(value.value);
-          }
-        }
-        return value;
-      }
+
       const transactionMap = JSON.parse(
         transactionsString,
         reviver
@@ -208,15 +202,11 @@ export const solutionRouter = router({
         const attributes = value.transactions.map((t) => {
           return `${t.attribute} = :${t.attribute}`;
         });
-        const UpdateExpression = `set ${attributes.join(
-          ", "
-        )}`;
+        const UpdateExpression = `set ${attributes.join(", ")}`;
         const ExpressionAttributeValues: Record<
           string,
           string | number | string[]
-        > = {
-         
-        };
+        > = {};
         value.transactions.forEach((t) => {
           ExpressionAttributeValues[`:${t.attribute}`] = t.value;
         });
@@ -297,7 +287,7 @@ export const solutionRouter = router({
             questId,
             views: 0,
             type: "SOLUTION",
-            lastUpdated:currentSolution.lastUpdated
+            lastUpdated: currentSolution.lastUpdated,
           };
           PublishedSolutionZod.parse(publishedSolution);
           const params: TransactWriteCommandInput = {

@@ -98,10 +98,10 @@ const Publish = ({
 
   const validate = () => {
     if (type === "QUEST" && questId) {
-      get(questId).then((val) => {
-        setQuestOrSolution(val);
+      get(questId).then((quest: Quest) => {
+        setQuestOrSolution(quest);
 
-        const result = QuestAttributesZod.safeParse(val);
+        const result = QuestAttributesZod.safeParse(quest);
 
         if (!result.success) {
           console.log("error", result.error.issues);
@@ -118,9 +118,9 @@ const Publish = ({
       });
     }
     if (type === "SOLUTION" && solutionId) {
-      get(solutionId).then((val) => {
-        setQuestOrSolution(val);
-        const result = SolutionAttributesZod.safeParse(val);
+      get(solutionId).then((solution: Solution) => {
+        setQuestOrSolution(solution);
+        const result = SolutionAttributesZod.safeParse(solution);
 
         if (!result.success) {
           console.log("error", result.error.issues);
@@ -151,12 +151,12 @@ const Publish = ({
         { id: questId },
         {
           onSuccess: () => {
-            update(questId, (item) => {
-              const value = item as Quest | Solution;
-
-              value.published = true;
-              setQuestOrSolution(value);
-              return value;
+            update<Quest | Solution | undefined>(questId, (value) => {
+              if (value) {
+                value.published = true;
+                setQuestOrSolution(value);
+                return value;
+              }
             });
             onClose();
             toast({
@@ -194,11 +194,12 @@ const Publish = ({
         },
         {
           onSuccess: () => {
-            update(solutionId, (item) => {
-              const value = item as Quest | Solution;
-              value.published = true;
-              setQuestOrSolution(value);
-              return value;
+            update<Quest | Solution | undefined>(solutionId, (value) => {
+              if (value) {
+                value.published = true;
+                setQuestOrSolution(value);
+                return value;
+              }
             });
             onClose();
             toast({
@@ -251,7 +252,7 @@ const Publish = ({
       >
         <AlertDialogOverlay>
           <AlertDialogContent>
-            {type === "QUEST" ? (
+            {type === "QUEST" && QuestOrSolution ? (
               <>
                 <AlertDialogHeader fontSize="lg" fontWeight="bold">
                   Confirm Publish

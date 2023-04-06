@@ -81,6 +81,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
     (state) => state.clearTransactionQueue
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateSolutionAttributesHandler = useCallback(
     debounce(
       ({
@@ -135,19 +136,30 @@ const SolutionEditor = ({ id }: { id: string }) => {
         for (const [key, value] of _transactionQueue.entries()) {
           for (const item of value.transactions) {
             const { attribute, value, id } = item;
-            update(id, (quest) => {
-              quest[attribute] = value;
 
-              return quest;
+            update<
+              | Record<
+                  string,
+                  (string | number | string[]) &
+                    (string | number | string[] | undefined)
+                >
+              | undefined
+            >(id, (quest) => {
+              if (quest) {
+                quest[attribute] = value;
+
+                return quest;
+              }
             });
           }
 
           //updating the indexedb quest version after changes
 
-          update(key, (item) => {
-            const solution = item as Solution;
-            solution.lastUpdated = updateDate;
-            return solution;
+          update<Solution | undefined>(key, (solution) => {
+            if (solution) {
+              solution.lastUpdated = updateDate;
+              return solution;
+            }
           });
           //updating the localstorage quest versions after change
           const solutionVersion = JSON.parse(
@@ -170,7 +182,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
       },
       1000
     ),
-    [debounce]
+    []
   );
 
   useEffect(() => {
@@ -188,7 +200,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
         );
       }
     } else {
-      get(id).then((val) => {
+      get(id).then((val: Solution) => {
         setSolution(val);
       });
     }
@@ -264,7 +276,9 @@ const SolutionEditor = ({ id }: { id: string }) => {
             mt={3}
             colorScheme="green"
             w="100%"
-            onClick={() => router.push(`/solutions/${solution.id}`)}
+            onClick={() => {
+              router.push(`/solutions/${solution.id}`);
+            }}
           >
             View Published Quest
           </Button>

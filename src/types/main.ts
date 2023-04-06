@@ -6,7 +6,7 @@ const QuestStatus = ["CLOSED", "OPEN"] as const;
 const SolutionStatus = ["ACKNOWLEDGED", "REJECTED", "WINNER"] as const;
 const UserRole = ["ADMIN", "USER"] as const;
 
-const questAttributes = [
+const QuestAttributes = [
   "title",
   "topic",
   "reward",
@@ -39,7 +39,7 @@ export const TopicsObject = {
     TRADING: false,
   },
 };
-
+export type QuestAttributesType = typeof QuestAttributes;
 export const Subtopics = ["SOCIAL MEDIA", "MACHINE LEARNING", "WEB3"] as const;
 const TopicsZod = z.enum(Topics);
 export type TopicsType = z.infer<typeof TopicsZod>;
@@ -170,7 +170,7 @@ export const SolverPartialZod = SolverZod.pick({
 export type SolverPartial = z.infer<typeof SolverPartialZod>;
 export const UpdateTransactionZod = z.object({
   id: z.string(),
-  attribute: z.enum(questAttributes),
+  attribute: z.enum(QuestAttributes),
   value: z.union([z.string(), z.number(), z.array(z.string())]),
 });
 export type UpdateTransaction = z.infer<typeof UpdateTransactionZod>;

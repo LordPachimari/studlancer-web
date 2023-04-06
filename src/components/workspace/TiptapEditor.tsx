@@ -1,9 +1,11 @@
+import { PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { Box } from "@chakra-ui/react";
 import Placeholder from "@tiptap/extension-placeholder";
 import {
   BubbleMenu,
   EditorContent,
   FloatingMenu,
+  JSONContent,
   useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -70,7 +72,7 @@ const TiptapEditor = (props: {
         // }),
       ],
       // content: JSON.parse(quest.content),
-      ...(content && { content: JSON.parse(content) }),
+      ...(content && { content: JSON.parse(content) as JSONContent }),
       // onCreate: () => {
       //   console.log("editor created");
       // },
@@ -125,11 +127,11 @@ const TiptapEditor = (props: {
         `/api/upload-image?file=${filename}&fileType=${fileType}`
       );
 
-      const { url, fields } = await res.json();
+      const { url, fields } = (await res.json()) as PresignedPost;
       console.log("fields", fields);
       const formData = new FormData();
       Object.entries({ ...fields, file }).forEach(([key, value]) => {
-        formData.append(key, value as string);
+        formData.append(key, value);
       });
 
       const upload = await fetch(url, {
@@ -176,13 +178,12 @@ const TiptapEditor = (props: {
         `/api/upload-file?file=${filename}&fileType=${fileType}`
       );
 
-      const { url, fields } = await res.json();
-      ``;
+      const { url, fields } = (await res.json()) as PresignedPost;
 
       console.log("fields", fields);
       const formData = new FormData();
       Object.entries({ ...fields, file }).forEach(([key, value]) => {
-        formData.append(key, value as string);
+        formData.append(key, value);
       });
       const upload = await fetch(url, {
         method: "POST",
@@ -296,6 +297,7 @@ const TiptapEditor = (props: {
               accept="image/*"
               ref={imageInputRef}
               className={styles.imageInput}
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
               onChange={addImage}
             />
             <button
@@ -308,6 +310,7 @@ const TiptapEditor = (props: {
               ref={fileInputRef}
               type="file"
               className={styles.imageInput}
+              // eslint-disable-next-line @typescript-eslint/no-misused-promises
               onChange={addFile}
             />
           </FloatingMenu>

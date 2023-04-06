@@ -15,21 +15,27 @@ import {
   SkeletonText,
   Text,
 } from "@chakra-ui/react";
+import { JSONContent } from "@tiptap/core";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import _Text from "@tiptap/extension-text";
 import { generateHTML } from "@tiptap/html";
 import dayjs from "dayjs";
-import parse, { attributesToProps } from "html-react-parser";
+import parse, {
+  attributesToProps,
+  HTMLReactParserOptions,
+  Element,
+} from "html-react-parser";
 import Link from "next/link";
 import { useMemo } from "react";
 import { PublishedQuest } from "~/types/main";
 import { FromNow } from "~/utils/dayjs";
 import FileExtension from "./Tiptap/FileExtension";
 import ImageExtension from "./Tiptap/ImageExtension";
-const HtmlParseOptions = {
-  replace: (domNode: any) => {
+const HtmlParseOptions: HTMLReactParserOptions = {
+  replace: (_domNode) => {
+    const domNode = _domNode as Element;
     if (domNode.attribs && domNode.name === "image-component") {
       return <></>;
     }
@@ -50,7 +56,7 @@ export default function QuestComponent({
   includeContent: boolean;
   includeDetails: boolean;
 }) {
-  const contentJSON = JSON.parse(quest.content);
+  const contentJSON = JSON.parse(quest.content) as JSONContent;
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
       Document,

@@ -7,11 +7,13 @@ import {
   QuestListComponent,
   Solution,
   SolutionListComponent,
+  QuestAttributesType,
   TransactionQueue,
   UpdateTransaction,
   WorkspaceList,
 } from "../types/main";
 enableMapSet();
+
 interface WorkspaceState {
   transactionQueue: TransactionQueue;
   addTransaction: (props: UpdateTransaction) => void;

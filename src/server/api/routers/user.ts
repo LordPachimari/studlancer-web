@@ -88,7 +88,7 @@ export const userRouter = router({
         role: "USER",
         level: 0,
         profile: "default profile",
-        email: user.emailAddresses[0]!.emailAddress!,
+        email: user.emailAddresses[0]!.emailAddress,
         // email: user.email,
         username: username,
         verified: false,

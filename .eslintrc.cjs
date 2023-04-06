@@ -5,12 +5,21 @@ const path = require("path");
 const config = {
   overrides: [
     {
-      // extends: [
-      //   "plugin:@typescript-eslint/recommended-requiring-type-checking",
-      // ],
+      extends: [
+        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+      ],
       files: ["*.ts", "*.tsx"],
       parserOptions: {
         project: path.join(__dirname, "tsconfig.json"),
+      },
+
+      rules: {
+        "@typescript-eslint/restrict-template-expressions": "off",
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/ban-types": "off",
+        "@typescript-eslint/no-unused-vars": "off",
       },
     },
   ],
@@ -20,28 +29,6 @@ const config = {
   },
   plugins: ["@typescript-eslint"],
   extends: ["next/core-web-vitals", "plugin:@typescript-eslint/recommended"],
-  rules: {
-    "@typescript-eslint/restrict-template-expressions": "off",
-    "@typescript-eslint/no-floating-promises": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unsafe-return": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/ban-types": "off",
-  },
-  // rules: {
-  //   "@typescript-eslint/consistent-type-imports": [
-  //     "off",
-  //     {
-  //       prefer: "type-imports",
-  //       fixStyle: "inline-type-imports",
-  //     },
-  //   ],
-  //   "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-  // },
-  // rules: {
-  //   "react/no-unescaped-entities": "off",
-  //   "@next/next/no-page-custom-font": "off",
-  // },
 };
 
 module.exports = config;

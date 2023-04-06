@@ -3,7 +3,11 @@ import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import _Text from "@tiptap/extension-text";
-import parse, { attributesToProps } from "html-react-parser";
+import parse, {
+  attributesToProps,
+  HTMLReactParserOptions,
+  Element,
+} from "html-react-parser";
 import { useMemo } from "react";
 import dayjs from "dayjs";
 import { generateHTML } from "@tiptap/html";
@@ -23,8 +27,11 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { FromNow } from "~/utils/dayjs";
-export const HtmlParseOptions = {
-  replace: (domNode: any) => {
+import { JSONContent } from "@tiptap/core";
+export const HtmlParseOptions: HTMLReactParserOptions = {
+  replace: (_domNode) => {
+    const domNode = _domNode as Element;
+
     if (domNode.attribs && domNode.name === "image-component") {
       const props = attributesToProps(domNode.attribs);
       const imageLoader = ({ src, width, quality }: ImageLoaderProps) => {
@@ -244,7 +251,7 @@ export const NonEditableSolutionAttributes = ({
   return <Heading as="h2" title={solution.title} />;
 };
 export const NonEditableContent = ({ content }: { content: string }) => {
-  const contentJSON = JSON.parse(content);
+  const contentJSON = JSON.parse(content) as JSONContent;
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
       Document,
