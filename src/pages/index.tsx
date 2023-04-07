@@ -10,7 +10,7 @@ import WelcomeLayout from "../layouts/WelcomeLayout";
 import { NextPageWithLayout } from "./_app";
 
 import superjson from "superjson";
-import { Card, CardBody } from "@chakra-ui/react";
+import { Card, CardBody, CardHeader, Heading } from "@chakra-ui/react";
 import { trpc } from "~/utils/api";
 
 const SignUpPage: NextPageWithLayout = () => {
@@ -22,8 +22,12 @@ const SignUpPage: NextPageWithLayout = () => {
   console.log("isSignedIn", isSignedIn);
   if (isSignedIn && user.data) {
     return (
-      <Card w="md" h="lg">
-        <CardBody>{user.data.username}</CardBody>
+      <Card w="80" h="md" borderRadius="2xl">
+        <CardHeader>
+          <Heading display="center" justifyContent="center">
+            {user.data.username.toUpperCase()}
+          </Heading>
+        </CardHeader>
       </Card>
     );
   }

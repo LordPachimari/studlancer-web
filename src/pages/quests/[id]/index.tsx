@@ -78,7 +78,7 @@ export default function PublishedQuestPage() {
   }
 
   return (
-    <Center w="100%" flexDirection={{ base: "column", md: "row" }}>
+    <Center w="100%" flexDirection={{ base: "column", md: "row" }} mb={20}>
       <Box
         w="90%"
         display={{ base: "block", md: "flex" }}

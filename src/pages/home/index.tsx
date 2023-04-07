@@ -22,7 +22,7 @@ export default function Home() {
   }
   console.log("quests", quests.data);
   return (
-    <Flex w="100%" justifyContent="center" mt={20}>
+    <Flex w="100%" justifyContent="center" mt={20} mb={20}>
       <Flex w="90%" columnGap={15}>
         <Flex w={{ base: "100%", lg: "70%" }} flexDirection="column" gap={10}>
           {quests.isLoading ? (
