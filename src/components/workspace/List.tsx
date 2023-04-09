@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/nextjs";
-import { get, update, values } from "idb-keyval";
+import { del, get, update, values } from "idb-keyval";
 import {
   Quest,
   QuestListComponent,
@@ -45,8 +45,10 @@ import {
   SkeletonCircle,
   Spacer,
   Text,
+  Toast,
   filter,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
 import produce from "immer";
 import debounce from "lodash.debounce";
@@ -111,25 +113,30 @@ const List = ({
     onOpen: onOpenTrashModal,
     onClose: onCloseTrashModal,
   } = useDisclosure();
-
+  const toast = useToast();
   //deleteQuest deletes quest in local storage and the server (not actually deletes but marks as inTrash)
   const deleteListComponent = ({ id }: { id: string }) => {
     get(id).then((component: Quest | Solution) => {
+      if (component.published) {
+        toast({
+          title: "Not allowed",
+          description: "Unpublish the quest before deletion",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
       if (component.type === "QUEST") {
         const quest = component satisfies Quest;
         if (quest && (quest.title || quest.content)) {
           //saving quest if content exist
-          console.log(
-            "puting in trash",
-            quest && (quest.title || quest.content),
-            "keke",
-            quest
-          );
+          console.log(quest && (quest.title || quest.content), "keke", quest);
           console.log("title", quest.title, "content", quest.content);
           deleteQuest.mutate({ id: quest.id });
         } else {
-          console.log("deleting permanently");
           deleteQuestPermanently.mutate({ id: quest.id });
+          del(id);
         }
         deleteQuestOrSolution({ id, type: "QUEST" });
         setTrash(
@@ -144,6 +151,7 @@ const List = ({
           deleteSolution.mutate({ id: solution.id });
         } else {
           deleteSolutionPermanently.mutate({ id: solution.id });
+          del(id);
         }
         deleteQuestOrSolution({ id, type: "SOLUTION" });
         setTrash(
@@ -923,6 +931,7 @@ const TrashComponent = ({
                                       quests: filteredQuests,
                                     };
                                   });
+                                  del(q.id);
                                   onAlertClose();
                                 },
                               }
@@ -1043,6 +1052,8 @@ const TrashComponent = ({
                                       solutions: filteredSolutions,
                                     };
                                   });
+
+                                  del(s.id);
                                   onAlertClose();
                                 },
                               }
