@@ -1,8 +1,6 @@
-# Create T3 App with Dynamodb as a database, Clerk for authentication, Chakra ui for UI, Pusher + Sendbird for chat, Momento for cache, Zustand for state management.
+# Create T3 App.
 
-
-
-
+ This app uses Dynamodb as a database, TRPC for typesafety, Clerk for authentication, Chakra ui for UI, Pusher + Sendbird for chat, Momento for cache, Zustand for state management.
 
 
 - [Next.js](https://nextjs.org)
