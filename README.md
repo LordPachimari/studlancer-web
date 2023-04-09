@@ -10,6 +10,6 @@
 - [Dynamodb](https://aws.amazon.com/dynamodb/)
 - [Chakra ui](https://chakra-ui.com/)
 - [tRPC](https://trpc.io)
-- [Momento cache] (https://www.gomomento.com/)
-- [zustand] (https://github.com/pmndrs/zustand)
+- [Momento cache](https://www.gomomento.com/)
+- [zustand](https://github.com/pmndrs/zustand)
 
