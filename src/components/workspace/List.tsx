@@ -45,18 +45,21 @@ import {
   SkeletonCircle,
   Spacer,
   Text,
+  filter,
   useDisclosure,
 } from "@chakra-ui/react";
 import produce from "immer";
 import debounce from "lodash.debounce";
 import NextLink from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { ulid } from "ulid";
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "../../zustand/workspace";
 import { storeQuestOrSolution } from "./Actions";
 import styles from "./workspace.module.css";
+import { WritableDraft } from "immer/dist/internal";
+import { questRouter } from "~/server/api/routers/quest";
 const List = ({
   showList,
   toggleShowList,
@@ -97,8 +100,8 @@ const List = ({
     (state) => state.deleteQuestOrSolution
   );
   const [trash, setTrash] = useState<{
-    quests: Quest[];
-    solutions: Solution[];
+    quests: QuestListComponent[];
+    solutions: SolutionListComponent[];
   }>({
     quests: [],
     solutions: [],
@@ -114,10 +117,18 @@ const List = ({
     get(id).then((component: Quest | Solution) => {
       if (component.type === "QUEST") {
         const quest = component satisfies Quest;
-        if (quest && (quest.title !== "" || quest.content)) {
+        if (quest && (quest.title || quest.content)) {
           //saving quest if content exist
+          console.log(
+            "puting in trash",
+            quest && (quest.title || quest.content),
+            "keke",
+            quest
+          );
+          console.log("title", quest.title, "content", quest.content);
           deleteQuest.mutate({ id: quest.id });
         } else {
+          console.log("deleting permanently");
           deleteQuestPermanently.mutate({ id: quest.id });
         }
         deleteQuestOrSolution({ id, type: "QUEST" });
@@ -128,7 +139,7 @@ const List = ({
         );
       } else if (component.type === "SOLUTION") {
         const solution = component satisfies Solution;
-        if (solution && solution.content) {
+        if (solution && (solution.title || solution.content)) {
           //saving solution if content exist
           deleteSolution.mutate({ id: solution.id });
         } else {
@@ -148,7 +159,9 @@ const List = ({
         }
       });
       localStorage.removeItem(id);
-      router.push("/workspace");
+      if (router.query.id === id) {
+        router.push("/workspace");
+      }
     });
   };
 
@@ -168,10 +181,16 @@ const List = ({
         { id },
         {
           onSuccess: () => {
-            router.push(`/workspace/quests/${id}`);
+            if (!router.query.id) {
+              router.push(`/workspace/quests/${id}`);
+            }
           },
         }
       );
+
+      if (router.query.id) {
+        router.push(`/workspace/quests/${id}`, undefined, { shallow: true });
+      }
     } else if (type === "SOLUTION") {
       const id = ulid();
       createQuestOrSolutionState({ id, type: "SOLUTION" });
@@ -181,10 +200,15 @@ const List = ({
         { id },
         {
           onSuccess: () => {
-            router.push(`/workspace/solutions/${id}`);
+            if (!router.query.id) {
+              router.push(`/workspace/solutions/${id}`);
+            }
           },
         }
       );
+      if (router.query.id) {
+        router.push(`/workspace/solutions/${id}`, undefined, { shallow: true });
+      }
     }
   };
 
@@ -717,8 +741,8 @@ const TrashComponent = ({
   onClose: () => void;
   setTrash: React.Dispatch<
     React.SetStateAction<{
-      quests: Quest[];
-      solutions: Solution[];
+      quests: QuestListComponent[];
+      solutions: SolutionListComponent[];
     }>
   >;
 }) => {
@@ -788,135 +812,132 @@ const TrashComponent = ({
           </FormControl>
 
           {QuestOrSolutionList &&
-            QuestOrSolutionList.quests
-              .slice(0)
-              .reverse()
-              .map((q) => (
-                <Flex
-                  mt={2}
-                  _hover={{ bg: "gray.100" }}
-                  cursor="pointer"
-                  pl="2"
-                  borderRadius={4}
-                  bg="none"
-                  w="100%"
-                  h="10"
-                  color="black"
-                  key={q.id}
-                  gap={2}
-                  alignItems="center"
+            QuestOrSolutionList.quests.map((q) => (
+              <Flex
+                mt={2}
+                _hover={{ bg: "gray.100" }}
+                cursor="pointer"
+                pl="2"
+                borderRadius={4}
+                bg="none"
+                w="100%"
+                h="10"
+                color="black"
+                key={q.id}
+                gap={2}
+                alignItems="center"
+              >
+                <Circle
+                  size="24px"
+                  borderWidth="1px"
+                  borderColor="black"
+                  bg={q.topic ? TopicColor({ topic: q.topic }) : "white"}
+                ></Circle>
+                <Text
+                  fontSize="md"
+                  fontWeight="semibold"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  textOverflow="ellipsis"
                 >
-                  <Circle
-                    size="24px"
-                    borderWidth="1px"
-                    borderColor="black"
-                    bg={q.topic ? TopicColor({ topic: q.topic }) : "white"}
-                  ></Circle>
-                  <Text
-                    fontSize="md"
-                    fontWeight="semibold"
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                  >
-                    {q.title || "Untitled"}
-                  </Text>
-                  <Spacer />
-                  <IconButton
-                    size="sm"
-                    aria-label="restore"
-                    icon={
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width="18"
-                        height="18"
-                      >
-                        <path fill="none" d="M0 0h24v24H0z" />
-                        <path
-                          d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
-                          fill="var(--gray)"
-                        />
-                      </svg>
-                    }
-                  ></IconButton>
+                  {q.title || "Untitled"}
+                </Text>
+                <Spacer />
+                <IconButton
+                  size="sm"
+                  aria-label="restore"
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                    >
+                      <path fill="none" d="M0 0h24v24H0z" />
+                      <path
+                        d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
+                        fill="var(--gray)"
+                      />
+                    </svg>
+                  }
+                ></IconButton>
 
-                  <IconButton
-                    mr={1}
-                    size="sm"
-                    aria-label="restore"
-                    onClick={() => {
-                      onAlertOpen();
-                    }}
-                    icon={
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width="18"
-                        height="18"
-                      >
-                        <path fill="none" d="M0 0h24v24H0z" />
-                        <path
-                          d="M7 4V2h10v2h5v2h-2v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6H2V4h5zM6 6v14h12V6H6zm3 3h2v8H9V9zm4 0h2v8h-2V9z"
-                          fill="var(--gray)"
-                        />
-                      </svg>
-                    }
-                  ></IconButton>
+                <IconButton
+                  mr={1}
+                  size="sm"
+                  aria-label="restore"
+                  onClick={() => {
+                    onAlertOpen();
+                  }}
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                    >
+                      <path fill="none" d="M0 0h24v24H0z" />
+                      <path
+                        d="M7 4V2h10v2h5v2h-2v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6H2V4h5zM6 6v14h12V6H6zm3 3h2v8H9V9zm4 0h2v8h-2V9z"
+                        fill="var(--gray)"
+                      />
+                    </svg>
+                  }
+                ></IconButton>
 
-                  <AlertDialog
-                    isOpen={isAlertOpen}
-                    leastDestructiveRef={cancelRef}
-                    onClose={onAlertClose}
-                  >
-                    <AlertDialogOverlay>
-                      <AlertDialogContent>
-                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                          Permanently Delete Quest
-                        </AlertDialogHeader>
+                <AlertDialog
+                  isOpen={isAlertOpen}
+                  leastDestructiveRef={cancelRef}
+                  onClose={onAlertClose}
+                >
+                  <AlertDialogOverlay>
+                    <AlertDialogContent>
+                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                        Permanently Delete Quest
+                      </AlertDialogHeader>
 
-                        <AlertDialogBody>
-                          {
-                            "Are you sure? You can't undo this action afterwards."
-                          }
-                        </AlertDialogBody>
+                      <AlertDialogBody>
+                        {"Are you sure? You can't undo this action afterwards."}
+                      </AlertDialogBody>
 
-                        <AlertDialogFooter>
-                          <Button ref={cancelRef} onClick={onAlertClose}>
-                            Cancel
-                          </Button>
-                          <Button
-                            colorScheme="red"
-                            isLoading={deleteQuestPermanently.isLoading}
-                            onClick={() => {
-                              deleteQuestPermanently.mutate(
-                                { id: q.id },
-                                {
-                                  onSuccess: () => {
-                                    setTrash(
-                                      produce((trash) => {
-                                        const filteredQuests =
-                                          trash.quests.filter(
-                                            (q) => q.id !== q.id
-                                          );
-                                        trash.quests = filteredQuests;
-                                      })
-                                    );
-                                    onAlertClose();
-                                  },
-                                }
-                              );
-                            }}
-                            ml={3}
-                          >
-                            Delete
-                          </Button>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialogOverlay>
-                  </AlertDialog>
-                </Flex>
-              ))}
+                      <AlertDialogFooter>
+                        <Button ref={cancelRef} onClick={onAlertClose}>
+                          Cancel
+                        </Button>
+                        <Button
+                          colorScheme="red"
+                          isLoading={deleteQuestPermanently.isLoading}
+                          onClick={() => {
+                            deleteQuestPermanently.mutate(
+                              { id: q.id },
+                              {
+                                onSuccess: () => {
+                                  const filteredQuests = trash.quests.filter(
+                                    (item) => item.id !== q.id
+                                  );
+                                  console.log("filteredQuests", filteredQuests);
+                                  console.log("deleted quest", q.id, q.title);
+                                  setTrash((trash) => {
+                                    return {
+                                      solutions: trash.solutions,
+                                      quests: filteredQuests,
+                                    };
+                                  });
+                                  onAlertClose();
+                                },
+                              }
+                            );
+                          }}
+                          ml={3}
+                        >
+                          Delete
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialogOverlay>
+                </AlertDialog>
+              </Flex>
+            ))}
 
           {QuestOrSolutionList &&
             QuestOrSolutionList.solutions.map((s) => (
@@ -1011,16 +1032,18 @@ const TrashComponent = ({
                               { id: s.id },
                               {
                                 onSuccess: () => {
+                                  const filteredSolutions =
+                                    QuestOrSolutionList.solutions.filter(
+                                      (item) => item.id !== s.id
+                                    );
+
+                                  setTrash((trash) => {
+                                    return {
+                                      quests: trash.quests,
+                                      solutions: filteredSolutions,
+                                    };
+                                  });
                                   onAlertClose();
-                                  setTrash(
-                                    produce((trash) => {
-                                      const filteredQuests =
-                                        trash.quests.filter(
-                                          (q) => q.id !== q.id
-                                        );
-                                      trash.quests = filteredQuests;
-                                    })
-                                  );
                                 },
                               }
                             );

@@ -151,7 +151,7 @@ export const questRouter = router({
         //rockset
         try {
           const getResponse = await momento.get(
-            process.env.MOMENTO_CACHE_NAME!,
+            process.env.MOMENTO_CACHE_NAME || "",
             "LATEST_PUBLISHED_QUESTS"
           );
           if (getResponse instanceof CacheGet.Hit) {
@@ -166,7 +166,7 @@ export const questRouter = router({
               );
 
             const setResponse = await momento.set(
-              process.env.MOMENTO_CACHE_NAME!,
+              process.env.MOMENTO_CACHE_NAME || "",
               "LATEST_PUBLISHED_QUESTS",
               JSON.stringify(publishedQuests.results || "")
             );
@@ -340,7 +340,7 @@ export const questRouter = router({
       const { id } = input;
       const { user } = ctx;
 
-      const tableName = process.env.MAIN_TABLE_NAME!;
+      const tableName = process.env.MAIN_TABLE_NAME || "";
       const RequestItems: Record<
         string,
         Omit<KeysAndAttributes, "Keys"> & {
@@ -685,7 +685,7 @@ export const questRouter = router({
       const solvers: Solver[] = [];
 
       if (solversPartial.length > 0) {
-        const tableName = process.env.MAIN_TABLE_NAME!;
+        const tableName = process.env.MAIN_TABLE_NAME || "";
         const Keys: Record<string, any>[] = [];
         for (const item of solversPartial) {
           Keys.push({ PK: `USER#${item.id}`, SK: `USER#${item.id}` });
@@ -835,7 +835,7 @@ export const questRouter = router({
       let comments: Comment[] = [];
 
       if (commentsId.length > 0) {
-        const tableName = process.env.MAIN_TABLE_NAME!;
+        const tableName = process.env.MAIN_TABLE_NAME || "";
         const Keys: Record<string, any>[] = [];
         for (const id of commentsId) {
           Keys.push({ PK: `QUEST#${id}`, SK: `COMMENT#${id}` });

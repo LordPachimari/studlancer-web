@@ -13,6 +13,7 @@ import {
   Skeleton,
   SkeletonCircle,
   SkeletonText,
+  Spacer,
   Text,
 } from "@chakra-ui/react";
 import { JSONContent } from "@tiptap/core";
@@ -69,7 +70,7 @@ export default function QuestComponent({
     ]);
   }, [contentJSON]);
   return (
-    <Card w="100%" h={{ base: "80", md: "64" }} borderRadius="2xl">
+    <Card w="100%" h="fit-content" borderRadius="2xl">
       <CardHeader p={4}>
         <Flex gap={5} flexWrap="wrap">
           <Flex flex="1" gap="4" alignItems="center">
@@ -135,6 +136,7 @@ export default function QuestComponent({
             overflow="hidden"
             whiteSpace="nowrap"
             textOverflow="ellipsis"
+            h={{ base: "20", md: "16" }}
           >
             {parse(output, HtmlParseOptions)}
           </CardBody>

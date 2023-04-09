@@ -9,13 +9,13 @@ export default async function handler(
   const s3Client = new S3Client({
     region: process.env.REGION,
     credentials: {
-      accessKeyId: process.env.ACCESS_KEY!,
-      secretAccessKey: process.env.SECRET_KEY!,
+      accessKeyId: process.env.ACCESS_KEY || "",
+      secretAccessKey: process.env.SECRET_KEY || "",
     },
   });
   try {
     const post = await createPresignedPost(s3Client, {
-      Bucket: process.env.PUBLIC_BUCKET_NAME!,
+      Bucket: process.env.PUBLIC_BUCKET_NAME || "",
       Key: `images/${req.query.file}`,
       Fields: {
         // acl: "public-read",

@@ -1,7 +1,12 @@
 import { get, update } from "idb-keyval";
 import React, { Dispatch, SetStateAction, useState } from "react";
 import { z } from "zod";
-import { Quest, Solution } from "../../types/main";
+import {
+  PublishedQuest,
+  PublishedSolution,
+  Quest,
+  Solution,
+} from "../../types/main";
 
 import {
   AlertDialog,
@@ -151,13 +156,17 @@ const Publish = ({
         { id: questId },
         {
           onSuccess: () => {
-            update<Quest | Solution | undefined>(questId, (value) => {
-              if (value) {
-                value.published = true;
-                setQuestOrSolution(value);
-                return value;
+            update<(Quest & { status: "OPEN" | "CLOSE" }) | undefined>(
+              questId,
+              (value) => {
+                if (value) {
+                  value.published = true;
+                  value.status = "OPEN";
+                  setQuestOrSolution(value);
+                  return value;
+                }
               }
-            });
+            );
             onClose();
             toast({
               title: "Quest uploaded successfully",
@@ -194,7 +203,7 @@ const Publish = ({
         },
         {
           onSuccess: () => {
-            update<Quest | Solution | undefined>(solutionId, (value) => {
+            update<Solution | undefined>(solutionId, (value) => {
               if (value) {
                 value.published = true;
                 setQuestOrSolution(value);

@@ -32,6 +32,8 @@ const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
             aria-label="open list"
             className={styles.openListButton}
             onClick={() => toggleShowList((val) => !val)}
+            zIndex={3}
+            bg="none"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

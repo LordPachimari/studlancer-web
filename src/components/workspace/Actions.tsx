@@ -1,4 +1,4 @@
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 
 import { set } from "idb-keyval";
 import { ulid } from "ulid";
@@ -50,6 +50,7 @@ export const storeQuestOrSolution = ({
 //hello world
 const Actions = () => {
   const router = useRouter();
+  console.log("router", router.query.id);
   const createQuestOrSolutionState = WorkspaceStore(
     (state) => state.createQuestOrSolution
   );
@@ -78,6 +79,7 @@ const Actions = () => {
       >
         CREATE QUEST
       </Button>
+
       <Button
         colorScheme="blue"
         w={{ base: "90%", md: "60" }}

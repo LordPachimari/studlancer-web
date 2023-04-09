@@ -72,7 +72,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         transactionQueue: TransactionQueue;
         lastTransaction: UpdateTransaction;
       }) => {
-        //transactionQueue supposed to be immutable, but I'll allow myself to mutate the copy of it
+        //transactionQueue is immutable, but I'll allow myself to mutate the copy of it
         const _transactionQueue = structuredClone(transactionQueue);
         const updateTime = new Date().toISOString();
 
@@ -190,7 +190,7 @@ const QuestEditor = ({ id }: { id: string }) => {
   }
 
   return (
-    <Center mt={10} flexDirection="column">
+    <Center mt={10} flexDirection="column" mb={20}>
       <Card w="85%" bg="white" p={5} maxW="2xl" borderRadius="2xl">
         {quest === undefined || (serverQuest.isLoading && shouldUpdate) ? (
           <QuestAttributesSkeleton />
@@ -239,6 +239,15 @@ const QuestEditor = ({ id }: { id: string }) => {
           </Button>
         </Center>
       )}
+      {/* <Button
+        onClick={() =>
+          router.push("/workspace/quests/quest1", undefined, {
+            shallow: "true",
+          })
+        }
+      >
+        Check
+      </Button> */}
     </Center>
   );
 };
