@@ -92,6 +92,12 @@ const TopicSelect = ({
   topic?: TopicsType;
   handleTopicChange: (e: ChangeEvent<HTMLSelectElement>) => void;
 }) => {
+  const [topicState, setTopicState] = useState<TopicsType | undefined>(
+    undefined
+  );
+  useEffect(() => {
+    setTopicState(topic);
+  }, [topic]);
   return (
     <Select
       size="sm"
@@ -108,8 +114,10 @@ const TopicSelect = ({
           : "none"
       }
       w="40"
-      onChange={handleTopicChange}
-      defaultValue={topic}
+      onChange={(e) => {
+        handleTopicChange(e), setTopicState(e.target.value as TopicsType);
+      }}
+      value={topicState || ""}
     >
       <option value="BUSINESS">Business</option>
       <option value="PROGRAMMING">Programming</option>
@@ -238,10 +246,10 @@ const Reward = ({
         w={40}
         htmlSize={4}
         placeholder="Enter amount"
-        value={stateReward === 0 ? undefined : stateReward}
+        value={stateReward || 0}
         type="number"
         onChange={(e) => {
-          handleRewardChange(e), setStateReward(e.target.valueAsNumber);
+          handleRewardChange(e), setStateReward(e.target.valueAsNumber || 0);
         }}
         min={1}
       />
@@ -256,7 +264,6 @@ const Slots = ({
   slots: number | undefined;
 }) => {
   const [stateSlots, setStateSlots] = useState(0);
-  console.log("slots", stateSlots);
   useEffect(() => {
     if (slots) {
       setStateSlots(slots);
@@ -289,7 +296,7 @@ const Slots = ({
         value={stateSlots}
         type="number"
         onChange={(e) => {
-          handleSlotsChange(e), setStateSlots(e.target.valueAsNumber);
+          handleSlotsChange(e), setStateSlots(e.target.valueAsNumber || 0);
         }}
         min={1}
       />
@@ -315,6 +322,8 @@ const DatePicker = ({
   }) => void;
   addTransaction: (props: UpdateTransaction) => void;
 }) => {
+  const [dateState, setDateState] = useState("");
+
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     console.log("changin date", event.target.value);
     addTransaction({
@@ -340,8 +349,10 @@ const DatePicker = ({
         w={{ base: "90%", md: "xs" }}
         size="md"
         type="datetime-local"
-        onChange={onChange}
-        value={questDate || ""}
+        onChange={(e) => {
+          onChange(e), setDateState(e.target.value);
+        }}
+        value={dateState || ""}
       />
     </div>
   );
@@ -360,7 +371,6 @@ const QuestAttributes = ({
     lastTransaction: UpdateTransaction;
   }) => void;
 }) => {
-  console.log("quest from attributes", quest);
   const updateQuestAttributesListAttribute = WorkspaceStore(
     (state) => state.updateListState
   );

@@ -7,7 +7,7 @@ export default function GlobalLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const handleRouteChangeStart = () => {
       setLoading(true);
@@ -29,8 +29,18 @@ export default function GlobalLayout({
   }, [router.events]);
 
   return (
-    <Box bg="gray.100" minWidth="2xs">
-      {loading && <Progress size="xs" isIndeterminate />}
+    <Box bg="gray.100" minWidth="2xs" position="relative">
+      {loading && (
+        <Progress
+          size="xs"
+          isIndeterminate
+          top={0}
+          position="absolute"
+          w="100%"
+          zIndex={9}
+          bg="none"
+        />
+      )}
       <main className="page">{children}</main>
     </Box>
   );
