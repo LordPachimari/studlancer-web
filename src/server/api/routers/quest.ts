@@ -168,7 +168,8 @@ export const questRouter = router({
             const setResponse = await momento.set(
               process.env.MOMENTO_CACHE_NAME || "",
               "LATEST_PUBLISHED_QUESTS",
-              JSON.stringify(publishedQuests.results || "")
+              JSON.stringify(publishedQuests.results || ""),
+              { ttl: 1800 }
             );
             if (setResponse instanceof CacheSet.Success) {
               console.log("Key stored successfully!");

@@ -30,7 +30,7 @@ export default function Profile() {
     return <div></div>;
   }
   return (
-    <Flex w="100%" justify="center">
+    <Flex w="100%" justify="center" mb={20}>
       <Box
         w="90%"
         display={{ base: "block", md: "flex" }}

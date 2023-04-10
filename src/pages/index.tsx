@@ -17,7 +17,7 @@ const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
   const user = trpc.user.userById.useQuery(
     { id: userId! },
-    { enabled: !!userId }
+    { enabled: !!userId, staleTime: 1800 }
   );
   console.log("isSignedIn", isSignedIn);
   if (isSignedIn && user.data) {

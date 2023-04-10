@@ -75,7 +75,7 @@ const Sidebar = ({
         </IconButton>
       </Flex>
 
-      <Link href="/profile">
+      <Link href={`/profile/${userId}`}>
         <Center w="100%" h="80">
           <Box w="90%" h="72" bg="gray.100" borderRadius={"xl"}></Box>
         </Center>
@@ -101,6 +101,7 @@ const Sidebar = ({
               alignItems="center"
               className="divider"
               cursor="pointer"
+              _hover={{ bg: "gray.100" }}
             >
               <Divider
                 orientation="vertical"
@@ -118,14 +119,18 @@ const Sidebar = ({
           </Link>
         );
       })}
-      <Button
-        onClick={() => {
-          signOut();
-          router.push("/");
-        }}
-      >
-        <Text fontSize={{ base: "sm" }}>Sign out</Text>
-      </Button>
+      <Center>
+        <Button
+          mt={5}
+          colorScheme="blue"
+          onClick={() => {
+            signOut();
+            router.push("/");
+          }}
+        >
+          <Text fontSize={{ base: "sm" }}>Sign out</Text>
+        </Button>
+      </Center>
     </div>
   );
 };

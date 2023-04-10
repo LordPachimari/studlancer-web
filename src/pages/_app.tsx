@@ -7,6 +7,12 @@ import { ReactElement, ReactNode } from "react";
 import { NextPage } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { Noto_Sans } from "@next/font/google";
+
+const NotoSans = Noto_Sans({
+  subsets: ["latin"],
+  weight: ["400"],
+});
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode;
@@ -23,7 +29,11 @@ const MyApp: AppType = ({
 
   return (
     <ClerkProvider {...pageProps}>
-      <ChakraProvider>{getLayout(<Component {...pageProps} />)}</ChakraProvider>
+      <ChakraProvider>
+        <main className={NotoSans.className}>
+          {getLayout(<Component {...pageProps} />)}
+        </main>
+      </ChakraProvider>
     </ClerkProvider>
   );
 };
