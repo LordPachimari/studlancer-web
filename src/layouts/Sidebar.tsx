@@ -124,8 +124,8 @@ const Sidebar = ({
           mt={5}
           colorScheme="blue"
           onClick={() => {
-            signOut();
-            router.push("/");
+            signOut().catch((err) => console.log("error logging out", err));
+            void router.push("/");
           }}
         >
           <Text fontSize={{ base: "sm" }}>Sign out</Text>

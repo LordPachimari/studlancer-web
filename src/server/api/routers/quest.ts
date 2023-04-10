@@ -402,6 +402,8 @@ export const questRouter = router({
             allowUnpublish: true,
             views: 0,
           };
+          console.log("quest from the server", publishedQuest);
+
           //KINDA MESSI ISNAT? HAHA? IS IT TYPE SAFE? JUST LET THE ZOD DO ITS THING (VALIDATION)
           PublishedQuestZod.parse(publishedQuest);
           const params: TransactWriteCommandInput = {
@@ -456,6 +458,7 @@ export const questRouter = router({
         }
         return false;
       } catch (error) {
+        console.log(error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Error publishing quest, fill all the attributes",

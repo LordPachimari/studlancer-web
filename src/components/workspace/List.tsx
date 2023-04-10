@@ -116,61 +116,63 @@ const List = ({
   const toast = useToast();
   //deleteQuest deletes quest in local storage and the server (not actually deletes but marks as inTrash)
   const deleteListComponent = ({ id }: { id: string }) => {
-    get(id).then((component: Quest | Solution) => {
-      if (component.published) {
-        toast({
-          title: "Not allowed",
-          description: "Unpublish the quest before deletion",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
-      }
-      if (component.type === "QUEST") {
-        const quest = component satisfies Quest;
-        if (quest && (quest.title || quest.content)) {
-          //saving quest if content exist
-          console.log(quest && (quest.title || quest.content), "keke", quest);
-          console.log("title", quest.title, "content", quest.content);
-          deleteQuest.mutate({ id: quest.id });
-        } else {
-          deleteQuestPermanently.mutate({ id: quest.id });
-          del(id);
+    get(id)
+      .then((component: Quest | Solution) => {
+        if (component.published) {
+          toast({
+            title: "Not allowed",
+            description: "Unpublish the quest before deletion",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
         }
-        deleteQuestOrSolution({ id, type: "QUEST" });
-        setTrash(
-          produce((trash) => {
-            trash.quests.push(component);
-          })
-        );
-      } else if (component.type === "SOLUTION") {
-        const solution = component satisfies Solution;
-        if (solution && (solution.title || solution.content)) {
-          //saving solution if content exist
-          deleteSolution.mutate({ id: solution.id });
-        } else {
-          deleteSolutionPermanently.mutate({ id: solution.id });
-          del(id);
+        if (component.type === "QUEST") {
+          const quest = component satisfies Quest;
+          if (quest && (quest.title || quest.content)) {
+            //saving quest if content exist
+            console.log(quest && (quest.title || quest.content), "keke", quest);
+            console.log("title", quest.title, "content", quest.content);
+            deleteQuest.mutate({ id: quest.id });
+          } else {
+            deleteQuestPermanently.mutate({ id: quest.id });
+            del(id).catch((err) => console.log(err));
+          }
+          deleteQuestOrSolution({ id, type: "QUEST" });
+          setTrash(
+            produce((trash) => {
+              trash.quests.push(component);
+            })
+          );
+        } else if (component.type === "SOLUTION") {
+          const solution = component satisfies Solution;
+          if (solution && (solution.title || solution.content)) {
+            //saving solution if content exist
+            deleteSolution.mutate({ id: solution.id });
+          } else {
+            deleteSolutionPermanently.mutate({ id: solution.id });
+            del(id).catch((err) => console.log(err));
+          }
+          deleteQuestOrSolution({ id, type: "SOLUTION" });
+          setTrash(
+            produce((trash) => {
+              trash.quests.push(component);
+            })
+          );
         }
-        deleteQuestOrSolution({ id, type: "SOLUTION" });
-        setTrash(
-          produce((trash) => {
-            trash.quests.push(component);
-          })
-        );
-      }
-      update<Quest | Solution | undefined>(id, (item) => {
-        if (item) {
-          item.inTrash = true;
-          return item;
+        update<Quest | Solution | undefined>(id, (item) => {
+          if (item) {
+            item.inTrash = true;
+            return item;
+          }
+        }).catch((err) => console.log(err));
+        localStorage.removeItem(id);
+        if (router.query.id === id) {
+          void router.push("/workspace");
         }
-      });
-      localStorage.removeItem(id);
-      if (router.query.id === id) {
-        router.push("/workspace");
-      }
-    });
+      })
+      .catch((err) => console.log(err));
   };
 
   // const restoreQuest = ({ id }: { id: string }) => {
@@ -190,14 +192,16 @@ const List = ({
         {
           onSuccess: () => {
             if (!router.query.id) {
-              router.push(`/workspace/quests/${id}`);
+              void router.push(`/workspace/quests/${id}`);
             }
           },
         }
       );
 
       if (router.query.id) {
-        router.push(`/workspace/quests/${id}`, undefined, { shallow: true });
+        void router.push(`/workspace/quests/${id}`, undefined, {
+          shallow: true,
+        });
       }
     } else if (type === "SOLUTION") {
       const id = ulid();
@@ -209,13 +213,15 @@ const List = ({
         {
           onSuccess: () => {
             if (!router.query.id) {
-              router.push(`/workspace/solutions/${id}`);
+              void router.push(`/workspace/solutions/${id}`);
             }
           },
         }
       );
       if (router.query.id) {
-        router.push(`/workspace/solutions/${id}`, undefined, { shallow: true });
+        void router.push(`/workspace/solutions/${id}`, undefined, {
+          shallow: true,
+        });
       }
     }
   };
@@ -578,26 +584,28 @@ const SearchComponent = ({
       return;
     }
 
-    values().then((values: (Quest | Solution)[]) => {
-      const filteredQuests = values.filter(
-        (value) =>
-          value.type === "QUEST" &&
-          ((value.content && value.content.search(e.target.value) > -1) ||
-            (value.title && value.title?.search(e.target.value) > -1))
-      );
+    values()
+      .then((values: (Quest | Solution)[]) => {
+        const filteredQuests = values.filter(
+          (value) =>
+            value.type === "QUEST" &&
+            ((value.content && value.content.search(e.target.value) > -1) ||
+              (value.title && value.title?.search(e.target.value) > -1))
+        );
 
-      const filteredSolution = values.filter(
-        (value) =>
-          value.type === "SOLUTION" &&
-          ((value.content && value.content?.search(e.target.value) > -1) ||
-            (value.title && value.title?.search(e.target.value) > -1))
-      );
+        const filteredSolution = values.filter(
+          (value) =>
+            value.type === "SOLUTION" &&
+            ((value.content && value.content?.search(e.target.value) > -1) ||
+              (value.title && value.title?.search(e.target.value) > -1))
+        );
 
-      setQuestOrSolutionList({
-        quests: filteredQuests,
-        solutions: filteredSolution,
-      });
-    });
+        setQuestOrSolutionList({
+          quests: filteredQuests,
+          solutions: filteredSolution,
+        });
+      })
+      .catch((err) => console.log(err));
   }, 500);
   return (
     <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
@@ -931,7 +939,7 @@ const TrashComponent = ({
                                       quests: filteredQuests,
                                     };
                                   });
-                                  del(q.id);
+                                  del(q.id).catch((err) => console.log(err));
                                   onAlertClose();
                                 },
                               }
@@ -1053,7 +1061,7 @@ const TrashComponent = ({
                                     };
                                   });
 
-                                  del(s.id);
+                                  del(s.id).catch((err) => console.log(err));
                                   onAlertClose();
                                 },
                               }

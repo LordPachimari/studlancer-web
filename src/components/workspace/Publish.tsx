@@ -51,7 +51,9 @@ const Publish = ({
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
-  setQuest?: Dispatch<SetStateAction<Quest | null | undefined>>;
+  setQuest?: Dispatch<
+    SetStateAction<(Quest & { status?: "OPEN" | "CLOSED" }) | null | undefined>
+  >;
 
   setSolution?: Dispatch<SetStateAction<Solution | null | undefined>>;
   type: "QUEST" | "SOLUTION";
@@ -103,43 +105,47 @@ const Publish = ({
 
   const validate = () => {
     if (type === "QUEST" && questId) {
-      get(questId).then((quest: Quest) => {
-        setQuestOrSolution(quest);
+      get(questId)
+        .then((quest: Quest) => {
+          setQuestOrSolution(quest);
 
-        const result = QuestAttributesZod.safeParse(quest);
+          const result = QuestAttributesZod.safeParse(quest);
 
-        if (!result.success) {
-          console.log("error", result.error.issues);
-          setErrorMessage(
-            result.error.issues[0]?.message.startsWith("Required")
-              ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
-              : result.error.issues[0]?.message
-              ? result.error.issues[0].message
-              : "Please fill all the quest attributes"
-          );
+          if (!result.success) {
+            console.log("error", result.error.issues);
+            setErrorMessage(
+              result.error.issues[0]?.message.startsWith("Required")
+                ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
+                : result.error.issues[0]?.message
+                ? result.error.issues[0].message
+                : "Please fill all the quest attributes"
+            );
 
-          return false;
-        }
-      });
+            return false;
+          }
+        })
+        .catch((err) => console.log(err));
     }
     if (type === "SOLUTION" && solutionId) {
-      get(solutionId).then((solution: Solution) => {
-        setQuestOrSolution(solution);
-        const result = SolutionAttributesZod.safeParse(solution);
+      get(solutionId)
+        .then((solution: Solution) => {
+          setQuestOrSolution(solution);
+          const result = SolutionAttributesZod.safeParse(solution);
 
-        if (!result.success) {
-          console.log("error", result.error.issues);
-          setErrorMessage(
-            result.error.issues[0]?.message.startsWith("Required")
-              ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
-              : result.error.issues[0]?.message
-              ? result.error.issues[0].message
-              : "Please fill all the quest attributes"
-          );
+          if (!result.success) {
+            console.log("error", result.error.issues);
+            setErrorMessage(
+              result.error.issues[0]?.message.startsWith("Required")
+                ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
+                : result.error.issues[0]?.message
+                ? result.error.issues[0].message
+                : "Please fill all the quest attributes"
+            );
 
-          return false;
-        }
-      });
+            return false;
+          }
+        })
+        .catch((err) => console.log(err));
     }
     return false;
   };
@@ -162,26 +168,27 @@ const Publish = ({
                 if (value) {
                   value.published = true;
                   value.status = "OPEN";
-                  setQuestOrSolution(value);
+                  if (setQuest) {
+                    setQuest(
+                      produce((val) => {
+                        if (val) {
+                          val.published = true;
+                          val.status = "OPEN";
+                        }
+                      })
+                    );
+                  }
                   return value;
                 }
               }
-            );
+            ).catch((err) => console.log(err));
+
             onClose();
             toast({
               title: "Quest uploaded successfully",
               status: "success",
               isClosable: true,
             });
-            if (setQuest) {
-              setQuest(
-                produce((val) => {
-                  if (val) {
-                    val.published = true;
-                  }
-                })
-              );
-            }
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);
@@ -206,25 +213,25 @@ const Publish = ({
             update<Solution | undefined>(solutionId, (value) => {
               if (value) {
                 value.published = true;
-                setQuestOrSolution(value);
+                if (setSolution) {
+                  setSolution(
+                    produce((val) => {
+                      if (val) {
+                        val.published = true;
+                      }
+                    })
+                  );
+                }
                 return value;
               }
-            });
+            }).catch((err) => console.log(err));
+
             onClose();
             toast({
               title: "Solution uploaded successfully",
               status: "success",
               isClosable: true,
             });
-            if (setSolution) {
-              setSolution(
-                produce((val) => {
-                  if (val) {
-                    val.published = true;
-                  }
-                })
-              );
-            }
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);

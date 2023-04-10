@@ -33,7 +33,9 @@ import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
 //   ssr: false,
 // });
 const QuestEditor = ({ id }: { id: string }) => {
-  const [quest, setQuest] = useState<Quest | null | undefined>(undefined);
+  const [quest, setQuest] = useState<
+    (Quest & { status?: "OPEN" | "CLOSED" }) | null | undefined
+  >(undefined);
   const router = useRouter();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -124,7 +126,7 @@ const QuestEditor = ({ id }: { id: string }) => {
 
                 return quest;
               }
-            });
+            }).catch((err) => console.log(err));
           }
 
           //updating the indexedb quest version after changes
@@ -134,7 +136,7 @@ const QuestEditor = ({ id }: { id: string }) => {
               quest.lastUpdated = updateTime;
               return quest;
             }
-          });
+          }).catch((err) => console.log(err));
           //updating the localstorage quest versions after change
           const questVersion = JSON.parse(
             localStorage.getItem(key) as string
@@ -165,7 +167,7 @@ const QuestEditor = ({ id }: { id: string }) => {
     if (shouldUpdate) {
       if (serverQuest.data) {
         setQuest(serverQuest.data);
-        set(id, serverQuest.data);
+        set(id, serverQuest.data).catch((err) => console.log(err));
         localStorage.setItem(
           id,
           JSON.stringify({
@@ -175,19 +177,24 @@ const QuestEditor = ({ id }: { id: string }) => {
         );
       }
     } else {
-      get(id).then((val: Quest) => {
-        setQuest(val);
-        //if someone deleted local quest in indexedb, delete version so next time fetch from server
-        if (!val) {
-          localStorage.removeItem(id);
-        }
-      });
+      get(id)
+        .then((val: Quest) => {
+          setQuest(val);
+          //if someone deleted local quest in indexedb, delete version so next time fetch from server
+          if (!val) {
+            localStorage.removeItem(id);
+          }
+        })
+        .catch((err) => console.log(err));
     }
   }, [serverQuest.data, id, shouldUpdate]);
 
   if (quest === null) {
     return <Box>Quest does not exist</Box>;
   }
+  console.log("quest", quest);
+
+  console.log("published", quest && quest.published);
 
   return (
     <Center mt={10} flexDirection="column" mb={20}>
@@ -227,12 +234,13 @@ const QuestEditor = ({ id }: { id: string }) => {
       )}
       {quest && quest.published && (
         <Center>
+          <Button>Unpublish</Button>
           <Button
             mt={3}
             colorScheme="green"
             w="100%"
             onClick={() => {
-              router.push(`/quests/${quest.id}`);
+              void router.push(`/quests/${quest.id}`);
             }}
           >
             View Published Quest

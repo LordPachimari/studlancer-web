@@ -29,7 +29,7 @@ export const storeQuestOrSolution = ({
       lastUpdated: newDate,
       type: "QUEST",
     };
-    set(id, newQuest);
+    set(id, newQuest).catch((err) => console.log(err));
   } else if (type === "SOLUTION") {
     const newSolution: Solution = {
       id,
@@ -42,7 +42,7 @@ export const storeQuestOrSolution = ({
       type: "SOLUTION",
     };
 
-    set(id, newSolution);
+    set(id, newSolution).catch((err) => console.log(err));
   }
 
   return true;
@@ -71,7 +71,7 @@ const Actions = () => {
             { id },
             {
               onSuccess: () => {
-                router.push(`/workspace/quests/${id}`);
+                void router.push(`/workspace/quests/${id}`);
               },
             }
           );
@@ -92,7 +92,7 @@ const Actions = () => {
             { id },
             {
               onSuccess: () => {
-                router.push(`/workspace/solutions/${id}`);
+                void router.push(`/workspace/solutions/${id}`);
               },
             }
           );

@@ -1,4 +1,11 @@
-import { ChangeEvent, FormEvent, KeyboardEvent, useRef } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Quest,
   TopicsType,
@@ -104,7 +111,7 @@ const TopicSelect = ({
       onChange={handleTopicChange}
       defaultValue={topic}
     >
-      <option value="VIDEOGRAPHY">Business</option>
+      <option value="BUSINESS">Business</option>
       <option value="PROGRAMMING">Programming</option>
       <option value="MARKETING">Marketing</option>
     </Select>
@@ -138,11 +145,6 @@ const Subtopic = ({
     }
   };
   const handleSubtopicBlur = () => {
-    console.log(
-      "checking",
-      subtopicRef.current?.childElementCount === 0,
-      subtopicRef.current?.textContent === ""
-    );
     if (
       subtopicRef.current?.childElementCount === 0 &&
       subtopicRef.current?.textContent === ""
@@ -210,6 +212,12 @@ const Reward = ({
   reward: number | undefined;
   handleRewardChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) => {
+  const [stateReward, setStateReward] = useState(0);
+  useEffect(() => {
+    if (reward) {
+      setStateReward(reward);
+    }
+  }, [reward]);
   return (
     <InputGroup gap={2}>
       <svg
@@ -230,9 +238,11 @@ const Reward = ({
         w={40}
         htmlSize={4}
         placeholder="Enter amount"
-        defaultValue={reward}
+        value={stateReward === 0 ? undefined : stateReward}
         type="number"
-        onChange={handleRewardChange}
+        onChange={(e) => {
+          handleRewardChange(e), setStateReward(e.target.valueAsNumber);
+        }}
         min={1}
       />
     </InputGroup>
@@ -245,6 +255,13 @@ const Slots = ({
   handleSlotsChange: (e: ChangeEvent<HTMLInputElement>) => void;
   slots: number | undefined;
 }) => {
+  const [stateSlots, setStateSlots] = useState(0);
+  console.log("slots", stateSlots);
+  useEffect(() => {
+    if (slots) {
+      setStateSlots(slots);
+    }
+  }, [slots]);
   return (
     <InputGroup gap={2}>
       <InputLeftElement
@@ -269,9 +286,11 @@ const Slots = ({
         size="sm"
         w={40}
         placeholder="Enter amount"
-        defaultValue={slots}
+        value={stateSlots}
         type="number"
-        onChange={handleSlotsChange}
+        onChange={(e) => {
+          handleSlotsChange(e), setStateSlots(e.target.valueAsNumber);
+        }}
         min={1}
       />
     </InputGroup>
@@ -321,8 +340,8 @@ const DatePicker = ({
         w={{ base: "90%", md: "xs" }}
         size="md"
         type="datetime-local"
-        defaultValue={questDate}
         onChange={onChange}
+        value={questDate || ""}
       />
     </div>
   );
@@ -341,6 +360,7 @@ const QuestAttributes = ({
     lastTransaction: UpdateTransaction;
   }) => void;
 }) => {
+  console.log("quest from attributes", quest);
   const updateQuestAttributesListAttribute = WorkspaceStore(
     (state) => state.updateListState
   );
@@ -425,14 +445,14 @@ const QuestAttributes = ({
     addTransaction({
       id: quest.id,
       attribute: "reward",
-      value: e.currentTarget.valueAsNumber,
+      value: e.currentTarget.valueAsNumber || 0,
     });
     updateQuestAttributesHandler({
       transactionQueue,
       lastTransaction: {
         id: quest.id,
         attribute: "reward",
-        value: e.currentTarget.valueAsNumber,
+        value: e.currentTarget.valueAsNumber || 0,
       },
     });
   };
@@ -440,14 +460,14 @@ const QuestAttributes = ({
     addTransaction({
       id: quest.id,
       attribute: "slots",
-      value: e.currentTarget.valueAsNumber,
+      value: e.currentTarget.valueAsNumber || 0,
     });
     updateQuestAttributesHandler({
       transactionQueue,
       lastTransaction: {
         id: quest.id,
         attribute: "slots",
-        value: e.currentTarget.valueAsNumber,
+        value: e.currentTarget.valueAsNumber || 0,
       },
     });
   };

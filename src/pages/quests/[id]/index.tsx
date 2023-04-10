@@ -174,7 +174,7 @@ export default function PublishedQuestPage() {
                                 onClose();
                                 queryClient.invalidateQueries({
                                   queryKey: ["solvers"],
-                                });
+                                }).catch(err=>console.log(err));
                                 toast({
                                   title: "Successfully joined!",
                                   description: "Don't forget to post solution!",

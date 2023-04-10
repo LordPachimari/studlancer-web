@@ -89,7 +89,7 @@ export default function WelcomeLayout({
                 colorScheme="blue"
                 w="32"
                 onClick={() => {
-                  router.push("/home");
+                  void router.push("/home");
                 }}
               >
                 View Quests

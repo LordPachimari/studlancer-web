@@ -150,7 +150,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
 
                 return quest;
               }
-            });
+            }).catch((err) => console.log(err));
           }
 
           //updating the indexedb quest version after changes
@@ -160,7 +160,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
               solution.lastUpdated = updateDate;
               return solution;
             }
-          });
+          }).catch((err) => console.log(err));
           //updating the localstorage quest versions after change
           const solutionVersion = JSON.parse(
             localStorage.getItem(key) as string
@@ -190,7 +190,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
     if (shouldUpdate) {
       if (serverSolution.data) {
         setSolution(serverSolution.data);
-        set(id, serverSolution.data);
+        set(id, serverSolution.data).catch((err) => console.log(err));
         localStorage.setItem(
           id,
           JSON.stringify({
@@ -200,9 +200,11 @@ const SolutionEditor = ({ id }: { id: string }) => {
         );
       }
     } else {
-      get(id).then((val: Solution) => {
-        setSolution(val);
-      });
+      get(id)
+        .then((val: Solution) => {
+          setSolution(val);
+        })
+        .catch((err) => console.log(err));
     }
   }, [serverSolution.data, id, shouldUpdate]);
 
@@ -277,7 +279,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
             colorScheme="green"
             w="100%"
             onClick={() => {
-              router.push(`/solutions/${solution.id}`);
+              void router.push(`/solutions/${solution.id}`);
             }}
           >
             View Published Quest

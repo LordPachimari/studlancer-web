@@ -42,7 +42,7 @@ export default function Username({
   }
   const createUser = trpc.user.createUser.useMutation({
     onSuccess: () => {
-      router.push(`/profile/${userId}`);
+      void router.push(`/profile/${userId}`);
     },
   });
 

@@ -16,7 +16,7 @@ const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn, isLoaded } = useAuth();
   if (!isSignedIn && isLoaded) {
     setRedirectUrl("/workspace");
-    router.push("/");
+    void router.push("/");
   }
 
   return (
