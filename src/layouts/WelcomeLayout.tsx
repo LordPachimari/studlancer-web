@@ -86,7 +86,7 @@ export default function WelcomeLayout({
             </Text>
             <Center pt={10} flexDirection="column" rowGap={5}>
               <Button
-                colorScheme="yellow"
+                colorScheme="blue"
                 w="32"
                 onClick={() => {
                   router.push("/home");
@@ -95,8 +95,8 @@ export default function WelcomeLayout({
                 View Quests
               </Button>
               <Button
-                bg="orange.400"
-                _hover={{ bg: "orange.500" }}
+                bg="blue.300"
+                _hover={{ bg: "blue.400" }}
                 w="32"
                 color="white"
                 onClick={() => {
@@ -128,7 +128,7 @@ export default function WelcomeLayout({
           flexDirection="column"
           w="100%"
           h="fit-content"
-          bg="orange.200"
+          bg="white"
           p={10}
         >
           <Flex
@@ -162,7 +162,7 @@ export default function WelcomeLayout({
           flexDirection="column"
           w="100%"
           h="fit-content"
-          bg="orange.100"
+          bg="gray.100"
           p={10}
         >
           <Heading fontSize="3xl">For companies</Heading>
@@ -185,11 +185,13 @@ export default function WelcomeLayout({
           </Flex>
         </Center>
         <Flex
+          borderTop="2px"
+          borderColor="gray.200"
           flexDirection={{ base: "column", lg: "row" }}
           w="100%"
           h="fit-content"
           p="16"
-          bg="orange.200"
+          bg="white"
         >
           <Flex flexDir="column" w={{ base: 100, lg: "30%" }}>
             <Heading fontSize="xl">Studlancer</Heading>
