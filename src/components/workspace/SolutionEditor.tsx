@@ -94,9 +94,8 @@ const SolutionEditor = ({ id }: { id: string }) => {
     trpc.solution.updateSolutionAttributes.useMutation({
       // retry: 3,
     });
-  console.log(!!serverSolution.data && !!serverSolution.data.questId);
   const quest = trpc.quest.publishedQuest.useQuery(
-    { id: solution!.questId! },
+    { id: (!!solution && solution.questId) || "" },
     {
       enabled: !!solution && !!solution.questId,
 
@@ -284,7 +283,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
   if (solution === null) {
     return <Box>Quest does not exist</Box>;
   }
-
+  console.log("solution", solution);
   return (
     <Center mt={10} flexDirection="column">
       {solution?.questId ? (
@@ -298,7 +297,18 @@ const SolutionEditor = ({ id }: { id: string }) => {
               quest={quest.data.quest}
             />
           ) : (
-            <></>
+            <Button
+              onClick={onModalOpen}
+              w="100%"
+              h="36"
+              borderWidth="2px"
+              borderColor="gray.300"
+              borderRadius="2xl"
+              bg="gray.200"
+              color="gray.400"
+            >
+              + Add Quest
+            </Button>
           )}
         </Box>
       ) : (
@@ -310,8 +320,8 @@ const SolutionEditor = ({ id }: { id: string }) => {
           borderColor="gray.300"
           borderRadius="2xl"
           bg="gray.200"
-          mb={10}
           color="gray.400"
+          mb={10}
         >
           + Add Quest
         </Button>

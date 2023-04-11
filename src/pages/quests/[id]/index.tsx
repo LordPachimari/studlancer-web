@@ -48,10 +48,7 @@ export default function PublishedQuestPage() {
   const id = router.query.id as string;
   const { userId, isSignedIn } = useAuth();
 
-  const quest = trpc.quest.publishedQuest.useQuery(
-    { id }
-    // { staleTime: 10 * 60 * 1000 }
-  );
+  const quest = trpc.quest.publishedQuest.useQuery({ id });
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isLeaveAlertOpen,
