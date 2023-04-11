@@ -148,6 +148,10 @@ const Publish = ({
 
             return false;
           }
+          if (!questId) {
+            setErrorMessage("Please, add the target quest to publish to");
+            return false;
+          }
         })
         .catch((err) => console.log(err));
     }

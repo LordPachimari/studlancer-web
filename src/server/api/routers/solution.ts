@@ -334,6 +334,7 @@ export const solutionRouter = router({
                     PK: `QUEST#${questId}`,
                     SK: `SOLUTION#${id}`,
                   },
+                  ConditionExpression: "attribute_exists(PK)",
                 },
               },
             ],
@@ -350,7 +351,10 @@ export const solutionRouter = router({
         }
       } catch (error) {
         console.log(error);
-        return false;
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not publish the solution",
+        });
       }
     }),
 
