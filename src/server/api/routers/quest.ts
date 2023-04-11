@@ -59,83 +59,155 @@ export const questRouter = router({
       const { id } = input;
       const { user } = ctx;
 
-      const params: QueryCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
-        KeyConditionExpression: "#PK = :value",
-        ExpressionAttributeNames: { "#PK": "PK" },
-        ExpressionAttributeValues: { ":value": `QUEST#${id}` },
-      };
-
-      let quest: PublishedQuest | null = null;
-
-      const solvers: SolverPartial[] = [];
-      const commentsId: string[] = [];
-
       try {
-        const result = await dynamoClient.send(new QueryCommand(params));
-        if (result.Items) {
-          const questOrSolver = result.Items as (
-            | PublishedQuestDynamo
-            | SolverDynamo
-          )[];
+        const getResponse = await momento.get(
+          process.env.MOMENTO_CACHE_NAME || "",
+          id
+        );
+        if (getResponse instanceof CacheGet.Hit) {
+          console.log("cache hit!");
 
-          for (const item of questOrSolver) {
-            if (item.SK.startsWith("QUEST#")) {
-              quest = item as PublishedQuest;
-            } else if (item.SK.startsWith("SOLVER")) {
-              const solver = item as Solver;
-              solvers.push({
-                id: solver.id,
-                solutionId: solver.solutionId,
-                status: solver.status,
-              });
-            } else if (item.SK.startsWith("COMMENT")) {
-              commentsId.push(item.id);
+          //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+          const result = JSON.parse(getResponse.valueString()) as {
+            quest: PublishedQuest;
+            solvers: SolverPartial[];
+            commentsId: string[];
+          };
+          const quest = result.quest;
+          console.log("views from server", quest.views);
+
+          if (user && quest) {
+            const transactParams: TransactWriteCommandInput = {
+              TransactItems: [
+                {
+                  Put: {
+                    TableName: process.env.VIEWCOUNT_TABLE_NAME,
+                    Item: { PK: `USER#${user.id}`, SK: `QUEST#${quest.id}` },
+                    ConditionExpression: "attribute_not_exists(#SK)",
+                    ExpressionAttributeNames: { "#SK": "SK" },
+                  },
+                },
+                {
+                  Update: {
+                    TableName: process.env.MAIN_TABLE_NAME,
+                    Key: { PK: `QUEST#${quest.id}`, SK: `QUEST#${quest.id}` },
+                    UpdateExpression: "SET #views = #views + :inc ",
+                    ExpressionAttributeNames: { "#views": "views" },
+                    ExpressionAttributeValues: { ":inc": 1 },
+                  },
+                },
+              ],
+            };
+
+            try {
+              const result = await dynamoClient.send(
+                new TransactWriteCommand(transactParams)
+              );
+              if (result) {
+                momento.delete("accounts-cache", id).catch((err) => {
+                  console.log(err);
+                });
+              }
+            } catch (error) {
+              console.log("already viewed");
             }
           }
-          if (!quest) {
-            return { quest: null, solvers: [], commentsId: [] };
-          }
-          if (!quest.published) {
-            throw new TRPCError({
-              code: "UNAUTHORIZED",
-              message: "UNAUTHORIZED TO VIEW THE QUEST",
-            });
-          }
-        }
-        //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
 
-        if (user && quest) {
-          const transactParams: TransactWriteCommandInput = {
-            TransactItems: [
-              {
-                Put: {
-                  TableName: process.env.VIEWCOUNT_TABLE_NAME,
-                  Item: { PK: `USER#${user.id}`, SK: `QUEST#${quest.id}` },
-                  ConditionExpression: "attribute_not_exists(#SK)",
-                  ExpressionAttributeNames: { "#SK": "SK" },
-                },
-              },
-              {
-                Update: {
-                  TableName: process.env.MAIN_TABLE_NAME,
-                  Key: { PK: `QUEST#${quest.id}`, SK: `QUEST#${quest.id}` },
-                  UpdateExpression: "SET #views = #views + :inc ",
-                  ExpressionAttributeNames: { "#views": "views" },
-                  ExpressionAttributeValues: { ":inc": 1 },
-                },
-              },
-            ],
+          return result;
+        } else if (getResponse instanceof CacheGet.Miss) {
+          const params: QueryCommandInput = {
+            TableName: process.env.MAIN_TABLE_NAME,
+            KeyConditionExpression: "#PK = :value",
+            ExpressionAttributeNames: { "#PK": "PK" },
+            ExpressionAttributeValues: { ":value": `QUEST#${id}` },
           };
 
-          try {
-            await dynamoClient.send(new TransactWriteCommand(transactParams));
-          } catch (error) {
-            console.log("already viewed");
+          let quest: PublishedQuest | null = null;
+
+          const solvers: SolverPartial[] = [];
+          const commentsId: string[] = [];
+
+          const result = await dynamoClient.send(new QueryCommand(params));
+          if (result.Items) {
+            const questOrSolver = result.Items as (
+              | PublishedQuestDynamo
+              | SolverDynamo
+            )[];
+
+            for (const item of questOrSolver) {
+              if (item.SK.startsWith("QUEST#")) {
+                quest = item as PublishedQuest;
+              } else if (item.SK.startsWith("SOLVER")) {
+                const solver = item as Solver;
+                solvers.push({
+                  id: solver.id,
+                  solutionId: solver.solutionId,
+                  status: solver.status,
+                });
+              } else if (item.SK.startsWith("COMMENT")) {
+                commentsId.push(item.id);
+              }
+            }
+            if (!quest) {
+              return { quest: null, solvers: [], commentsId: [] };
+            }
+            if (!quest.published) {
+              throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "UNAUTHORIZED TO VIEW THE QUEST",
+              });
+            }
           }
+
+          const setResponse = await momento.set(
+            process.env.MOMENTO_CACHE_NAME || "",
+            id,
+            JSON.stringify({ quest, solvers, commentsId } || ""),
+            { ttl: 1800 }
+          );
+          if (setResponse instanceof CacheSet.Success) {
+            console.log("Key stored successfully!");
+          } else {
+            console.log(`Error setting key: ${setResponse.toString()}`);
+          }
+          //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+
+          if (user && quest) {
+            const transactParams: TransactWriteCommandInput = {
+              TransactItems: [
+                {
+                  Put: {
+                    TableName: process.env.VIEWCOUNT_TABLE_NAME,
+                    Item: { PK: `USER#${user.id}`, SK: `QUEST#${quest.id}` },
+                    ConditionExpression: "attribute_not_exists(#SK)",
+                    ExpressionAttributeNames: { "#SK": "SK" },
+                  },
+                },
+                {
+                  Update: {
+                    TableName: process.env.MAIN_TABLE_NAME,
+                    Key: { PK: `QUEST#${quest.id}`, SK: `QUEST#${quest.id}` },
+                    UpdateExpression: "SET #views = #views + :inc ",
+                    ExpressionAttributeNames: { "#views": "views" },
+                    ExpressionAttributeValues: { ":inc": 1 },
+                  },
+                },
+              ],
+            };
+
+            try {
+              await dynamoClient.send(new TransactWriteCommand(transactParams));
+            } catch (error) {
+              console.log("already viewed");
+            }
+          }
+
+          return { quest, solvers, commentsId };
+        } else if (getResponse instanceof CacheGet.Error) {
+          console.log(`Error: ${getResponse.message()}`);
         }
 
-        return { quest, solvers, commentsId };
+        return { quest: null, solvers: [], commentsId: [] };
       } catch (error) {
         console.log(error);
         return { quest: null, solvers: [], commentsId: [] };
@@ -672,6 +744,9 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
+        momento
+          .delete("accounts-cache", questId)
+          .catch((err) => console.log("cache error", err));
         if (result) {
           return true;
         }
@@ -716,7 +791,7 @@ export const questRouter = router({
         if (Responses) {
           const users = Responses[tableName] as Solver[];
           if (!users) {
-            return null;
+            return solvers;
           }
           for (let i = 0; i < users.length; i++) {
             if (users[i]) {
@@ -794,6 +869,9 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
+        momento
+          .delete("accounts-cache", questId)
+          .catch((err) => console.log("cache error", err));
         if (result) {
           return true;
         }
@@ -825,6 +903,9 @@ export const questRouter = router({
       };
       try {
         const result = await dynamoClient.send(new PutCommand(putParams));
+        momento
+          .delete("accounts-cache", questId)
+          .catch((err) => console.log("cache error", err));
         if (result) {
           return true;
         }

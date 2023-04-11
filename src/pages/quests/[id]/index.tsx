@@ -39,6 +39,7 @@ import {
 import { appRouter } from "~/server/api/root";
 import { createContextInner } from "~/server/api/trpc";
 import { trpc } from "~/utils/api";
+import { getQueryKey } from "@trpc/react-query";
 
 export default function PublishedQuestPage() {
   const router = useRouter();
@@ -51,6 +52,7 @@ export default function PublishedQuestPage() {
   );
   const { isOpen, onOpen, onClose } = useDisclosure();
   const createSolution = trpc.solution.createSolution.useMutation();
+  const solversKey = getQueryKey(trpc.quest.solvers, undefined, "query");
   const cancelRef = useRef(null);
   const toast = useToast();
   const solutionStatuses = [
@@ -76,6 +78,7 @@ export default function PublishedQuestPage() {
   ) {
     emptySlots.push({});
   }
+  console.log("quest", quest.data.quest);
 
   return (
     <Center w="100%" flexDirection={{ base: "column", md: "row" }} mb={20}>
@@ -129,7 +132,7 @@ export default function PublishedQuestPage() {
 
         <Box w={{ base: "100%", md: "70%" }}>
           <QuestComponent quest={quest.data.quest} />
-          {!isCreator ? (
+          {isCreator ? (
             <></>
           ) : (
             <Center my={5}>
@@ -138,7 +141,7 @@ export default function PublishedQuestPage() {
                 onClick={onOpen}
                 isDisabled={!isSignedIn}
               >
-                JOIN!
+                JOIN
               </Button>
 
               <AlertDialog
@@ -172,9 +175,11 @@ export default function PublishedQuestPage() {
                                   questCreatorId: quest.data.quest?.creatorId,
                                 });
                                 onClose();
-                                queryClient.invalidateQueries({
-                                  queryKey: ["solvers"],
-                                }).catch(err=>console.log(err));
+                                queryClient
+                                  .invalidateQueries({
+                                    queryKey: solversKey,
+                                  })
+                                  .catch((err) => console.log(err));
                                 toast({
                                   title: "Successfully joined!",
                                   description: "Don't forget to post solution!",
@@ -198,7 +203,7 @@ export default function PublishedQuestPage() {
                         }}
                         ml={3}
                       >
-                        JOIN!
+                        JOIN
                       </Button>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -275,6 +280,7 @@ const Winner = ({ winnerId }: { winnerId: string }) => {
   );
 };
 const QuestComponent = ({ quest }: { quest: PublishedQuest }) => {
+  console.log("views", quest.views, quest.title);
   return (
     <Card borderRadius="2xl">
       <CardHeader>
