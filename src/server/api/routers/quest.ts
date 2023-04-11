@@ -155,6 +155,7 @@ export const questRouter = router({
             "LATEST_PUBLISHED_QUESTS"
           );
           if (getResponse instanceof CacheGet.Hit) {
+            console.log("cache hit!");
             return JSON.parse(getResponse.valueString()) as PublishedQuest[];
           } else if (getResponse instanceof CacheGet.Miss) {
             const publishedQuests =
@@ -451,6 +452,7 @@ export const questRouter = router({
           const transactResult = await dynamoClient.send(
             new TransactWriteCommand(params)
           );
+          await momento.delete("accounts-cache", "LatestPublishedQuests");
           if (transactResult) {
             return true;
           }

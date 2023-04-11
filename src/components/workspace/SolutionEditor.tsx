@@ -2,6 +2,7 @@ import { get, set } from "idb-keyval";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  PublishedSolution,
   Solution,
   TransactionQueue,
   UpdateTransaction,
@@ -21,10 +22,17 @@ import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "~/zustand/workspace";
 import { mapReplacer } from "~/utils/mapReplacer";
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Box,
   Button,
   Card,
   Center,
+  Flex,
   FormControl,
   FormLabel,
   Input,
@@ -37,18 +45,21 @@ import {
   ModalOverlay,
   SkeletonText,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
 import dynamic from "next/dynamic";
 import TiptapEditor from "./TiptapEditor";
 import { NonEditableContent } from "./Preview";
 import { useRouter } from "next/router";
 import { QuestComponentSkeleton } from "../QuestComponent";
+import produce from "immer";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
     undefined
   );
   const router = useRouter();
+  const toast = useToast();
   const {
     isOpen: isModalOpen,
     onOpen: onModalOpen,
@@ -56,6 +67,11 @@ const SolutionEditor = ({ id }: { id: string }) => {
   } = useDisclosure();
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isAlertOpen,
+    onOpen: onAlertOpen,
+    onClose: onAlertClose,
+  } = useDisclosure();
 
   const solutionVersion = JSON.parse(
     localStorage.getItem(id) as string
@@ -63,7 +79,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
   const shouldUpdate =
     !solutionVersion ||
     new Date(solutionVersion.local) < new Date(solutionVersion.server);
-
+  const unpublish = trpc.solution.unpublishSolution.useMutation();
   const serverSolution = trpc.solution.workspaceSolution.useQuery(
     { id },
     {
@@ -80,6 +96,42 @@ const SolutionEditor = ({ id }: { id: string }) => {
   const clearTransactionQueue = WorkspaceStore(
     (state) => state.clearTransactionQueue
   );
+  const cancelRef = useRef(null);
+  const handleUnpublish = () => {
+    if (solution) {
+      unpublish.mutate(
+        {
+          id,
+          questId: (solution as PublishedSolution).questId,
+        },
+        {
+          onSuccess: () => {
+            update<PublishedSolution | undefined>(id, (solution) => {
+              if (solution) {
+                solution.published = false;
+                return solution;
+              }
+            }).catch((err) => console.log(err));
+            setSolution(
+              produce((solution) => {
+                if (solution) {
+                  solution.published = false;
+                }
+              })
+            );
+            toast({
+              title: "Solution Unpublished.",
+              status: "success",
+              duration: 5000,
+              isClosable: true,
+            });
+
+            onAlertClose();
+          },
+        }
+      );
+    }
+  };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateSolutionAttributesHandler = useCallback(
@@ -273,9 +325,40 @@ const SolutionEditor = ({ id }: { id: string }) => {
         />
       )}
       {solution && solution.published && (
-        <Center>
+        <Flex mt={3} columnGap={5}>
+          <Button colorScheme="red" w="32" onClick={onAlertOpen}>
+            Unpublish
+          </Button>
+          <AlertDialog
+            isOpen={isAlertOpen}
+            leastDestructiveRef={cancelRef}
+            onClose={onAlertClose}
+          >
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Confirm your action
+                </AlertDialogHeader>
+
+                <AlertDialogBody>Are you sure?</AlertDialogBody>
+
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={onAlertClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    colorScheme="red"
+                    onClick={handleUnpublish}
+                    ml={3}
+                    isLoading={unpublish.isLoading}
+                  >
+                    Unpublish
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
           <Button
-            mt={3}
             colorScheme="green"
             w="100%"
             onClick={() => {
@@ -284,7 +367,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           >
             View Published Quest
           </Button>
-        </Center>
+        </Flex>
       )}
     </Center>
   );

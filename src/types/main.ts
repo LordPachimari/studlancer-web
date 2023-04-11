@@ -173,6 +173,7 @@ export const UpdateTransactionZod = z.object({
   attribute: z.enum(QuestAttributes),
   value: z.union([z.string(), z.number(), z.array(z.string())]),
 });
+
 export type UpdateTransaction = z.infer<typeof UpdateTransactionZod>;
 
 export const TransactionQueueZod = z.map(

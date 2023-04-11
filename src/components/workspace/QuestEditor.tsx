@@ -1,9 +1,10 @@
 import { get, set } from "idb-keyval";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import QuestAttributes, { QuestAttributesSkeleton } from "./QuestAttributes";
 
 import { update } from "idb-keyval";
 import {
+  PublishedQuest,
   Quest,
   TransactionQueue,
   UpdateTransaction,
@@ -18,16 +19,25 @@ import { WorkspaceStore } from "../../zustand/workspace";
 import TiptapEditor from "./TiptapEditor";
 
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Box,
   Button,
   Card,
   Center,
+  Flex,
   SkeletonText,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { trpc } from "~/utils/api";
 import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
+import produce from "immer";
 
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,
@@ -37,8 +47,15 @@ const QuestEditor = ({ id }: { id: string }) => {
     (Quest & { status?: "OPEN" | "CLOSED" }) | null | undefined
   >(undefined);
   const router = useRouter();
-
+  const cancelRef = useRef(null);
+  const unpublishQuest = trpc.quest.unpublishQuest.useMutation();
+  const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isAlertOpen,
+    onOpen: onAlertOpen,
+    onClose: onAlertClose,
+  } = useDisclosure();
   const questVersion = JSON.parse(
     localStorage.getItem(id) as string
   ) as Versions | null;
@@ -160,6 +177,36 @@ const QuestEditor = ({ id }: { id: string }) => {
     ),
     []
   );
+  const handleUnpublish = () => {
+    unpublishQuest.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          update<PublishedQuest | undefined>(id, (quest) => {
+            if (quest) {
+              quest.published = false;
+              return quest;
+            }
+          }).catch((err) => console.log(err));
+          setQuest(
+            produce((quest) => {
+              if (quest) {
+                quest.published = false;
+              }
+            })
+          );
+          toast({
+            title: "Quest Unpublished.",
+            status: "success",
+            duration: 5000,
+            isClosable: true,
+          });
+
+          onAlertClose();
+        },
+      }
+    );
+  };
 
   useEffect(() => {
     //if local version is behind server's then fetch the quest from the server and update the local version
@@ -192,9 +239,6 @@ const QuestEditor = ({ id }: { id: string }) => {
   if (quest === null) {
     return <Box>Quest does not exist</Box>;
   }
-  console.log("quest", quest);
-
-  console.log("published", quest && quest.published);
 
   return (
     <Center mt={10} flexDirection="column" mb={20}>
@@ -233,10 +277,42 @@ const QuestEditor = ({ id }: { id: string }) => {
         />
       )}
       {quest && quest.published && (
-        <Center>
-          <Button>Unpublish</Button>
+        <Flex mt={3} columnGap={5}>
+          <Button colorScheme="red" w="32" onClick={onAlertOpen}>
+            Unpublish
+          </Button>
+          <AlertDialog
+            isOpen={isAlertOpen}
+            leastDestructiveRef={cancelRef}
+            onClose={onAlertClose}
+          >
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Confirm your action
+                </AlertDialogHeader>
+
+                <AlertDialogBody>
+                  Are you sure? All current active solvers will be lost
+                </AlertDialogBody>
+
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={onAlertClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    colorScheme="red"
+                    onClick={handleUnpublish}
+                    isLoading={unpublishQuest.isLoading}
+                    ml={3}
+                  >
+                    Unpublish
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
           <Button
-            mt={3}
             colorScheme="green"
             w="100%"
             onClick={() => {
@@ -245,7 +321,7 @@ const QuestEditor = ({ id }: { id: string }) => {
           >
             View Published Quest
           </Button>
-        </Center>
+        </Flex>
       )}
       {/* <Button
         onClick={() =>

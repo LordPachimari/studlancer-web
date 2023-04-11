@@ -44,6 +44,7 @@ import {
   Skeleton,
   SkeletonCircle,
   Spacer,
+  Spinner,
   Text,
   Toast,
   filter,
@@ -132,34 +133,79 @@ const List = ({
           const quest = component satisfies Quest;
           if (quest && (quest.title || quest.content)) {
             //saving quest if content exist
-            console.log(quest && (quest.title || quest.content), "keke", quest);
-            console.log("title", quest.title, "content", quest.content);
-            deleteQuest.mutate({ id: quest.id });
+            deleteQuest.mutate(
+              { id: quest.id },
+              {
+                onSuccess: () => {
+                  deleteQuestOrSolution({ id, type: "QUEST" });
+                  setTrash(
+                    produce((trash) => {
+                      trash.quests.push(component);
+                    })
+                  );
+
+                  del(id).catch((err) => console.log(err));
+                  localStorage.removeItem(id);
+                },
+              }
+            );
           } else {
-            deleteQuestPermanently.mutate({ id: quest.id });
-            del(id).catch((err) => console.log(err));
+            deleteQuestPermanently.mutate(
+              { id: quest.id },
+              {
+                onSuccess: () => {
+                  deleteQuestOrSolution({ id, type: "QUEST" });
+                  setTrash(
+                    produce((trash) => {
+                      trash.quests.push(component);
+                    })
+                  );
+
+                  del(id).catch((err) => console.log(err));
+                  localStorage.removeItem(id);
+                },
+              }
+            );
           }
-          deleteQuestOrSolution({ id, type: "QUEST" });
-          setTrash(
-            produce((trash) => {
-              trash.quests.push(component);
-            })
-          );
         } else if (component.type === "SOLUTION") {
           const solution = component satisfies Solution;
           if (solution && (solution.title || solution.content)) {
             //saving solution if content exist
-            deleteSolution.mutate({ id: solution.id });
+            deleteSolution.mutate(
+              { id: solution.id },
+              {
+                onSuccess: () => {
+                  deleteQuestOrSolution({ id, type: "SOLUTION" });
+                  setTrash(
+                    produce((trash) => {
+                      trash.quests.push(component);
+                    })
+                  );
+
+                  del(id).catch((err) => console.log(err));
+                  localStorage.removeItem(id);
+                },
+              }
+            );
           } else {
-            deleteSolutionPermanently.mutate({ id: solution.id });
-            del(id).catch((err) => console.log(err));
+            deleteSolutionPermanently.mutate(
+              { id: solution.id },
+              {
+                onSuccess: () => {
+                  deleteQuestOrSolution({ id, type: "SOLUTION" });
+                  setTrash(
+                    produce((trash) => {
+                      trash.quests.push(component);
+                    })
+                  );
+
+                  del(id).catch((err) => console.log(err));
+
+                  localStorage.removeItem(id);
+                },
+              }
+            );
           }
-          deleteQuestOrSolution({ id, type: "SOLUTION" });
-          setTrash(
-            produce((trash) => {
-              trash.quests.push(component);
-            })
-          );
         }
         update<Quest | Solution | undefined>(id, (item) => {
           if (item) {
@@ -385,6 +431,14 @@ const List = ({
                     key={q.id}
                     listComponent={q}
                     deleteListComponent={deleteListComponent}
+                    isLoading={
+                      (deleteQuest.isLoading &&
+                        !!deleteQuest.variables &&
+                        deleteQuest.variables.id === q.id) ||
+                      (deleteQuestPermanently.isLoading &&
+                        !!deleteQuestPermanently.variables &&
+                        deleteQuestPermanently.variables.id === q.id)
+                    }
                   />
                 ))}
             <Button
@@ -456,6 +510,14 @@ const List = ({
                     key={s.id}
                     listComponent={s}
                     deleteListComponent={deleteListComponent}
+                    isLoading={
+                      (deleteSolution.isLoading &&
+                        !!deleteSolution.variables &&
+                        deleteSolution.variables.id === s.id) ||
+                      (deleteSolutionPermanently.isLoading &&
+                        !!deleteSolutionPermanently.variables &&
+                        deleteSolutionPermanently.variables.id === s.id)
+                    }
                   />
                 ))}
 
@@ -1114,9 +1176,11 @@ const ListComponent = ({
   listComponent,
   deleteListComponent,
   type,
+  isLoading,
 }: {
   listComponent: QuestListComponent | SolutionListComponent;
   deleteListComponent: ({ id }: { id: string }) => void;
+  isLoading: boolean;
 
   type: "QUEST" | "SOLUTION";
 }) => {
@@ -1139,6 +1203,7 @@ const ListComponent = ({
           // },
         }}
         className="listComponent"
+        opacity={isLoading ? "50%" : "100%"}
       >
         <Link
           width="100%"
@@ -1152,19 +1217,25 @@ const ListComponent = ({
           whiteSpace="nowrap"
           overflow="hidden"
           textOverflow="ellipsis"
+          alignItems="center"
         >
-          <Circle
-            size="24px"
-            bg={
-              questListComponent.topic
-                ? TopicColor({ topic: questListComponent.topic })
-                : "gray.100"
-            }
-            color="black"
-            fontWeight="bold"
-          >
-            {questListComponent.topic && questListComponent.topic[0]}
-          </Circle>
+          {isLoading ? (
+            <Spinner size="xs" colorScheme="gray" />
+          ) : (
+            <Circle
+              size="24px"
+              bg={
+                questListComponent.topic
+                  ? TopicColor({ topic: questListComponent.topic })
+                  : "gray.100"
+              }
+              color="black"
+              fontWeight="bold"
+            >
+              {questListComponent.topic && questListComponent.topic[0]}
+            </Circle>
+          )}
+
           <Text
             fontSize="md"
             fontWeight="semibold"

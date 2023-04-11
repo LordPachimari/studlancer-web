@@ -76,7 +76,7 @@ export default function QuestComponent({
           <Flex flex="1" gap="4" alignItems="center">
             {/* <Link href={`/profile/${quest.creatorId}`}> */}
             <Avatar
-              name="Segun Adebayo"
+              name={quest.creatorUsername}
               // src="https://bit.ly/sage-adebayo"
             />
             {/* </Link> */}
@@ -95,7 +95,7 @@ export default function QuestComponent({
                 ).format("MMM D, YYYY")}`}</Badge>
               </Flex>
 
-              <Flex mt={2} gap={2}>
+              <Flex mt={2} gap={2} flexWrap="wrap">
                 <Badge colorScheme="red">{quest.topic}</Badge>
                 {quest.subtopic.map((subtopic, i) => (
                   <Badge

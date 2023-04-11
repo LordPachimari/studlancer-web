@@ -7,7 +7,7 @@ export default function GlobalLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     const handleRouteChangeStart = () => {
       setLoading(true);
