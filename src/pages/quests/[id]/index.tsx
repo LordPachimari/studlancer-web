@@ -280,7 +280,6 @@ const Winner = ({ winnerId }: { winnerId: string }) => {
   );
 };
 const QuestComponent = ({ quest }: { quest: PublishedQuest }) => {
-  console.log("views", quest.views, quest.title);
   return (
     <Card borderRadius="2xl">
       <CardHeader>

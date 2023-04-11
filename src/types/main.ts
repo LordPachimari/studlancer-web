@@ -120,7 +120,6 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   creatorProfile: z.string(),
   creatorUsername: z.string(),
   winnerId: z.optional(z.string()),
-  views: z.number(),
   status: z.enum(QuestStatus),
   solverCount: z.number(),
   allowUnpublish: z.boolean(),

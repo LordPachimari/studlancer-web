@@ -73,45 +73,6 @@ export const questRouter = router({
             solvers: SolverPartial[];
             commentsId: string[];
           };
-          const quest = result.quest;
-          console.log("views from server", quest.views);
-
-          if (user && quest) {
-            const transactParams: TransactWriteCommandInput = {
-              TransactItems: [
-                {
-                  Put: {
-                    TableName: process.env.VIEWCOUNT_TABLE_NAME,
-                    Item: { PK: `USER#${user.id}`, SK: `QUEST#${quest.id}` },
-                    ConditionExpression: "attribute_not_exists(#SK)",
-                    ExpressionAttributeNames: { "#SK": "SK" },
-                  },
-                },
-                {
-                  Update: {
-                    TableName: process.env.MAIN_TABLE_NAME,
-                    Key: { PK: `QUEST#${quest.id}`, SK: `QUEST#${quest.id}` },
-                    UpdateExpression: "SET #views = #views + :inc ",
-                    ExpressionAttributeNames: { "#views": "views" },
-                    ExpressionAttributeValues: { ":inc": 1 },
-                  },
-                },
-              ],
-            };
-
-            try {
-              const result = await dynamoClient.send(
-                new TransactWriteCommand(transactParams)
-              );
-              if (result) {
-                momento.delete("accounts-cache", id).catch((err) => {
-                  console.log(err);
-                });
-              }
-            } catch (error) {
-              console.log("already viewed");
-            }
-          }
 
           return result;
         } else if (getResponse instanceof CacheGet.Miss) {
@@ -171,36 +132,6 @@ export const questRouter = router({
             console.log(`Error setting key: ${setResponse.toString()}`);
           }
           //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
-
-          if (user && quest) {
-            const transactParams: TransactWriteCommandInput = {
-              TransactItems: [
-                {
-                  Put: {
-                    TableName: process.env.VIEWCOUNT_TABLE_NAME,
-                    Item: { PK: `USER#${user.id}`, SK: `QUEST#${quest.id}` },
-                    ConditionExpression: "attribute_not_exists(#SK)",
-                    ExpressionAttributeNames: { "#SK": "SK" },
-                  },
-                },
-                {
-                  Update: {
-                    TableName: process.env.MAIN_TABLE_NAME,
-                    Key: { PK: `QUEST#${quest.id}`, SK: `QUEST#${quest.id}` },
-                    UpdateExpression: "SET #views = #views + :inc ",
-                    ExpressionAttributeNames: { "#views": "views" },
-                    ExpressionAttributeValues: { ":inc": 1 },
-                  },
-                },
-              ],
-            };
-
-            try {
-              await dynamoClient.send(new TransactWriteCommand(transactParams));
-            } catch (error) {
-              console.log("already viewed");
-            }
-          }
 
           return { quest, solvers, commentsId };
         } else if (getResponse instanceof CacheGet.Error) {
@@ -473,7 +404,6 @@ export const questRouter = router({
             lastUpdated: currentQuest.lastUpdated,
 
             allowUnpublish: true,
-            views: 0,
           };
           console.log("quest from the server", publishedQuest);
 

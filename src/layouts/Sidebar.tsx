@@ -119,18 +119,21 @@ const Sidebar = ({
           </Link>
         );
       })}
-      <Center>
-        <Button
-          mt={5}
-          colorScheme="blue"
-          onClick={() => {
-            signOut().catch((err) => console.log("error logging out", err));
-            void router.push("/");
-          }}
-        >
-          <Text fontSize={{ base: "sm" }}>Sign out</Text>
-        </Button>
-      </Center>
+      {isSignedIn && (
+        <Center>
+          {" "}
+          <Button
+            mt={5}
+            colorScheme="blue"
+            onClick={() => {
+              signOut().catch((err) => console.log("error logging out", err));
+              void router.push("/");
+            }}
+          >
+            <Text fontSize={{ base: "sm" }}>Sign out</Text>
+          </Button>
+        </Center>
+      )}
     </div>
   );
 };
