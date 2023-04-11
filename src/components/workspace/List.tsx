@@ -431,13 +431,21 @@ const List = ({
                     key={q.id}
                     listComponent={q}
                     deleteListComponent={deleteListComponent}
-                    isLoading={
+                    isQuestLoading={
                       (deleteQuest.isLoading &&
                         !!deleteQuest.variables &&
                         deleteQuest.variables.id === q.id) ||
                       (deleteQuestPermanently.isLoading &&
                         !!deleteQuestPermanently.variables &&
                         deleteQuestPermanently.variables.id === q.id)
+                    }
+                    isSolutionLoading={
+                      (deleteSolution.isLoading &&
+                        !!deleteSolution.variables &&
+                        deleteSolution.variables.id === q.id) ||
+                      (deleteSolutionPermanently.isLoading &&
+                        !!deleteSolutionPermanently.variables &&
+                        deleteSolutionPermanently.variables.id === q.id)
                     }
                   />
                 ))}
@@ -764,6 +772,7 @@ const SearchComponent = ({
               >
                 S
               </Circle>
+
               <Text
                 fontSize="md"
                 fontWeight="semibold"
@@ -1176,11 +1185,13 @@ const ListComponent = ({
   listComponent,
   deleteListComponent,
   type,
-  isLoading,
+  isQuestLoading,
+  isSolutionLoading,
 }: {
   listComponent: QuestListComponent | SolutionListComponent;
   deleteListComponent: ({ id }: { id: string }) => void;
-  isLoading: boolean;
+  isQuestLoading: boolean;
+  isSolutionLoading: boolean;
 
   type: "QUEST" | "SOLUTION";
 }) => {
@@ -1198,12 +1209,9 @@ const ListComponent = ({
         alignItems="center"
         _hover={{
           bg: "gray.100",
-          // ".actionButton": {
-          //   visibility: "visible",
-          // },
         }}
         className="listComponent"
-        opacity={isLoading ? "50%" : "100%"}
+        opacity={isQuestLoading ? "50%" : "100%"}
       >
         <Link
           width="100%"
@@ -1219,7 +1227,7 @@ const ListComponent = ({
           textOverflow="ellipsis"
           alignItems="center"
         >
-          {isLoading ? (
+          {isQuestLoading ? (
             <Spinner size="xs" colorScheme="gray" />
           ) : (
             <Circle
@@ -1305,8 +1313,10 @@ const ListComponent = ({
           },
         }}
         className="listComponent"
+        opacity={isSolutionLoading ? "50%" : "100%"}
       >
         <Link
+          width="100%"
           as={NextLink}
           gap={2}
           display="flex"
@@ -1318,9 +1328,23 @@ const ListComponent = ({
           textOverflow="ellipsis"
           href={`/workspace/solutions/${listComponent.id}`}
         >
-          <Circle size="24px" bg="blue" color="black" fontWeight="bold">
-            {"S"}
-          </Circle>
+          {isSolutionLoading ? (
+            <Spinner size="xs" colorScheme="gray" />
+          ) : (
+            <Circle
+              size="24px"
+              bg={
+                listComponent.topic
+                  ? TopicColor({ topic: listComponent.topic })
+                  : "gray.100"
+              }
+              color="black"
+              fontWeight="bold"
+            >
+              {listComponent.topic && listComponent.topic[0]}
+            </Circle>
+          )}
+
           <Text
             fontSize="md"
             fontWeight="semibold"

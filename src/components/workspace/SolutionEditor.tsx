@@ -51,8 +51,9 @@ import dynamic from "next/dynamic";
 import TiptapEditor from "./TiptapEditor";
 import { NonEditableContent } from "./Preview";
 import { useRouter } from "next/router";
-import { QuestComponentSkeleton } from "../QuestComponent";
+import QuestComponent, { QuestComponentSkeleton } from "../QuestComponent";
 import produce from "immer";
+import Link from "next/link";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
@@ -91,6 +92,15 @@ const SolutionEditor = ({ id }: { id: string }) => {
     trpc.solution.updateSolutionAttributes.useMutation({
       // retry: 3,
     });
+  console.log(!!serverSolution.data && !!serverSolution.data.questId);
+  const quest = trpc.quest.publishedQuest.useQuery(
+    { id: solution?.questId! },
+    {
+      enabled: !!solution && !!solution.questId,
+
+      staleTime: 10 * 60 * 1000,
+    }
+  );
 
   const addTransaction = WorkspaceStore((state) => state.addTransaction);
   const clearTransactionQueue = WorkspaceStore(
@@ -267,7 +277,19 @@ const SolutionEditor = ({ id }: { id: string }) => {
   return (
     <Center mt={10} flexDirection="column">
       {solution?.questId ? (
-        <Box w="85%" h="36" mb={10}></Box>
+        <Box w="85%" minH="36" mb={10}>
+          {quest.isLoading ? (
+            <QuestComponentSkeleton includeContent={false} />
+          ) : quest.data && quest.data.quest ? (
+            <QuestComponent
+              includeContent={false}
+              includeDetails={false}
+              quest={quest.data.quest}
+            />
+          ) : (
+            <></>
+          )}
+        </Box>
       ) : (
         <Button
           onClick={onModalOpen}

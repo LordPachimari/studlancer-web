@@ -285,7 +285,15 @@ const Publish = ({
                 </AlertDialogBody>
               </>
             ) : (
-              <></>
+              <>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Confirm Publish
+                </AlertDialogHeader>
+
+                <AlertDialogBody>
+                  {errorMessage && <Text color="red">{errorMessage}</Text>}
+                </AlertDialogBody>
+              </>
             )}
 
             <AlertDialogFooter gap={2}>

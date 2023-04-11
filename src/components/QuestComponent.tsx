@@ -127,7 +127,7 @@ export default function QuestComponent({
       </CardHeader>
 
       <Link href={`/quests/${quest.id}`}>
-        <Text fontSize="2xl" fontWeight="bold" pl={4}>
+        <Text fontSize="2xl" fontWeight="bold" p={4}>
           {quest.title}
         </Text>
         {includeContent && (

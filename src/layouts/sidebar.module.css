@@ -9,7 +9,7 @@
   z-index: 9;
   left: -500px;
   position: fixed;
-  overflow-y: scroll;
+  overflow-y: auto;
   width: 256px;
   height: 100vh;
   background: white;

@@ -1,7 +1,7 @@
-import { ReactElement, useRef } from "react";
+import { ReactElement, useEffect, useRef, useState } from "react";
 import GlobalLayout from "../../../layouts/GlobalLayout";
 import SidebarLayout from "../../../layouts/SidebarLayout";
-import { PublishedQuest, SolverPartial } from "../../../types/main";
+import { PublishedQuest, Solver, SolverPartial } from "../../../types/main";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -11,6 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Avatar,
   Badge,
   Box,
   Button,
@@ -52,7 +53,6 @@ export default function PublishedQuestPage() {
   );
   const { isOpen, onOpen, onClose } = useDisclosure();
   const createSolution = trpc.solution.createSolution.useMutation();
-  const solversKey = getQueryKey(trpc.quest.solvers, undefined, "query");
   const cancelRef = useRef(null);
   const toast = useToast();
   const solutionStatuses = [
@@ -114,20 +114,20 @@ export default function PublishedQuestPage() {
             <Button colorScheme="blue">MESSAGE</Button>
           </Center>
 
-          <Card w="100%" height={{ base: "xs" }} maxW="72" borderRadius="2xl">
-            <CardHeader
-              display="flex"
-              justifyContent="center"
-              fontSize="xl"
-              fontWeight="bold"
-              p={2}
-            >
-              Winner
-            </CardHeader>
-            {quest.data.quest.winnerId && (
+          {quest.data.quest.winnerId && (
+            <Card w="100%" height={{ base: "xs" }} maxW="72" borderRadius="2xl">
+              <CardHeader
+                display="flex"
+                justifyContent="center"
+                fontSize="xl"
+                fontWeight="bold"
+                p={2}
+              >
+                Winner
+              </CardHeader>
               <Winner winnerId={quest.data.quest.winnerId} />
-            )}
-          </Card>
+            </Card>
+          )}
         </Center>
 
         <Box w={{ base: "100%", md: "70%" }}>
@@ -139,7 +139,9 @@ export default function PublishedQuestPage() {
               <Button
                 colorScheme="green"
                 onClick={onOpen}
-                isDisabled={!isSignedIn}
+                isDisabled={
+                  !isSignedIn || quest.data.solvers.some((s) => s.id === userId)
+                }
               >
                 JOIN
               </Button>
@@ -174,22 +176,29 @@ export default function PublishedQuestPage() {
                                   questId: quest.data.quest?.id,
                                   questCreatorId: quest.data.quest?.creatorId,
                                 });
-                                onClose();
                                 queryClient
                                   .invalidateQueries({
-                                    queryKey: solversKey,
+                                    queryKey: [
+                                      "publishedQuests",
+                                      "publishedQuest",
+                                      "solvers",
+                                    ],
+                                  })
+                                  .then(() => {
+                                    toast({
+                                      title: "Successfully joined!",
+                                      description:
+                                        "Don't forget to post solution!",
+                                      status: "success",
+                                      duration: 5000,
+                                      isClosable: true,
+                                    });
+
+                                    onClose();
                                   })
                                   .catch((err) => console.log(err));
-                                toast({
-                                  title: "Successfully joined!",
-                                  description: "Don't forget to post solution!",
-                                  status: "success",
-                                  duration: 5000,
-                                  isClosable: true,
-                                });
                               },
                               onError: () => {
-                                onClose();
                                 toast({
                                   title: "Failed to join!",
                                   description: "Not allowed!",
@@ -197,6 +206,8 @@ export default function PublishedQuestPage() {
                                   duration: 5000,
                                   isClosable: true,
                                 });
+
+                                onClose();
                               },
                             }
                           );
@@ -256,8 +267,10 @@ const Publisher = ({ publisherId }: { publisherId: string }) => {
   }
   return (
     <>
-      <Box w="36" height="md"></Box>
-      <Text>{publisher.data?.username}</Text>
+      <Box w="36" height="48"></Box>
+      <Text textAlign="center" fontWeight="bold">
+        {publisher.data?.username.toUpperCase()}
+      </Text>
     </>
   );
 };
@@ -307,7 +320,6 @@ const SolverComponent = ({
     { solversPartial },
     { staleTime: 10 * 60 * 1000 }
   );
-  console.log("solvers", solvers.data);
 
   return (
     <Flex wrap="wrap" gap={5}>
@@ -316,7 +328,7 @@ const SolverComponent = ({
         : solvers.data &&
           solvers.data.map((s) => (
             <Flex key={s.id}>
-              <Solver level={s.level} username={s.username} />
+              <_Solver level={s.level} username={s.username} />
             </Flex>
           ))}
 
@@ -346,7 +358,7 @@ const SolverSkeleton = () => {
     </Flex>
   );
 };
-const Solver = ({ level, username }: { level: number; username: string }) => {
+const _Solver = ({ level, username }: { level: number; username: string }) => {
   return (
     <Flex alignItems="center" gap={2}>
       <Card
@@ -358,10 +370,20 @@ const Solver = ({ level, username }: { level: number; username: string }) => {
         gap={2}
         borderRadius="xl"
       >
-        <Circle size="40px" ml={2}></Circle>
-        <Flex flexDirection="column" gap={3}>
-          <Badge>level</Badge>
-          <Text>{username}</Text>
+        {/* <Circle size="40px" ml={2}></Circle> */}
+        <Avatar
+          ml={1}
+          size="md"
+          name={username}
+          // src="https://bit.ly/sage-adebayo"
+        />
+        <Flex flexDirection="column">
+          <Badge colorScheme="blue" w="10">
+            2 LVL
+          </Badge>
+          <Text whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
+            {username}
+          </Text>
         </Flex>
       </Card>
       <Circle size="25px" borderWidth="2px" borderColor="gray.300"></Circle>

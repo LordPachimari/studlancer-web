@@ -23,7 +23,7 @@ export default function Home() {
   console.log("quests", quests.data);
   return (
     <Flex w="100%" justifyContent="center" mt={20} mb={20}>
-      <Flex w="90%" gap="10">
+      <Flex w="90%" justify="center">
         <Flex w={{ base: "100%", lg: "70%" }} flexDirection="column" gap={10}>
           {quests.isLoading ? (
             emptyQuests.map((q, i) => (
@@ -47,6 +47,7 @@ export default function Home() {
           display={{ base: "none", lg: "flex" }}
           flexDirection="column"
           gap={10}
+          pl="10"
         >
           <Leaderboard />
           <GeneralChat />

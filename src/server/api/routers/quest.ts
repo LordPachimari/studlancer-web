@@ -674,9 +674,11 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        momento
-          .delete("accounts-cache", questId)
-          .catch((err) => console.log("cache error", err));
+        await Promise.allSettled([
+          momento.delete("accounts-cache", questId),
+          momento.delete("accounts-cache", "LatestPublishedQuests"),
+        ]);
+
         if (result) {
           return true;
         }
@@ -799,9 +801,11 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        momento
-          .delete("accounts-cache", questId)
-          .catch((err) => console.log("cache error", err));
+        await Promise.allSettled([
+          momento.delete("accounts-cache", questId),
+          momento.delete("accounts-cache", "LatestPublishedQuests"),
+        ]);
+
         if (result) {
           return true;
         }

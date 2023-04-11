@@ -25,7 +25,10 @@ import { trpc } from "~/utils/api";
 export default function Profile() {
   const router = useRouter();
   const id = router.query.id as string;
-  const user = trpc.user.userById.useQuery({ id });
+  const user = trpc.user.userById.useQuery(
+    { id },
+    { staleTime: 10 * 60 * 1000 }
+  );
   if (!user.data) {
     return <div></div>;
   }
@@ -33,12 +36,18 @@ export default function Profile() {
     <Flex w="100%" justify="center" mb={20}>
       <Box
         w="90%"
+        maxW="8xl"
         display={{ base: "block", md: "flex" }}
         columnGap={15}
         mt={16}
       >
-        <Box w={{ base: "100%", md: "30%" }} mb={10}>
-          <Card w="100%" height={{ base: "xs" }} borderRadius="2xl"></Card>
+        <Flex
+          flexDir="column"
+          alignItems="center"
+          w={{ base: "100%", md: "72" }}
+          mb={10}
+        >
+          <Card height={{ base: "xs" }} w="72" borderRadius="2xl"></Card>
           <Center gap={10} mt={2}>
             <Text color="gray.500" fontWeight="bold">
               69 followers
@@ -65,8 +74,8 @@ export default function Profile() {
               Follow
             </Button>
           </Flex>
-        </Box>
-        <Box w={{ base: "100%", md: "70%" }}>
+        </Flex>
+        <Box w={{ base: "100%" }}>
           <AboutUser
             username={user.data.username}
             about={user.data.about}
