@@ -55,6 +55,7 @@ import QuestComponent, { QuestComponentSkeleton } from "../QuestComponent";
 import produce from "immer";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
@@ -90,6 +91,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
       enabled: shouldUpdate,
     }
   );
+  const solutionKey = getQueryKey(trpc.solution.publishSolution)
   const updateSolutionAttributes =
     trpc.solution.updateSolutionAttributes.useMutation({
       // retry: 3,
@@ -132,7 +134,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
             );
             queryClient
               .invalidateQueries({
-                queryKey: ["publishedSolution"],
+                queryKey: solutionKey,
               })
               .then(() => {
                 toast({

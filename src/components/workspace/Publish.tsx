@@ -33,6 +33,7 @@ import produce from "immer";
 import { trpc } from "~/utils/api";
 import Preview from "./Preview";
 import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 
 const Publish = ({
   solutionId,
@@ -160,6 +161,7 @@ const Publish = ({
     solutionId?: string;
     questId?: string;
   }) => {
+    const publishedQuestKey = getQueryKey(trpc.quest.publishedQuests);
     if (questId && type === "QUEST") {
       publishQuest.mutate(
         { id: questId },
@@ -180,7 +182,7 @@ const Publish = ({
             ).catch((err) => console.log(err));
             queryClient
               .invalidateQueries({
-                queryKey: ["publishedQuests"],
+                queryKey: publishedQuestKey,
               })
               .then(() => {
                 onClose();
