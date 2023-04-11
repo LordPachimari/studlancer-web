@@ -246,7 +246,7 @@ const Reward = ({
         w={40}
         htmlSize={4}
         placeholder="Enter amount"
-        value={stateReward || 0}
+        value={stateReward || ""}
         type="number"
         onChange={(e) => {
           handleRewardChange(e), setStateReward(e.target.valueAsNumber || 0);
@@ -293,7 +293,7 @@ const Slots = ({
         size="sm"
         w={40}
         placeholder="Enter amount"
-        value={stateSlots}
+        value={stateSlots || ""}
         type="number"
         onChange={(e) => {
           handleSlotsChange(e), setStateSlots(e.target.valueAsNumber || 0);

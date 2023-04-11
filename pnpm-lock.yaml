@@ -12,7 +12,6 @@ specifiers:
   '@emotion/react': ^11.10.6
   '@emotion/styled': ^11.10.6
   '@gomomento/sdk': ^1.8.2
-  '@next/font': ^13.3.0
   '@rockset/client': ^0.8.32
   '@tanstack/react-query': ^4.20.2
   '@tiptap/core': 2.0.0-beta.220
@@ -78,7 +77,6 @@ dependencies:
   '@emotion/react': 11.10.6_pmekkgnqduwlme35zpnqhenc34
   '@emotion/styled': 11.10.6_oouaibmszuch5k64ms7uxp2aia
   '@gomomento/sdk': 1.8.2
-  '@next/font': 13.3.0
   '@rockset/client': 0.8.32
   '@tanstack/react-query': 4.28.0_biqbaboplfbrettd7655fr4n2y
   '@tiptap/core': 2.0.0-beta.220_@tiptap+pm@2.0.0-beta.220
@@ -3833,10 +3831,6 @@ packages:
     dependencies:
       glob: 7.1.7
     dev: true
-
-  /@next/font/13.3.0:
-    resolution: {integrity: sha512-xUv7VRUA2Zr6n/KJDILyv7/zGy9xKUsyQURaQqYr7lVxn0REScazwyZQzhSm+DnJoUyo+9DcFs2J3WsZXHUvQw==}
-    dev: false
 
   /@next/swc-android-arm-eabi/13.2.4:
     resolution: {integrity: sha512-DWlalTSkLjDU11MY11jg17O1gGQzpRccM9Oes2yTqj2DpHndajrXHGxj9HGtJ+idq2k7ImUdJVWS2h2l/EDJOw==}

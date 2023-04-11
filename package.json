@@ -20,7 +20,6 @@
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
     "@gomomento/sdk": "^1.8.2",
-    "@next/font": "^13.3.0",
     "@rockset/client": "^0.8.32",
     "@tanstack/react-query": "^4.20.2",
     "@tiptap/core": "2.0.0-beta.220",
