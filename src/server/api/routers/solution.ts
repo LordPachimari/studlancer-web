@@ -51,7 +51,7 @@ export const solutionRouter = router({
             solution.questCreatorId === user.id ||
             (solution.contributors && solution.contributors.has(user.id)) ||
             //allow winner solutions to be publicly viewed
-            solution.status === "WINNER"
+            solution.status === "SOLVED"
           ) {
             if (user.id === solution.creatorId) {
               //send notification to the solver that his solution has been viewed by the quest creator
