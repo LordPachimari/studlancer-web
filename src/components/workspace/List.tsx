@@ -439,14 +439,6 @@ const List = ({
                         !!deleteQuestPermanently.variables &&
                         deleteQuestPermanently.variables.id === q.id)
                     }
-                    isSolutionLoading={
-                      (deleteSolution.isLoading &&
-                        !!deleteSolution.variables &&
-                        deleteSolution.variables.id === q.id) ||
-                      (deleteSolutionPermanently.isLoading &&
-                        !!deleteSolutionPermanently.variables &&
-                        deleteSolutionPermanently.variables.id === q.id)
-                    }
                   />
                 ))}
             <Button
@@ -518,7 +510,7 @@ const List = ({
                     key={s.id}
                     listComponent={s}
                     deleteListComponent={deleteListComponent}
-                    isLoading={
+                    isSolutionLoading={
                       (deleteSolution.isLoading &&
                         !!deleteSolution.variables &&
                         deleteSolution.variables.id === s.id) ||
@@ -1190,8 +1182,8 @@ const ListComponent = ({
 }: {
   listComponent: QuestListComponent | SolutionListComponent;
   deleteListComponent: ({ id }: { id: string }) => void;
-  isQuestLoading: boolean;
-  isSolutionLoading: boolean;
+  isQuestLoading?: boolean;
+  isSolutionLoading?: boolean;
 
   type: "QUEST" | "SOLUTION";
 }) => {

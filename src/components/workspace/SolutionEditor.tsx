@@ -94,7 +94,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
     });
   console.log(!!serverSolution.data && !!serverSolution.data.questId);
   const quest = trpc.quest.publishedQuest.useQuery(
-    { id: solution?.questId! },
+    { id: solution!.questId! },
     {
       enabled: !!solution && !!solution.questId,
 
