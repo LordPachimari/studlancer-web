@@ -32,6 +32,7 @@ import {
 import produce from "immer";
 import { trpc } from "~/utils/api";
 import Preview from "./Preview";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Publish = ({
   solutionId,
@@ -61,6 +62,8 @@ const Publish = ({
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
     undefined
   );
+
+  const queryClient = useQueryClient();
   const toast = useToast();
   const QuestAttributesZod = z.object({
     id: z.string(),
@@ -175,13 +178,21 @@ const Publish = ({
                 }
               }
             ).catch((err) => console.log(err));
-
-            onClose();
-            toast({
-              title: "Quest uploaded successfully",
-              status: "success",
-              isClosable: true,
-            });
+            queryClient
+              .invalidateQueries({
+                queryKey: ["publishedQuests"],
+              })
+              .then(() => {
+                onClose();
+                toast({
+                  title: "Quest uploaded successfully",
+                  status: "success",
+                  isClosable: true,
+                });
+              })
+              .catch((err) => {
+                console.log("error invalidating");
+              });
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);

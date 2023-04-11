@@ -3,7 +3,7 @@ export type ThemeType = "dark" | "light";
 const ObjectTypes = ["USER", "QUEST", "SOLUTION", "COMMENT", "POST"] as const;
 export type ObjectTypesType = typeof ObjectTypes;
 const QuestStatus = ["CLOSED", "OPEN"] as const;
-const SolutionStatus = ["ACKNOWLEDGED", "REJECTED", "WINNER"] as const;
+const SolutionStatus = ["ACKNOWLEDGED", "REJECTED", "SOLVED"] as const;
 const UserRole = ["ADMIN", "USER"] as const;
 
 const QuestAttributes = [

@@ -54,6 +54,7 @@ import { useRouter } from "next/router";
 import QuestComponent, { QuestComponentSkeleton } from "../QuestComponent";
 import produce from "immer";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
@@ -74,6 +75,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
     onClose: onAlertClose,
   } = useDisclosure();
 
+  const queryClient = useQueryClient();
   const solutionVersion = JSON.parse(
     localStorage.getItem(id) as string
   ) as Versions | null;
@@ -129,14 +131,23 @@ const SolutionEditor = ({ id }: { id: string }) => {
                 }
               })
             );
-            toast({
-              title: "Solution Unpublished.",
-              status: "success",
-              duration: 5000,
-              isClosable: true,
-            });
+            queryClient
+              .invalidateQueries({
+                queryKey: ["publishedSolution"],
+              })
+              .then(() => {
+                toast({
+                  title: "Solution Unpublished.",
+                  status: "success",
+                  duration: 5000,
+                  isClosable: true,
+                });
 
-            onAlertClose();
+                onAlertClose();
+              })
+              .catch((err) => {
+                console.log("error invalidating");
+              });
           },
         }
       );

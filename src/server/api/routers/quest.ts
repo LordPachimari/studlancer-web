@@ -520,6 +520,10 @@ export const questRouter = router({
         const transactResult = await dynamoClient.send(
           new TransactWriteCommand(params)
         );
+        await Promise.allSettled([
+          momento.delete("accounts-cache", id),
+          momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+        ]);
         if (transactResult) {
           return true;
         }
@@ -692,6 +696,73 @@ export const questRouter = router({
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "NOT ALLOWED TO JOIN",
+        });
+      }
+    }),
+
+  removeSolver: protectedProcedure
+    .input(z.object({ questId: z.string(), solverId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { user } = ctx;
+      const { questId, solverId } = input;
+      if (user.id !== solverId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "NOT ALLOWED TO REMOVE THE SOLVER",
+        });
+      }
+      const transactParams: TransactWriteCommandInput = {
+        TransactItems: [
+          {
+            Update: {
+              Key: { PK: `QUEST#${questId}`, SK: `QUEST#${questId}` },
+
+              TableName: process.env.MAIN_TABLE_NAME,
+              UpdateExpression:
+                "SET #slots = #slots + :inc, #solverCount = #solverCount - :dec",
+              ExpressionAttributeNames: {
+                "#slots": "slots",
+                "#solverCount": "solverCount",
+              },
+              ExpressionAttributeValues: {
+                ":dec": 1,
+                ":inc": 1,
+              },
+            },
+          },
+          {
+            Delete: {
+              TableName: process.env.MAIN_TABLE_NAME,
+
+              ConditionExpression: "attribute_exists(#SK)",
+              Key: {
+                PK: `QUEST#${questId}`,
+                SK: `SOLVER#${user.id}`,
+              },
+
+              ExpressionAttributeNames: { "#SK": "SK" },
+            },
+          },
+        ],
+      };
+      try {
+        const result = await dynamoClient.send(
+          new TransactWriteCommand(transactParams)
+        );
+        await Promise.allSettled([
+          momento.delete("accounts-cache", questId),
+          momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+        ]);
+
+        if (result) {
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "SOMETHING HAPPENED",
         });
       }
     }),

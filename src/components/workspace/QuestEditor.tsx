@@ -38,6 +38,7 @@ import { useRouter } from "next/router";
 import { trpc } from "~/utils/api";
 import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
 import produce from "immer";
+import { useQueryClient } from "@tanstack/react-query";
 
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,
@@ -49,6 +50,8 @@ const QuestEditor = ({ id }: { id: string }) => {
   const router = useRouter();
   const cancelRef = useRef(null);
   const unpublishQuest = trpc.quest.unpublishQuest.useMutation();
+
+  const queryClient = useQueryClient();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
@@ -195,14 +198,23 @@ const QuestEditor = ({ id }: { id: string }) => {
               }
             })
           );
-          toast({
-            title: "Quest Unpublished.",
-            status: "success",
-            duration: 5000,
-            isClosable: true,
-          });
+          queryClient
+            .invalidateQueries({
+              queryKey: ["publishedQuests", "publishedQuest"],
+            })
+            .then(() => {
+              toast({
+                title: "Quest Unpublished.",
+                status: "success",
+                duration: 5000,
+                isClosable: true,
+              });
 
-          onAlertClose();
+              onAlertClose();
+            })
+            .catch((err) => {
+              console.log("error invalidating");
+            });
         },
       }
     );

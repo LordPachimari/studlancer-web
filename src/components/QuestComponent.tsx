@@ -34,6 +34,7 @@ import { PublishedQuest } from "~/types/main";
 import { FromNow } from "~/utils/dayjs";
 import FileExtension from "./Tiptap/FileExtension";
 import ImageExtension from "./Tiptap/ImageExtension";
+import { TopicColor } from "~/utils/topicsColor";
 const HtmlParseOptions: HTMLReactParserOptions = {
   replace: (_domNode) => {
     const domNode = _domNode as Element;
@@ -96,7 +97,9 @@ export default function QuestComponent({
               </Flex>
 
               <Flex mt={2} gap={2} flexWrap="wrap">
-                <Badge colorScheme="red">{quest.topic}</Badge>
+                <Badge bg={TopicColor({ topic: quest.topic })}>
+                  {quest.topic}
+                </Badge>
                 {quest.subtopic.map((subtopic, i) => (
                   <Badge
                     colorScheme="blue"

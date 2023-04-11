@@ -41,6 +41,7 @@ import { appRouter } from "~/server/api/root";
 import { createContextInner } from "~/server/api/trpc";
 import { trpc } from "~/utils/api";
 import { getQueryKey } from "@trpc/react-query";
+import { ulid } from "ulid";
 
 export default function PublishedQuestPage() {
   const router = useRouter();
@@ -48,22 +49,22 @@ export default function PublishedQuestPage() {
   const { userId, isSignedIn } = useAuth();
 
   const quest = trpc.quest.publishedQuest.useQuery(
-    { id },
-    { staleTime: 10 * 60 * 1000 }
+    { id }
+    // { staleTime: 10 * 60 * 1000 }
   );
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const createSolution = trpc.solution.createSolution.useMutation();
-  const cancelRef = useRef(null);
-  const toast = useToast();
+  const {
+    isOpen: isLeaveAlertOpen,
+    onOpen: onLeaveAlertOpen,
+    onClose: onLeaveAlertClose,
+  } = useDisclosure();
+
   const solutionStatuses = [
     "POSTED",
     "REJECTED",
     "ACKOWLEDGED",
     "ACCEPTED",
   ] as const;
-
-  const join = trpc.quest.addSolver.useMutation();
-  const queryClient = useQueryClient();
 
   if (!quest.data || !quest.data.quest) {
     return <div>No data</div>;
@@ -136,90 +137,40 @@ export default function PublishedQuestPage() {
             <></>
           ) : (
             <Center my={5}>
+              {quest.data.solvers.some((s) => s.id === userId) && userId && (
+                <>
+                  <Button
+                    colorScheme="red"
+                    onClick={onLeaveAlertOpen}
+                    mr={5}
+                    w={20}
+                  >
+                    LEAVE
+                  </Button>
+                  <LeaveAlert
+                    isOpen={isLeaveAlertOpen}
+                    onClose={onLeaveAlertClose}
+                    questId={quest.data.quest.id}
+                    solverId={userId}
+                  />
+                </>
+              )}
               <Button
                 colorScheme="green"
                 onClick={onOpen}
+                w={20}
                 isDisabled={
                   !isSignedIn || quest.data.solvers.some((s) => s.id === userId)
                 }
               >
                 JOIN
               </Button>
-
-              <AlertDialog
+              <JoinAlert
                 isOpen={isOpen}
-                leastDestructiveRef={cancelRef}
+                isSolver={quest.data.solvers.some((s) => s.id === userId)}
                 onClose={onClose}
-              >
-                <AlertDialogOverlay>
-                  <AlertDialogContent>
-                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                      Confirm your action
-                    </AlertDialogHeader>
-
-                    <AlertDialogBody>By confirming you ...</AlertDialogBody>
-
-                    <AlertDialogFooter>
-                      <Button ref={cancelRef} onClick={onClose}>
-                        Cancel
-                      </Button>
-                      <Button
-                        colorScheme="green"
-                        isLoading={join.isLoading}
-                        onClick={() => {
-                          join.mutate(
-                            { questId: id },
-                            {
-                              onSuccess: () => {
-                                createSolution.mutate({
-                                  id,
-                                  questId: quest.data.quest?.id,
-                                  questCreatorId: quest.data.quest?.creatorId,
-                                });
-                                queryClient
-                                  .invalidateQueries({
-                                    queryKey: [
-                                      "publishedQuests",
-                                      "publishedQuest",
-                                      "solvers",
-                                    ],
-                                  })
-                                  .then(() => {
-                                    toast({
-                                      title: "Successfully joined!",
-                                      description:
-                                        "Don't forget to post solution!",
-                                      status: "success",
-                                      duration: 5000,
-                                      isClosable: true,
-                                    });
-
-                                    onClose();
-                                  })
-                                  .catch((err) => console.log(err));
-                              },
-                              onError: () => {
-                                toast({
-                                  title: "Failed to join!",
-                                  description: "Not allowed!",
-                                  status: "error",
-                                  duration: 5000,
-                                  isClosable: true,
-                                });
-
-                                onClose();
-                              },
-                            }
-                          );
-                        }}
-                        ml={3}
-                      >
-                        JOIN
-                      </Button>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialogOverlay>
-              </AlertDialog>
+                quest={quest.data.quest}
+              />
             </Center>
           )}
 
@@ -251,6 +202,179 @@ export default function PublishedQuestPage() {
     </Center>
   );
 }
+const LeaveAlert = ({
+  isOpen,
+  onClose,
+  questId,
+  solverId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  questId: string;
+  solverId: string;
+}) => {
+  const cancelRef = useRef(null);
+
+  const queryClient = useQueryClient();
+  const questKey = getQueryKey(trpc.quest.publishQuest);
+  const leave = trpc.quest.removeSolver.useMutation();
+
+  const toast = useToast();
+  return (
+    <AlertDialog
+      isOpen={isOpen}
+      leastDestructiveRef={cancelRef}
+      onClose={onClose}
+    >
+      <AlertDialogOverlay>
+        <AlertDialogContent>
+          <AlertDialogHeader fontSize="lg" fontWeight="bold">
+            Confirm your action
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="red"
+              isLoading={leave.isLoading}
+              onClick={() => {
+                leave.mutate(
+                  { questId, solverId },
+                  {
+                    onSuccess: () => {
+                      queryClient
+                        .invalidateQueries({
+                          queryKey: questKey,
+                        })
+                        .then(() => {
+                          toast({
+                            title: "Successfully leaved!",
+                            description: "WHAT A QUITTER! (just kidding)",
+                            status: "success",
+                            duration: 5000,
+                            isClosable: true,
+                          });
+
+                          onClose();
+                        })
+                        .catch((err) => console.log(err));
+                    },
+                    onError: () => {
+                      toast({
+                        title: "Failed to leave!",
+                        status: "error",
+                        duration: 5000,
+                        isClosable: true,
+                      });
+
+                      onClose();
+                    },
+                  }
+                );
+              }}
+              ml={3}
+            >
+              Leave
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogOverlay>
+    </AlertDialog>
+  );
+};
+const JoinAlert = ({
+  isOpen,
+  onClose,
+  quest,
+  isSolver,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  quest: PublishedQuest;
+  isSolver: boolean;
+}) => {
+  const join = trpc.quest.addSolver.useMutation();
+  const cancelRef = useRef(null);
+
+  const queryClient = useQueryClient();
+
+  const createSolution = trpc.solution.createSolution.useMutation();
+
+  const questKey = getQueryKey(trpc.quest.publishQuest);
+
+  const toast = useToast();
+  return (
+    <AlertDialog
+      isOpen={isOpen}
+      leastDestructiveRef={cancelRef}
+      onClose={onClose}
+    >
+      <AlertDialogOverlay>
+        <AlertDialogContent>
+          <AlertDialogHeader fontSize="lg" fontWeight="bold">
+            Confirm your action
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="green"
+              isLoading={join.isLoading}
+              onClick={() => {
+                join.mutate(
+                  { questId: quest.id },
+                  {
+                    onSuccess: () => {
+                      createSolution.mutate({
+                        id: ulid(),
+                        questId: quest.id,
+                        questCreatorId: quest.creatorId,
+                      });
+                      queryClient
+                        .invalidateQueries({
+                          queryKey: questKey,
+                        })
+                        .then(() => {
+                          toast({
+                            title: "Successfully joined!",
+                            description: "Don't forget to post solution!",
+                            status: "success",
+                            duration: 5000,
+                            isClosable: true,
+                          });
+
+                          onClose();
+                        })
+                        .catch((err) => console.log(err));
+                    },
+                    onError: () => {
+                      toast({
+                        title: "Failed to join!",
+                        description: "Not allowed!",
+                        status: "error",
+                        duration: 5000,
+                        isClosable: true,
+                      });
+
+                      onClose();
+                    },
+                  }
+                );
+              }}
+              ml={3}
+            >
+              JOIN
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogOverlay>
+    </AlertDialog>
+  );
+};
 const Publisher = ({ publisherId }: { publisherId: string }) => {
   const publisher = trpc.user.userById.useQuery(
     { id: publisherId },

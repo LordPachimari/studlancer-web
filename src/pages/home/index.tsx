@@ -10,12 +10,7 @@ import GeneralChat from "../../components/home/Chat";
 import Leaderboard from "../../components/home/Leaderboard";
 
 export default function Home() {
-  const quests = trpc.quest.publishedQuests.useQuery(
-    {},
-    {
-      staleTime: 10 * 60 * 1000,
-    }
-  );
+  const quests = trpc.quest.publishedQuests.useQuery({});
   const emptyQuests: {}[] = [];
   for (let i = 0; i < 3; i++) {
     emptyQuests.push({});
