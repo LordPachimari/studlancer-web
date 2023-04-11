@@ -216,7 +216,7 @@ const LeaveAlert = ({
   const cancelRef = useRef(null);
 
   const queryClient = useQueryClient();
-  const questKey = getQueryKey(trpc.quest.publishQuest);
+  const questKey = getQueryKey(trpc.quest.publishedQuest);
   const leave = trpc.quest.removeSolver.useMutation();
 
   const toast = useToast();
@@ -302,7 +302,7 @@ const JoinAlert = ({
 
   const createSolution = trpc.solution.createSolution.useMutation();
 
-  const questKey = getQueryKey(trpc.quest.publishQuest);
+  const questKey = getQueryKey(trpc.quest.publishedQuest);
 
   const toast = useToast();
   return (
