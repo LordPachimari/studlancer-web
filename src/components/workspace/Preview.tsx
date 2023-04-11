@@ -188,6 +188,7 @@ export const NonEditableQuestAttributes = ({
   quest: Quest | PublishedQuest;
 }) => {
   const publishedQuest = quest as PublishedQuest;
+  console.log("quest published result", quest);
   return (
     <Flex flexDirection="column" gap={3}>
       {quest.published ? (

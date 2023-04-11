@@ -162,21 +162,14 @@ const Publish = ({
         { id: questId },
         {
           onSuccess: () => {
-            update<(Quest & { status: "OPEN" | "CLOSE" }) | undefined>(
+            update<(Quest & { status: "OPEN" | "CLOSED" }) | undefined>(
               questId,
               (value) => {
                 if (value) {
                   value.published = true;
                   value.status = "OPEN";
                   if (setQuest) {
-                    setQuest(
-                      produce((val) => {
-                        if (val) {
-                          val.published = true;
-                          val.status = "OPEN";
-                        }
-                      })
-                    );
+                    setQuest(value);
                   }
                   return value;
                 }
@@ -213,14 +206,9 @@ const Publish = ({
             update<Solution | undefined>(solutionId, (value) => {
               if (value) {
                 value.published = true;
+
                 if (setSolution) {
-                  setSolution(
-                    produce((val) => {
-                      if (val) {
-                        val.published = true;
-                      }
-                    })
-                  );
+                  setSolution(value);
                 }
                 return value;
               }
