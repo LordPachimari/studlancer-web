@@ -91,7 +91,9 @@ const SolutionEditor = ({ id }: { id: string }) => {
       enabled: shouldUpdate,
     }
   );
-  const solutionKey = getQueryKey(trpc.solution.publishSolution)
+  const solutionKey = getQueryKey(trpc.solution.publishedSolution);
+  const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
+  const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
   const updateSolutionAttributes =
     trpc.solution.updateSolutionAttributes.useMutation({
       // retry: 3,
@@ -134,7 +136,11 @@ const SolutionEditor = ({ id }: { id: string }) => {
             );
             queryClient
               .invalidateQueries({
-                queryKey: solutionKey,
+                queryKey: [
+                  ...solutionKey,
+                  ...publishedQuestKey,
+                  ...workspaceSolutionKey,
+                ],
               })
               .then(() => {
                 toast({
@@ -248,7 +254,6 @@ const SolutionEditor = ({ id }: { id: string }) => {
           }
         }
 
-        console.log("redacting transaction", _transactionQueue);
         updateSolutionAttributes.mutate({
           transactionsString: JSON.stringify(_transactionQueue, mapReplacer),
         });
@@ -367,6 +372,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           type="SOLUTION"
           questId={solution.questId}
           questCreatorId={solution.questCreatorId}
+          setSolution={setSolution}
         />
       )}
       {solution && solution.published && (

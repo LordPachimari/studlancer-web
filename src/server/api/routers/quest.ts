@@ -165,7 +165,7 @@ export const questRouter = router({
               await rocksetClient.queryLambdas.executeQueryLambda(
                 "commons",
                 "LatestPublishedQuests",
-                "c62045e5c2280525",
+                "3ba69e69ae548365",
                 undefined
               );
 
@@ -405,9 +405,8 @@ export const questRouter = router({
 
             allowUnpublish: true,
           };
-          console.log("quest from the server", publishedQuest);
 
-          //KINDA MESSI ISNAT? HAHA? IS IT TYPE SAFE? JUST LET THE ZOD DO ITS THING (VALIDATION)
+          //KINDA MESSI ISNIT? HAHA?  JUST LET THE ZOD DO ITS THING (VALIDATION)
           PublishedQuestZod.parse(publishedQuest);
           const params: TransactWriteCommandInput = {
             TransactItems: [

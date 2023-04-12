@@ -30,7 +30,7 @@ import parse, {
 } from "html-react-parser";
 import Link from "next/link";
 import { useMemo } from "react";
-import { PublishedQuest } from "~/types/main";
+import { PublishedQuest, TopicsType } from "~/types/main";
 import { FromNow } from "~/utils/dayjs";
 import FileExtension from "./Tiptap/FileExtension";
 import ImageExtension from "./Tiptap/ImageExtension";
@@ -57,6 +57,20 @@ export default function QuestComponent({
   includeContent: boolean;
   includeDetails: boolean;
 }) {
+  const TopicColorScheme = (topic: TopicsType) => {
+    if (topic === "MARKETING") {
+      return "red";
+    } else if (topic === "BUSINESS") {
+      return "green";
+    } else if (topic === "SCIENCE") {
+      return "blue";
+    } else if (topic === "PROGRAMMING") {
+      return "purple";
+    } else if (topic === "VIDEOGRAPHY") {
+      return "teal";
+    }
+  };
+
   const contentJSON = JSON.parse(quest.content) as JSONContent;
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
@@ -69,6 +83,7 @@ export default function QuestComponent({
       // other extensions …
     ]);
   }, [contentJSON]);
+
   return (
     <Card w="100%" h="fit-content" borderRadius="2xl">
       <CardHeader p={4}>
@@ -96,7 +111,9 @@ export default function QuestComponent({
               </Flex>
 
               <Flex mt={2} gap={2} flexWrap="wrap">
-                <Badge colorScheme="red">{quest.topic}</Badge>
+                <Badge colorScheme={TopicColorScheme(quest.topic)}>
+                  {quest.topic}
+                </Badge>
                 {quest.subtopic.map((subtopic, i) => (
                   <Badge
                     colorScheme="blue"
@@ -104,7 +121,7 @@ export default function QuestComponent({
                     borderWidth="2px"
                     borderColor="blue.500"
                   >
-                    {quest.subtopic}
+                    {subtopic}
                   </Badge>
                 ))}
               </Flex>
@@ -127,12 +144,14 @@ export default function QuestComponent({
       </CardHeader>
 
       <Link href={`/quests/${quest.id}`}>
-        <Text fontSize="2xl" fontWeight="bold" p={4}>
+        <Text fontSize="2xl" fontWeight="bold" pb={4} px={4}>
           {quest.title}
         </Text>
         {includeContent && (
           <CardBody
-            p={4}
+            py={0}
+            // pb={4}
+            px={4}
             overflow="hidden"
             whiteSpace="nowrap"
             textOverflow="ellipsis"

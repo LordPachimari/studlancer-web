@@ -21,7 +21,6 @@
 .show {
   left: 0;
 }
-
 @media screen and (min-width: 1024px) {
   .adjustChildren {
     width: calc(100% - 256px);

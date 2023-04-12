@@ -1,7 +1,12 @@
 import { ReactElement, useEffect, useRef, useState } from "react";
 import GlobalLayout from "../../../layouts/GlobalLayout";
 import SidebarLayout from "../../../layouts/SidebarLayout";
-import { PublishedQuest, Solver, SolverPartial } from "../../../types/main";
+import {
+  PublishedQuest,
+  Solver,
+  SolverPartial,
+  SolutionStatus,
+} from "../../../types/main";
 import { useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -21,10 +26,13 @@ import {
   Center,
   Circle,
   Flex,
+  Heading,
+  Highlight,
   Skeleton,
   SkeletonCircle,
   SkeletonText,
   Text,
+  Tooltip,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
@@ -42,13 +50,18 @@ import { createContextInner } from "~/server/api/trpc";
 import { trpc } from "~/utils/api";
 import { getQueryKey } from "@trpc/react-query";
 import { ulid } from "ulid";
+import Link from "next/link";
+import { buildClerkProps, getAuth } from "@clerk/nextjs/server";
 
 export default function PublishedQuestPage() {
   const router = useRouter();
   const id = router.query.id as string;
   const { userId, isSignedIn } = useAuth();
 
-  const quest = trpc.quest.publishedQuest.useQuery({ id });
+  const quest = trpc.quest.publishedQuest.useQuery(
+    { id },
+    { staleTime: 10 * 60 * 1000 }
+  );
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isLeaveAlertOpen,
@@ -57,7 +70,7 @@ export default function PublishedQuestPage() {
   } = useDisclosure();
 
   const solutionStatuses = [
-    "POSTED",
+    "POSTED SOLUTION",
     "REJECTED",
     "ACKOWLEDGED",
     "ACCEPTED",
@@ -76,10 +89,14 @@ export default function PublishedQuestPage() {
   ) {
     emptySlots.push({});
   }
-  console.log("quest", quest.data.quest);
 
   return (
-    <Center w="100%" flexDirection={{ base: "column", md: "row" }} mb={20}>
+    <Center
+      w="100%"
+      flexDirection={{ base: "column", md: "row" }}
+      mb={20}
+      mt={5}
+    >
       <Box
         w="90%"
         display={{ base: "block", md: "flex" }}
@@ -157,7 +174,9 @@ export default function PublishedQuestPage() {
                 onClick={onOpen}
                 w={20}
                 isDisabled={
-                  !isSignedIn || quest.data.solvers.some((s) => s.id === userId)
+                  !isSignedIn ||
+                  quest.data.solvers.some((s) => s.id === userId) ||
+                  quest.data.quest.slots === quest.data.quest.solverCount
                 }
               >
                 JOIN
@@ -170,14 +189,26 @@ export default function PublishedQuestPage() {
               />
             </Center>
           )}
+          <Heading size="sm" my="5">
+            Solution statuses
+          </Heading>
 
-          <Flex gap={3} wrap="wrap" my={5}>
+          <Flex
+            gap={3}
+            wrap="wrap"
+            mb={5}
+            borderWidth="2px"
+            borderColor="gray.200"
+            padding="2"
+            borderRadius="xl"
+          >
             {solutionStatuses.map((status, i) => (
               <Flex key={i} gap={2}>
                 <Circle
                   size="25px"
+                  color="white"
                   bg={
-                    status === "POSTED"
+                    status === "POSTED SOLUTION"
                       ? "yellow.200"
                       : status === "ACCEPTED"
                       ? "green.300"
@@ -185,7 +216,9 @@ export default function PublishedQuestPage() {
                       ? "green.300"
                       : "red.400"
                   }
-                ></Circle>
+                >
+                  {status === "ACCEPTED" && "V"}
+                </Circle>
                 <Text>{status}</Text>
               </Flex>
             ))}
@@ -193,6 +226,7 @@ export default function PublishedQuestPage() {
           <SolverComponent
             emptySlots={emptySlots}
             solversPartial={quest.data.solvers}
+            creatorId={quest.data.quest.creatorId}
           />
         </Box>
       </Box>
@@ -428,14 +462,17 @@ const QuestComponent = ({ quest }: { quest: PublishedQuest }) => {
 const SolverComponent = ({
   solversPartial,
   emptySlots,
+  creatorId,
 }: {
   solversPartial: SolverPartial[];
   emptySlots: {}[];
+  creatorId: string;
 }) => {
   const emptySkeletonSlots: {}[] = [];
   for (let i = 0; i < 5; i++) {
     emptySkeletonSlots.push({});
   }
+  const { userId } = useAuth();
 
   const solvers = trpc.quest.solvers.useQuery(
     { solversPartial },
@@ -449,7 +486,10 @@ const SolverComponent = ({
         : solvers.data &&
           solvers.data.map((s) => (
             <Flex key={s.id}>
-              <_Solver level={s.level} username={s.username} />
+              <_Solver
+                solver={s}
+                isAuthorised={userId === creatorId || userId === s.id}
+              />
             </Flex>
           ))}
 
@@ -479,41 +519,97 @@ const SolverSkeleton = () => {
     </Flex>
   );
 };
-const _Solver = ({ level, username }: { level: number; username: string }) => {
+const _Solver = ({
+  solver,
+  isAuthorised,
+}: {
+  solver: Solver;
+  isAuthorised: boolean;
+}) => {
   return (
-    <Flex alignItems="center" gap={2}>
-      <Card
-        w="44"
-        h="14"
-        display="flex"
-        alignItems="center"
-        flexDirection="row"
-        gap={2}
-        borderRadius="xl"
-      >
-        {/* <Circle size="40px" ml={2}></Circle> */}
-        <Avatar
-          ml={1}
-          size="md"
-          name={username}
-          // src="https://bit.ly/sage-adebayo"
-        />
-        <Flex flexDirection="column">
-          <Badge colorScheme="blue" w="10">
-            2 LVL
-          </Badge>
-          <Text whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
-            {username}
-          </Text>
-        </Flex>
-      </Card>
-      <Circle size="25px" borderWidth="2px" borderColor="gray.300"></Circle>
-    </Flex>
+    <Box>
+      <Flex gap={2}>
+        <Link href={`/profile/${solver.id}`}>
+          <Card
+            w="44"
+            h="14"
+            display="flex"
+            alignItems="center"
+            flexDirection="row"
+            gap={2}
+            borderRadius="xl"
+          >
+            {/* <Circle size="40px" ml={2}></Circle> */}
+            <Avatar
+              ml={1}
+              size="md"
+              name={solver.username}
+              // src="https://bit.ly/sage-adebayo"
+            />
+            <Flex flexDirection="column">
+              <Badge colorScheme="blue" w="10">
+                {solver.level} LVL
+              </Badge>
+              <Text
+                whiteSpace="nowrap"
+                overflow="hidden"
+                textOverflow="ellipsis"
+              >
+                {solver.username}
+              </Text>
+            </Flex>
+          </Card>
+        </Link>
+
+        <Center alignItems="center" h="14">
+          {solver.status ? (
+            <Tooltip label={solver.status} placement="top">
+              <Circle
+                size="25px"
+                bg={
+                  solver.status === "ACCEPTED"
+                    ? "green.300"
+                    : solver.status === "ACKNOWLEDGED"
+                    ? " green.300"
+                    : solver.status === "REJECTED"
+                    ? "red.300"
+                    : "yellow.200"
+                }
+              >
+                {solver.status === "ACCEPTED" && "V"}
+              </Circle>
+            </Tooltip>
+          ) : (
+            <Tooltip label="status" placement="top">
+              <Circle
+                size="25px"
+                borderWidth="2px"
+                borderColor="gray.300"
+              ></Circle>
+            </Tooltip>
+          )}
+        </Center>
+      </Flex>
+      {isAuthorised && solver.solutionId && (
+        <Link href={`/solutions/${solver.solutionId}`}>
+          <Button
+            colorScheme="green"
+            ml="7"
+            size="sm"
+            h="5"
+            mt="2"
+            textAlign="center"
+          >
+            View solution
+          </Button>
+        </Link>
+      )}
+    </Box>
   );
 };
 const EmptySlot = () => {
   return (
-    <Flex alignItems="center" gap={2}>
+    <Flex gap={2}>
       <Center
         w="44"
         h="14"
@@ -535,7 +631,12 @@ const EmptySlot = () => {
           />
         </svg>
       </Center>
-      <Circle size="25px" borderWidth="2px" borderColor="gray.300"></Circle>
+
+      <Center alignItems="center" h="14">
+        <Tooltip label="status" placement="top">
+          <Circle size="25px" borderWidth="2px" borderColor="gray.300"></Circle>
+        </Tooltip>
+      </Center>
     </Flex>
   );
 };
@@ -556,6 +657,7 @@ export async function getServerSideProps(
 
   return {
     props: {
+      ...buildClerkProps(context.req),
       trpcState: ssg.dehydrate(),
       id,
     },

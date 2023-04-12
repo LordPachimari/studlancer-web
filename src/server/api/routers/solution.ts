@@ -28,6 +28,7 @@ import { z } from "zod";
 import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
 import { reviver } from "~/utils/mapReplacer";
+import { momento } from "~/constants/momentoClient";
 
 export const solutionRouter = router({
   publishedSolution: protectedProcedure
@@ -51,7 +52,7 @@ export const solutionRouter = router({
             solution.questCreatorId === user.id ||
             (solution.contributors && solution.contributors.has(user.id)) ||
             //allow winner solutions to be publicly viewed
-            solution.status === "SOLVED"
+            solution.status === "ACCEPTED"
           ) {
             if (user.id === solution.creatorId) {
               //send notification to the solver that his solution has been viewed by the quest creator
@@ -231,8 +232,6 @@ export const solutionRouter = router({
       }
       const transactParams: TransactWriteCommandInput = {
         TransactItems: updateParamsArray,
-
-        ClientRequestToken: user.id,
       };
 
       try {
@@ -300,12 +299,13 @@ export const solutionRouter = router({
                     "#published =:published AND #creatorId =:creatorId",
 
                   UpdateExpression:
-                    "SET #published = :value, #lastUpdated = :time, #publishedAt = :publishedAt",
+                    "SET #published = :value, #lastUpdated = :lastUpdated, #publishedAt = :publishedAt",
 
                   ExpressionAttributeNames: {
                     "#published": "published",
                     "#publishedAt": "publishedAt",
                     "#creatorId": "creatorId",
+                    "#lastUpdated": "lastUpdated",
                   },
                   ExpressionAttributeValues: {
                     ":published": false,
@@ -320,9 +320,17 @@ export const solutionRouter = router({
                 Update: {
                   TableName: process.env.MAIN_TABLE_NAME,
                   Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${user.id}` },
-                  UpdateExpression: "SET #solutionId = :solutionId",
-                  ExpressionAttributeNames: { "#solutionId": "solutionId" },
-                  ExpressionAttributeValues: { ":solutionId": id },
+                  ConditionExpression: "attribute_exists(SK)",
+                  UpdateExpression:
+                    "SET #solutionId = :solutionId, #status =:posted",
+                  ExpressionAttributeNames: {
+                    "#solutionId": "solutionId",
+                    "#status": "status",
+                  },
+                  ExpressionAttributeValues: {
+                    ":solutionId": id,
+                    ":posted": "POSTED",
+                  },
                 },
               },
 
@@ -334,7 +342,7 @@ export const solutionRouter = router({
                     PK: `QUEST#${questId}`,
                     SK: `SOLUTION#${id}`,
                   },
-                  ConditionExpression: "attribute_exists(PK)",
+                  ExpressionAttributeNames: { "#PK": "PK" },
                 },
               },
             ],
@@ -342,6 +350,10 @@ export const solutionRouter = router({
           const transactResult = await dynamoClient.send(
             new TransactWriteCommand(params)
           );
+          momento
+            .delete("accounts-cache", questId)
+            .catch((err) => console.log(err));
+
           if (transactResult) {
             return true;
           }
@@ -353,7 +365,8 @@ export const solutionRouter = router({
         console.log(error);
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Could not publish the solution",
+          message:
+            "Could not publish the solution, check whether the quest exist",
         });
       }
     }),
@@ -373,17 +386,18 @@ export const solutionRouter = router({
               ConditionExpression: "#creatorId =:creatorId",
 
               UpdateExpression:
-                "SET #published = :value, #lastUpdated =  :time",
+                "SET #published = :value, #lastUpdated =  :lastUpdated",
 
               ExpressionAttributeNames: {
                 "#published": "published",
-                "#lastUpdated": new Date().toISOString(),
+                "#lastUpdated": "lastUpdated",
                 "#creatorId": "creatorId",
               },
               ExpressionAttributeValues: {
                 ":value": false,
-                ":inc": 0.01,
                 ":creatorId": user.id,
+
+                ":lastUpdated": new Date().toISOString(),
               },
             },
           },
@@ -403,8 +417,11 @@ export const solutionRouter = router({
                 PK: `QUEST#${questId}`,
                 SK: `SOLVER#${user.id}`,
               },
-              UpdateExpression: "REMOVE #solutionId ",
-              ExpressionAttributeNames: { "#solutionId": "solutionId" },
+              UpdateExpression: "REMOVE #solutionId, #status ",
+              ExpressionAttributeNames: {
+                "#solutionId": "solutionId",
+                "#status": "status",
+              },
             },
           },
         ],
@@ -414,6 +431,9 @@ export const solutionRouter = router({
         const transactResult = await dynamoClient.send(
           new TransactWriteCommand(params)
         );
+        momento
+          .delete("accounts-cache", questId)
+          .catch((err) => console.log(err));
         if (transactResult) {
           return true;
         }

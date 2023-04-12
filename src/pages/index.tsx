@@ -10,8 +10,9 @@ import WelcomeLayout from "../layouts/WelcomeLayout";
 import { NextPageWithLayout } from "./_app";
 
 import superjson from "superjson";
-import { Card, CardBody, CardHeader, Heading } from "@chakra-ui/react";
+import { Button, Card, CardBody, CardHeader, Heading } from "@chakra-ui/react";
 import { trpc } from "~/utils/api";
+import { useRouter } from "next/router";
 
 const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
@@ -20,6 +21,7 @@ const SignUpPage: NextPageWithLayout = () => {
     { enabled: !!userId, staleTime: 1800 }
   );
   console.log("isSignedIn", isSignedIn);
+  const router = useRouter();
   if (isSignedIn && user.data) {
     return (
       <Card w="80" h="md" borderRadius="2xl">
@@ -30,6 +32,18 @@ const SignUpPage: NextPageWithLayout = () => {
         </CardHeader>
       </Card>
     );
+  }
+  if (isSignedIn && !user.data) {
+    <Card w="80" h="md" borderRadius="2xl">
+      <CardHeader>
+        <Button
+          colorScheme="blue"
+          onClick={() => void router.push("/create-user")}
+        >
+          Finish account creation
+        </Button>
+      </CardHeader>
+    </Card>;
   }
   return <SignUp signInUrl="/sign-in" />;
 };

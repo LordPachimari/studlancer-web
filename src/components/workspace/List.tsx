@@ -358,9 +358,9 @@ const List = ({
       </Flex>
       <ListSettings>
         <Button
-          pos="absolute"
-          bottom="0"
-          left="0"
+          // pos="absolute"
+          // bottom="0"
+          // left="0"
           justifyContent="flex-start"
           pl="2"
           borderRadius={0}
@@ -995,8 +995,7 @@ const TrashComponent = ({
                                   const filteredQuests = trash.quests.filter(
                                     (item) => item.id !== q.id
                                   );
-                                  console.log("filteredQuests", filteredQuests);
-                                  console.log("deleted quest", q.id, q.title);
+
                                   setTrash((trash) => {
                                     return {
                                       solutions: trash.solutions,
@@ -1241,8 +1240,6 @@ const ListComponent = ({
             }}
             borderRadius="sm"
             className="actionButton"
-            // visibility="hidden"
-            transition="all 0s"
             as={Button}
           >
             <svg
@@ -1284,9 +1281,6 @@ const ListComponent = ({
         alignItems="center"
         _hover={{
           bg: "gray.100",
-          ".actionButton": {
-            visibility: "visible",
-          },
         }}
         className="listComponent"
         opacity={isSolutionLoading ? "50%" : "100%"}
@@ -1302,6 +1296,7 @@ const ListComponent = ({
           whiteSpace="nowrap"
           overflow="hidden"
           textOverflow="ellipsis"
+          alignItems="center"
           href={`/workspace/solutions/${listComponent.id}`}
         >
           {isSolutionLoading ? (
@@ -1341,7 +1336,6 @@ const ListComponent = ({
               bg: "gray.200",
             }}
             borderRadius="sm"
-            visibility="hidden"
             className="actionButton"
             as={Button}
           >
