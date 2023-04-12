@@ -30,12 +30,12 @@ export default function WelcomeLayout({
     {
       heading: "Rewarding Progress",
       description:
-        "Earn diamonds, experience, and achievments as you successfully complete quests. Use your achievements to showcase your expertise and motivate yourself to reach new heights",
+        "Earn diamonds, experience, and achievements as you successfully complete quests. Use your achievements to showcase your expertise and motivate yourself to reach new heights",
     },
     {
       heading: "Collaborative environment",
       description:
-        " Build connections and network with fellow learners, fostering a collaborative atmosphere where you can exchange knowledge and support each other's growth.",
+        " Build connections and network with fellow learners. Studlancer introduces guild and global chat for different topics, allowing you to connect and form a group of like-minded individuals! ",
     },
   ];
   const forCompanies: { heading: string; description: string }[] = [
@@ -82,7 +82,7 @@ export default function WelcomeLayout({
             </Heading>
             <Text fontWeight="bold" fontSize="md" pt={5} textAlign="center">
               Unleash your potential by conquering quests and leveling up your
-              skill
+              skill!
             </Text>
             <Center pt={10} flexDirection="column" rowGap={5}>
               <Button
@@ -153,7 +153,9 @@ export default function WelcomeLayout({
                 <Heading fontSize="md" textAlign="center" h="10">
                   {info.heading}
                 </Heading>
-                <Text pt={2}>{info.description}</Text>
+                <Text pt={2} h="40">
+                  {info.description}
+                </Text>
               </Box>
             ))}
           </Flex>
@@ -179,7 +181,9 @@ export default function WelcomeLayout({
                 <Heading fontSize="md" textAlign="center" h="10">
                   {info.heading}
                 </Heading>
-                <Text pt={2}>{info.description}</Text>
+                <Text pt={2} h="40">
+                  {info.description}
+                </Text>
               </Box>
             ))}
           </Flex>
