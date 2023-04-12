@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <Flex w="100%" justifyContent="center" mt={20} mb={20}>
       <Flex w="90%" justify="center">
-        <Flex w={{ base: "100%", lg: "70%" }} flexDirection="column" gap={10}>
+        <Flex w={{ base: "100%", lg: "50%" }} flexDirection="column" gap={10}>
           {quests.isLoading ? (
             emptyQuests.map((q, i) => (
               <QuestComponentSkeleton key={i} includeContent={true} />
@@ -38,7 +38,7 @@ export default function Home() {
           )}
         </Flex>
         <Flex
-          w={{ lg: "30%" }}
+          w="80"
           display={{ base: "none", lg: "flex" }}
           flexDirection="column"
           gap={10}
