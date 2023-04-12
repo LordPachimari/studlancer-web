@@ -1,4 +1,4 @@
-import { get, set } from "idb-keyval";
+import { del, get, set } from "idb-keyval";
 import { useCallback, useEffect, useRef, useState } from "react";
 import QuestAttributes, { QuestAttributesSkeleton } from "./QuestAttributes";
 
@@ -39,6 +39,8 @@ import { trpc } from "~/utils/api";
 import { NonEditableContent, NonEditableQuestAttributes } from "./Preview";
 import produce from "immer";
 import { useQueryClient } from "@tanstack/react-query";
+import { TRANSACTIONS_STORE_KEY } from "~/constants/constants";
+import { getQueryKey } from "@trpc/react-query";
 
 // const TiptapEditor = dynamic(() => import("./TiptapEditor"), {
 //   ssr: false,
@@ -65,6 +67,9 @@ const QuestEditor = ({ id }: { id: string }) => {
   const shouldUpdate =
     !questVersion ||
     new Date(questVersion.local) < new Date(questVersion.server);
+  const publishedQuestsKey = getQueryKey(trpc.quest.publishedQuests);
+  const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
+  const workspaceQuestKey = getQueryKey(trpc.quest.workspaceQuest);
 
   const serverQuest = trpc.quest.workspaceQuest.useQuery(
     { id },
@@ -74,12 +79,21 @@ const QuestEditor = ({ id }: { id: string }) => {
     }
   );
   const updateQuestAttributes = trpc.quest.updateQuestAttributes.useMutation({
-    // retry: 3,
+    retry: 3,
   });
 
   const clearTransactionQueue = WorkspaceStore(
     (state) => state.clearTransactionQueue
   );
+  useEffect(() => {
+    get(`TRANSACTIONS#${id}`)
+      .then((val: string | undefined) => {
+        if (val) {
+          updateQuestAttributes.mutate({ transactionsString: val });
+        }
+      })
+      .catch((err) => console.log(err));
+  }, [id, updateQuestAttributes]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateQuestAttributesHandler = useCallback(
@@ -169,11 +183,24 @@ const QuestEditor = ({ id }: { id: string }) => {
             localStorage.setItem(key, JSON.stringify(newVersions));
           }
         }
-
+        const transactionString = JSON.stringify(
+          _transactionQueue,
+          mapReplacer
+        );
+        set(`TRANSACTIONS#${id}`, transactionString).catch((err) =>
+          console.log("error storing transactions in local storage", err)
+        );
         console.log("redacting transaction", _transactionQueue);
-        updateQuestAttributes.mutate({
-          transactionsString: JSON.stringify(_transactionQueue, mapReplacer),
-        });
+        updateQuestAttributes.mutate(
+          {
+            transactionsString: transactionString,
+          },
+          {
+            onSuccess: () => {
+              del(`TRANSACTIONS#${id}`).catch((err) => console.log(err));
+            },
+          }
+        );
         clearTransactionQueue();
       },
       1000
@@ -200,7 +227,11 @@ const QuestEditor = ({ id }: { id: string }) => {
           );
           queryClient
             .invalidateQueries({
-              queryKey: ["publishedQuests", "publishedQuest"],
+              queryKey: [
+                ...publishedQuestKey,
+                ...publishedQuestsKey,
+                ...workspaceQuestKey,
+              ],
             })
             .then(() => {
               toast({

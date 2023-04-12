@@ -4,21 +4,12 @@ import React, { useState } from "react";
 
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { GeneralStore } from "../zustand/general";
 import { Flex, IconButton } from "@chakra-ui/react";
 import List from "~/components/workspace/List";
+import { trpc } from "~/utils/api";
 
 const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
   const [showList, toggleShowList] = useState(true);
-  const setRedirectUrl = GeneralStore((state) => state.setRedirectUrl);
-  const router = useRouter();
-
-  const { isSignedIn, isLoaded } = useAuth();
-  if (!isSignedIn && isLoaded) {
-    setRedirectUrl("/workspace");
-    void router.push("/");
-  }
-
   return (
     <Flex position="relative">
       <List showList={showList} toggleShowList={toggleShowList} />

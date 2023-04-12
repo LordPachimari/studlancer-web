@@ -165,7 +165,10 @@ const Publish = ({
     solutionId?: string;
     questId?: string;
   }) => {
-    const publishedQuestKey = getQueryKey(trpc.quest.publishedQuests);
+    const publishedQuestsKey = getQueryKey(trpc.quest.publishedQuests);
+    const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
+    const workspaceQuestKey = getQueryKey(trpc.quest.workspaceQuest);
+    const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
     if (questId && type === "QUEST") {
       publishQuest.mutate(
         { id: questId },
@@ -186,7 +189,11 @@ const Publish = ({
             ).catch((err) => console.log(err));
             queryClient
               .invalidateQueries({
-                queryKey: publishedQuestKey,
+                queryKey: [
+                  ...publishedQuestKey,
+                  ...workspaceQuestKey,
+                  ...publishedQuestsKey,
+                ],
               })
               .then(() => {
                 onClose();
@@ -230,13 +237,21 @@ const Publish = ({
                 return value;
               }
             }).catch((err) => console.log(err));
-
-            onClose();
-            toast({
-              title: "Solution uploaded successfully",
-              status: "success",
-              isClosable: true,
-            });
+            queryClient
+              .invalidateQueries({
+                queryKey: [...publishedQuestKey, workspaceSolutionKey],
+              })
+              .then(() => {
+                onClose();
+                toast({
+                  title: "Solution uploaded successfully",
+                  status: "success",
+                  isClosable: true,
+                });
+              })
+              .catch((err) => {
+                console.log("error invalidating");
+              });
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);

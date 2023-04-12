@@ -15,6 +15,8 @@ import { useAuth, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import styles from "./sidebar.module.css";
+import { trpc } from "~/utils/api";
+import { useToast } from "@chakra-ui/react";
 const Sidebar = ({
   showSidebar,
   toggleShowSidebar,
@@ -22,18 +24,12 @@ const Sidebar = ({
   showSidebar: boolean;
   toggleShowSidebar: () => void;
 }) => {
+  const toast = useToast();
   const router = useRouter();
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const { userId, isSignedIn, isLoaded } = useAuth();
   const { signOut } = useClerk();
-  //   const user = trpc.user.userById.useQuery(
-  //     { id: userId as string },
-  //     {
-  //       enabled: !!isLoaded,
+  console.log(isSignedIn && isLoaded);
 
-  //       staleTime: 10 * 60 * 1000,
-  //     }
-  //   );
   const links = [
     "home",
     "leaderboard",
@@ -75,11 +71,20 @@ const Sidebar = ({
         </IconButton>
       </Flex>
 
-      <Link href={`/profile/${userId}`}>
-        <Center w="100%" h="80">
-          <Box w="90%" h="72" bg="gray.100" borderRadius={"xl"}></Box>
-        </Center>
-      </Link>
+      {isSignedIn ? (
+        <Link href={`/profile/${userId}`}>
+          <Center w="100%" h="80">
+            <Box w="90%" h="72" bg="gray.100" borderRadius={"xl"}></Box>
+          </Center>
+
+          <Divider />
+        </Link>
+      ) : (
+        <>
+          <Center w="100%" h="80"></Center>
+          <Divider />
+        </>
+      )}
       {links.map((l, i) => {
         // if (isSignedIn && user) {
         //   return (
@@ -90,11 +95,42 @@ const Sidebar = ({
         //     </Link>
         //   );
         // }
+        if (isSignedIn) {
+          return (
+            <Link href={`/${l}`} key={i}>
+              <Stack
+                direction="row"
+                key={i}
+                w="100%"
+                h="10"
+                p="0"
+                alignItems="center"
+                className="divider"
+                cursor="pointer"
+                _hover={{ bg: "gray.100" }}
+              >
+                <Divider
+                  orientation="vertical"
+                  w="1"
+                  bg="none"
+                  sx={{
+                    ".divider:hover &": {
+                      bg: "blue.500",
+                    },
+                  }}
+                />
+
+                <Text fontSize={{ base: "sm" }}>{l.toUpperCase()}</Text>
+              </Stack>
+
+              <Divider />
+            </Link>
+          );
+        }
         return (
-          <Link href={`/${l}`} key={i}>
+          <Box key={i}>
             <Stack
               direction="row"
-              key={i}
               w="100%"
               h="10"
               p="0"
@@ -102,6 +138,18 @@ const Sidebar = ({
               className="divider"
               cursor="pointer"
               _hover={{ bg: "gray.100" }}
+              onClick={() => {
+                toast({
+                  title: "Please sign up",
+                  description: (
+                    <Link href="/">
+                      <Text as="u">Click here to sign up</Text>
+                    </Link>
+                  ),
+                  status: "info",
+                  isClosable: true,
+                });
+              }}
             >
               <Divider
                 orientation="vertical"
@@ -116,7 +164,9 @@ const Sidebar = ({
 
               <Text fontSize={{ base: "sm" }}>{l.toUpperCase()}</Text>
             </Stack>
-          </Link>
+
+            <Divider />
+          </Box>
         );
       })}
       {isSignedIn && (

@@ -21,6 +21,7 @@ import { appRouter } from "~/server/api/root";
 import superjson from "superjson";
 import { useRouter } from "next/router";
 import { trpc } from "~/utils/api";
+import { useAuth } from "@clerk/nextjs";
 
 export default function Profile() {
   const router = useRouter();
@@ -29,8 +30,21 @@ export default function Profile() {
     { id },
     { staleTime: 10 * 60 * 1000 }
   );
+  const { userId, isSignedIn } = useAuth();
   if (!user.data) {
-    return <div></div>;
+    return <Box>No user found</Box>;
+  }
+  if (!user.data && id === userId) {
+    return (
+      <Center w="100%" h="100vh">
+        <Button
+          colorScheme="blue"
+          onClick={() => void router.push("../create-user")}
+        >
+          Finish account creation
+        </Button>
+      </Center>
+    );
   }
   return (
     <Flex w="100%" justify="center" mb={20}>
