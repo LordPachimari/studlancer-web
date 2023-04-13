@@ -268,7 +268,7 @@ export default function GlobalChat() {
               <Card
                 mt="2"
                 w="100%"
-                h="14"
+                h="fit-content"
                 key={m.id}
                 display="flex"
                 flexDir="row"
