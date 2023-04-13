@@ -200,7 +200,6 @@ export default function GlobalChat() {
     if (messagesEndRef && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
         block: "start",
-        behavior: "smooth",
       });
     }
   }, [messages]);
