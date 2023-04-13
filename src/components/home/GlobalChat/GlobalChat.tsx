@@ -234,6 +234,7 @@ export default function GlobalChat() {
       <CardBody
         py="0"
         pb={2}
+        px="2"
         h="sm"
         minH="sm"
         maxH="sm"
