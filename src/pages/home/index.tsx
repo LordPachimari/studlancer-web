@@ -1,21 +1,34 @@
 import { Box, Center, Flex } from "@chakra-ui/react";
-import { ReactElement } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import QuestComponent, {
   QuestComponentSkeleton,
 } from "~/components/QuestComponent";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import SidebarLayout from "~/layouts/SidebarLayout";
 import { trpc } from "~/utils/api";
-import GeneralChat from "../../components/home/Chat";
 import Leaderboard from "../../components/home/Leaderboard";
+// import { GlobalChat } from "~/components/home/GlobalChat/GlobalChat";
+import { useAuth } from "@clerk/nextjs";
+import dynamic from "next/dynamic";
+
+const GlobalChat = dynamic(
+  () => import("../../components/home/GlobalChat/GlobalChat"),
+  {
+    loading: () => <p>Loading...</p>,
+    ssr: false,
+  }
+);
 
 export default function Home() {
   const quests = trpc.quest.publishedQuests.useQuery({});
+  const { isSignedIn } = useAuth();
+
   const emptyQuests: {}[] = [];
   for (let i = 0; i < 3; i++) {
     emptyQuests.push({});
   }
   console.log("quests", quests.data);
+
   return (
     <Flex w="100%" justifyContent="center" mt={20} mb={20}>
       <Flex w="90%" justify="center">
@@ -45,7 +58,7 @@ export default function Home() {
           pl="10"
         >
           <Leaderboard />
-          <GeneralChat />
+          <GlobalChat />
         </Flex>
 
         <Box></Box>

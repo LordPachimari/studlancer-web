@@ -99,15 +99,17 @@ export default function QuestComponent({
             <Box>
               <Flex gap={2} alignItems="center">
                 <Heading size="sm">{quest.creatorUsername}</Heading>
-                <Text>{FromNow({ date: quest.publishedAt })}</Text>
+                <Text fontSize="sm">
+                  {FromNow({ date: quest.publishedAt })}
+                </Text>
               </Flex>
-              <Flex>
+              <Flex flexWrap="wrap" rowGap="1" columnGap="1">
                 <Badge colorScheme="blue">
                   {`due ${FromNow({ date: quest.deadline })} `}
                 </Badge>
-                <Badge colorScheme="blue" ml={2}>{`${dayjs(
-                  quest.deadline
-                ).format("MMM D, YYYY")}`}</Badge>
+                <Badge colorScheme="blue">{`${dayjs(quest.deadline).format(
+                  "MMM D, YYYY"
+                )}`}</Badge>
               </Flex>
 
               <Flex mt={2} gap={2} flexWrap="wrap">
@@ -144,7 +146,7 @@ export default function QuestComponent({
       </CardHeader>
 
       <Link href={`/quests/${quest.id}`}>
-        <Text fontSize="2xl" fontWeight="bold" pb={4} px={4}>
+        <Text fontSize="lg" fontWeight="bold" pb={4} px={4}>
           {quest.title}
         </Text>
         {includeContent && (
@@ -163,7 +165,7 @@ export default function QuestComponent({
 
         <Divider color="gray.200" />
         {includeDetails && (
-          <CardFooter p={4}>
+          <CardFooter px={4} py={2}>
             <HStack>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

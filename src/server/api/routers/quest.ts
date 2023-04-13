@@ -192,10 +192,8 @@ export const questRouter = router({
           });
         }
       } else if (!topic && !subtopic && filter === "higher reward") {
-      } else if (!topic && !subtopic && filter === "more views") {
       } else if ((topic || subtopic) && filter === "latest") {
       } else if ((topic || subtopic) && filter === "higher reward") {
-      } else if ((topic || subtopic) && filter === "more views") {
       }
     }),
 

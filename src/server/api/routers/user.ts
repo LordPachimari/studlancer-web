@@ -98,7 +98,8 @@ export const userRouter = router({
       const putParams: PutCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
         Item: userItem,
-        ConditionExpression: "attribute_not_exists(#sk)",
+        ConditionExpression:
+          "attribute_not_exists(#sk), attribute_not_exists(username)",
         ExpressionAttributeNames: { "#sk": "SK" },
       };
 

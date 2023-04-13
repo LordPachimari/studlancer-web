@@ -24,6 +24,8 @@ const client = z.object({
   // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_SENDBIRD_APP_ID: z.string(),
+  NEXT_PUBLIC_SUPABASE_URL:z.string(),
+  NEXT_PUBLIC_SUPABASE_KEY:z.string()
 });
 
 /**
@@ -45,6 +47,8 @@ const processEnv = {
   PUBLIC_BUCKET_NAME: process.env.PUBLIC_BUCKET_NAME,
   MOMENTO_CACHE_NAME: process.env.MOMENTO_CACHE_NAME,
   MOMENTO_AUTH_TOKEN: process.env.MOMENTO_AUTH_TOKEN,
+  NEXT_PUBLIC_SUPABASE_KEY:process.env.NEXT_PUBLIC_SUPABASE_KEY,
+  NEXT_PUBLIC_SUPABASE_URL:process.env.NEXT_PUBLIC_SUPABASE_URL
 
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };

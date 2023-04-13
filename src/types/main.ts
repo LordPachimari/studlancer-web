@@ -26,6 +26,8 @@ export const Topics = [
   "BUSINESS",
   "PROGRAMMING",
   "SCIENCE",
+  "DESIGN",
+  "ART",
   "VIDEOGRAPHY",
 ] as const;
 
@@ -283,3 +285,13 @@ export const AddCommentZod = z.object({
   commentId: z.string(),
   text: z.string(),
 });
+export type Message = {
+  id: string;
+  message: string;
+  user_id: string;
+  created_at: Date;
+  profile_url: string;
+  username: string;
+  level: number;
+  channel: TopicsType | "GENERAL";
+};

@@ -94,6 +94,7 @@ export default function WelcomeLayout({
               >
                 View Quests
               </Button>
+
               <Button
                 bg="blue.300"
                 _hover={{ bg: "blue.400" }}
