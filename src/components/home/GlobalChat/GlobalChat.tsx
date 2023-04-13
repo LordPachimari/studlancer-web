@@ -140,8 +140,6 @@ export default function GlobalChat() {
       }
     }
     DoTheThing().catch((err) => console.log("error realtime"));
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     const fetchMessages = async () => {
@@ -226,9 +224,9 @@ export default function GlobalChat() {
           value={channel}
           onChange={(e) => setChannel(e.target.value as TopicsType | "GENERAL")}
         >
-          <option value="general">GENERAL</option>
+          <option value="GENERAL">GENERAL</option>
           {Topics.map((t) => (
-            <option key={t} value="marketing">
+            <option key={t} value={t.toUpperCase()}>
               {t}
             </option>
           ))}
