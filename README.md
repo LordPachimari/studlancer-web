@@ -10,6 +10,7 @@
 - [tRPC](https://trpc.io)
 - [Momento cache](https://www.gomomento.com/)
 - [zustand](https://github.com/pmndrs/zustand)
+- [supabase](https://supabase.com/)
 
 ## Fetures done:
 - [x] Workspace functionality (all necessary CRUD).
