@@ -24,6 +24,7 @@
 - [ ] Notifications.
 - [ ] Payment.
 - [ ] Private chat.
+- [ ] Droppable and draggable.
 - [ ] Leaderboard.
 - [ ] Guild.
 - [ ] Settings.
