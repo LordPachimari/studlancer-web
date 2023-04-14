@@ -21,7 +21,7 @@
 
 ## In progress
 - [ ] **GLobal Search (for quests and users)**. Utilizing Rockset real-time data-analytics.
-- [ ] **Notifications**. Notifications will be stored in supabase tables,  every insertion of a new notification will trigger an event that can be capture by supabase Realtime listeners, which will notify client that are subscribed to the insertion.
+- [ ] **Notifications**. Notifications will be stored in supabase tables,  every new table insertion of a notification will trigger an event that can be captured by supabase Realtime listeners, which will notify the clients that are subscribed to the updates on the table.
 - [ ] **Payment**. Stripe for payment.
 - [ ] **Private chat**. Supabase realtime. 
 - [ ] **Droppable and draggable**. Will use Third party droppable and draggable, for profile creation.
@@ -31,6 +31,6 @@
 - [ ] **Design (new brand colors)**. Design is hard so that's why it is at the bottom of the list
 
 Looking **optimistically** in the future I may add the following:
-- [ ] **Real-time collaboration in the workspace with CRDT**.
+- [ ] **Real-time collaboration in the workspace with CRDT**. 
 - [ ] **AI in the workspace**.
 
