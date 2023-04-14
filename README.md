@@ -1,6 +1,6 @@
 # Studlancer-web.
 
- This web-app uses Dynamodb as a database, TRPC for server-client typesafety, Clerk for authentication, Chakra ui for UI, Supabase realtime for chat, Momento for cache, Zustand for state management.
+ This web-app uses NEXT.js, Dynamodb as a database, TRPC for server-client typesafety, Clerk for authentication, Chakra ui for UI, Supabase realtime for chat, Momento for cache, Zustand for state management.
  
 
 - [Next.js](https://nextjs.org)
