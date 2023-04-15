@@ -128,7 +128,6 @@ const TiptapEditor = (props: {
       );
 
       const { url, fields } = (await res.json()) as PresignedPost;
-      console.log("fields", fields);
       const formData = new FormData();
       Object.entries({ ...fields, file }).forEach(([key, value]) => {
         formData.append(key, value);
@@ -146,7 +145,6 @@ const TiptapEditor = (props: {
       }
 
       if (url && editor) {
-        console.log("hello", `${url}${fields.key}`);
         const imageUrl = new URL(`${url}${fields.key}`);
         editor
           .chain()
@@ -180,7 +178,6 @@ const TiptapEditor = (props: {
 
       const { url, fields } = (await res.json()) as PresignedPost;
 
-      console.log("fields", fields);
       const formData = new FormData();
       Object.entries({ ...fields, file }).forEach(([key, value]) => {
         formData.append(key, value);

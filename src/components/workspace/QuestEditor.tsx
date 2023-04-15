@@ -190,7 +190,6 @@ const QuestEditor = ({ id }: { id: string }) => {
         set(`TRANSACTIONS#${id}`, transactionString).catch((err) =>
           console.log("error storing transactions in local storage", err)
         );
-        console.log("redacting transaction", _transactionQueue);
         updateQuestAttributes.mutate(
           {
             transactionsString: transactionString,
@@ -253,7 +252,6 @@ const QuestEditor = ({ id }: { id: string }) => {
 
   useEffect(() => {
     //if local version is behind server's then fetch the quest from the server and update the local version
-    console.log("shouldUpdate again", shouldUpdate);
     if (shouldUpdate) {
       if (serverQuest.data) {
         setQuest(serverQuest.data);

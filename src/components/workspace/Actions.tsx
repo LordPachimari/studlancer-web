@@ -50,7 +50,6 @@ export const storeQuestOrSolution = ({
 //hello world
 const Actions = () => {
   const router = useRouter();
-  console.log("router", router.query.id);
   const createQuestOrSolutionState = WorkspaceStore(
     (state) => state.createQuestOrSolution
   );

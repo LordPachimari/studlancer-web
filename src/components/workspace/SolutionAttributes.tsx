@@ -61,7 +61,6 @@ const SolutionAttributes = ({
 
   const handleTitleBlur = () => {
     if (titleRef.current?.textContent === "") {
-      console.log("uo");
       const placeholder = document.createElement("div");
       placeholder.textContent = titlePlaceholderText;
       placeholder.className = styles.titlePlaceholder as string;

@@ -116,7 +116,6 @@ const Publish = ({
           const result = QuestAttributesZod.safeParse(quest);
 
           if (!result.success) {
-            console.log("error", result.error.issues);
             setErrorMessage(
               result.error.issues[0]?.message.startsWith("Required")
                 ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`

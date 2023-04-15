@@ -28,7 +28,6 @@ const Sidebar = ({
   const router = useRouter();
   const { userId, isSignedIn, isLoaded } = useAuth();
   const { signOut } = useClerk();
-  console.log(isSignedIn && isLoaded);
 
   const links = [
     "home",

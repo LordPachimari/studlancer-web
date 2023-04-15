@@ -49,7 +49,6 @@ const Title = ({
 
   const handleTitleBlur = () => {
     if (titleRef.current?.textContent === "") {
-      console.log("uo");
       const placeholder = document.createElement("div");
       placeholder.textContent = titlePlaceholderText;
       placeholder.className = styles.titlePlaceholder!;
@@ -67,7 +66,6 @@ const Title = ({
       suppressContentEditableWarning={true}
       onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Backspace") {
-          console.log("backspace called");
           const title = document.getElementById("title");
           if (
             !title?.childNodes[0] ||
@@ -325,7 +323,6 @@ const DatePicker = ({
   const [dateState, setDateState] = useState("");
 
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
-    console.log("changin date", event.target.value);
     addTransaction({
       id: questId,
       attribute: "deadline",
@@ -378,7 +375,6 @@ const QuestAttributes = ({
   const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
 
   const handleTitleChange = (e: FormEvent<HTMLDivElement>) => {
-    console.log("title update");
     addTransaction({
       id: quest.id,
       attribute: "title",
@@ -402,7 +398,6 @@ const QuestAttributes = ({
   };
 
   const handleTopicChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    console.log("event, ", e);
     const value = e.target.value as TopicsType;
     addTransaction({
       id: quest.id,
@@ -429,7 +424,6 @@ const QuestAttributes = ({
     const content = document.getElementById("subtopic");
 
     const subtopicValues: string[] = [];
-    console.log("content", content);
     content?.childNodes.forEach((c) => {
       if (c.textContent) {
         subtopicValues.push(c.textContent);

@@ -637,7 +637,6 @@ const SearchComponent = ({
     { quests: [], solutions: [] }
   );
   const searchText = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log(e.target.value);
 
     setQuestOrSolutionList({
       quests: [],

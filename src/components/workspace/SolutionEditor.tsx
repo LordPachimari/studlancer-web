@@ -290,7 +290,6 @@ const SolutionEditor = ({ id }: { id: string }) => {
   if (solution === null) {
     return <Box>Quest does not exist</Box>;
   }
-  console.log("solution", solution);
   return (
     <Center mt={10} flexDirection="column">
       {solution?.questId ? (

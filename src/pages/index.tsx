@@ -20,7 +20,6 @@ const SignUpPage: NextPageWithLayout = () => {
     { id: userId! },
     { enabled: !!userId, staleTime: 1800 }
   );
-  console.log("isSignedIn", isSignedIn);
   const router = useRouter();
   if (isSignedIn && user.data) {
     return (
@@ -60,10 +59,6 @@ export async function getServerSideProps(
   const { userId } = getAuth(context.req);
   const user = userId ? await clerkClient.users.getUser(userId) : undefined;
 
-  /*
-   * Prefetching the `post.byId` query here.
-   * `prefetch` does not return the result and never throws - if you need that behavior, use `fetch` instead.
-   */
   if (userId) {
     const ssg = createProxySSGHelpers({
       router: appRouter,

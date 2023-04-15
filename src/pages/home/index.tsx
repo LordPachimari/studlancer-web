@@ -21,13 +21,11 @@ const GlobalChat = dynamic(
 
 export default function Home() {
   const quests = trpc.quest.publishedQuests.useQuery({});
-  const { isSignedIn } = useAuth();
 
   const emptyQuests: {}[] = [];
   for (let i = 0; i < 3; i++) {
     emptyQuests.push({});
   }
-  console.log("quests", quests.data);
 
   return (
     <Flex w="100%" justifyContent="center" mt={20} mb={20}>
