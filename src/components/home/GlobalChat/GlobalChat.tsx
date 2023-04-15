@@ -199,7 +199,7 @@ export default function GlobalChat() {
   useEffect(() => {
     if (messagesEndRef && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({
-        block: "start",
+        block: "end",
       });
     }
   }, [messages]);
