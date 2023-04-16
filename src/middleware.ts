@@ -15,7 +15,7 @@ const publicPaths = [
   "/sign-in*",
   "/sign-up*",
   "/api*",
-  "/quest*",
+  "/quests*",
 ];
 export default withClerkMiddleware((request: NextRequest) => {
   // return NextResponse.next();
