@@ -75,7 +75,6 @@ const List = ({
   for (let i = 0; i < 3; i++) {
     emptyLists.push({});
   }
-  let user: string = {};
   const { isLoaded } = useAuth();
   const router = useRouter();
   const createQuest = trpc.quest.createQuest.useMutation();
