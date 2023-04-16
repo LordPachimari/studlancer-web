@@ -29,7 +29,7 @@ export default function GlobalLayout({
   }, [router.events]);
 
   return (
-    <Box bg="gray.100" minWidth="2xs" position="relative">
+    <Box bg="blue.50" minWidth="2xs" position="relative">
       {loading && (
         <Progress
           size="xs"

@@ -239,6 +239,7 @@ export default function GlobalChat() {
         minH="sm"
         maxH="sm"
         overflowY="auto"
+        bg="blue.50"
         css={{
           // Add css to style the scrollbar
           "&::-webkit-scrollbar": {

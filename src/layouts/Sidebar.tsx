@@ -30,14 +30,15 @@ const Sidebar = ({
   const { signOut } = useClerk();
 
   const links = [
-    "home",
-    "leaderboard",
-    "workspace",
-    "chat",
-    "notifications",
-    "guild",
-    "forum",
-    "settings",
+    { page: "home", finished: true },
+    { page: "leaderboard", finished: false },
+    { page: "workspace", finished: true },
+    { page: "chat", finished: false },
+    { page: "notifications", finished: false },
+    { page: "guild", finished: false },
+
+    { page: "forum", finished: false },
+    { page: "settings", finished: false },
   ] as const;
 
   // document.documentElement.setAttribute("data-theme", "dark");
@@ -94,9 +95,9 @@ const Sidebar = ({
         //     </Link>
         //   );
         // }
-        if (isSignedIn) {
+        if (isSignedIn && l.finished) {
           return (
-            <Link href={`/${l}`} key={i}>
+            <Link href={`/${l.page}`} key={l.page}>
               <Stack
                 direction="row"
                 key={i}
@@ -119,11 +120,55 @@ const Sidebar = ({
                   }}
                 />
 
-                <Text fontSize={{ base: "sm" }}>{l.toUpperCase()}</Text>
+                <Text fontSize={{ base: "sm" }} as={l.finished ? "p" : "u"}>
+                  {l.page.toUpperCase()}
+                </Text>
               </Stack>
 
               <Divider />
             </Link>
+          );
+        }
+        if (isSignedIn && !l.finished) {
+          return (
+            <>
+              <Stack
+                direction="row"
+                key={i}
+                w="100%"
+                h="10"
+                p="0"
+                alignItems="center"
+                className="divider"
+                cursor="pointer"
+                _hover={{ bg: "gray.100" }}
+                onClick={() => {
+                  toast({
+                    title: "Currently not ready :(",
+                    description: <Text>Currently in development</Text>,
+                    status: "info",
+                    isClosable: true,
+                  });
+                }}
+              >
+                <Divider
+                  orientation="vertical"
+                  w="1"
+                  bg="none"
+                  sx={{
+                    ".divider:hover &": {
+                      bg: "blue.500",
+                    },
+                  }}
+                />
+
+                <Text fontSize={{ base: "sm" }} as={l.finished ? "p" : "s"}>
+                  {l.page.toUpperCase()}
+                </Text>
+              </Stack>
+
+              <Divider />
+            </>
           );
         }
         return (
@@ -161,7 +206,9 @@ const Sidebar = ({
                 }}
               />
 
-              <Text fontSize={{ base: "sm" }}>{l.toUpperCase()}</Text>
+              <Text fontSize={{ base: "sm" }} as={l.finished ? "p" : "s"}>
+                {l.page.toUpperCase()}
+              </Text>
             </Stack>
 
             <Divider />
