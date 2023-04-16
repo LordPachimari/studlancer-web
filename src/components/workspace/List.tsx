@@ -75,6 +75,7 @@ const List = ({
   for (let i = 0; i < 3; i++) {
     emptyLists.push({});
   }
+  let user: string = {};
   const { isLoaded } = useAuth();
   const router = useRouter();
   const createQuest = trpc.quest.createQuest.useMutation();
@@ -637,7 +638,6 @@ const SearchComponent = ({
     { quests: [], solutions: [] }
   );
   const searchText = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
-
     setQuestOrSolutionList({
       quests: [],
       solutions: [],
@@ -1184,7 +1184,6 @@ const ListComponent = ({
         _hover={{
           bg: "gray.100",
         }}
-        className="listComponent"
         opacity={isQuestLoading ? "50%" : "100%"}
       >
         <Link
@@ -1238,7 +1237,6 @@ const ListComponent = ({
               bg: "gray.200",
             }}
             borderRadius="sm"
-            className="actionButton"
             as={Button}
           >
             <svg
