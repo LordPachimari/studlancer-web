@@ -95,7 +95,7 @@ const Sidebar = ({
         //     </Link>
         //   );
         // }
-        if (isSignedIn && l.finished) {
+        if ((isSignedIn && l.finished) || l.page === "home") {
           return (
             <Link href={`/${l.page}`} key={l.page}>
               <Stack

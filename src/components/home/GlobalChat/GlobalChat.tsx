@@ -209,7 +209,7 @@ export default function GlobalChat() {
       w="90%"
       bg="none"
       borderWidth="3px"
-      borderColor="gray.300"
+      borderColor="blue.100"
       boxShadow="none"
       borderRadius="2xl"
     >
@@ -316,3 +316,63 @@ export default function GlobalChat() {
     </Card>
   );
 }
+export const LoadingChat = () => {
+  return (
+    <Card
+      w="90%"
+      bg="none"
+      borderWidth="3px"
+      borderColor="gray.300"
+      boxShadow="none"
+      borderRadius="2xl"
+    >
+      <CardHeader display="flex" bg="white" h="12" pt="3" borderTopRadius="xl">
+        <Heading as="h3" fontSize="lg">
+          CHAT
+        </Heading>
+      </CardHeader>
+      <CardBody
+        py="0"
+        pb={2}
+        px="2"
+        h="sm"
+        minH="sm"
+        maxH="sm"
+        overflowY="auto"
+        bg="blue.50"
+        css={{
+          // Add css to style the scrollbar
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            width: "6px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "gray.400",
+            borderRadius: "20px",
+          },
+        }}
+      >
+        <Center w="100%" h="100%">
+          <Spinner
+            thickness="4px"
+            speed="0.65s"
+            emptyColor="gray.200"
+            color="blue.500"
+            size="xl"
+          />
+        </Center>
+      </CardBody>
+      <CardFooter
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        bg="white"
+        h="12"
+        borderRadius="xl"
+        p="4"
+      ></CardFooter>
+    </Card>
+  );
+};
