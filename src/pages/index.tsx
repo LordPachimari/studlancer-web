@@ -1,6 +1,5 @@
 import { SignUp, useAuth } from "@clerk/nextjs";
 import { buildClerkProps, clerkClient, getAuth } from "@clerk/nextjs/server";
-import { createProxySSGHelpers } from "@trpc/react-query/ssg";
 import { GetServerSidePropsContext } from "next";
 import { ReactElement } from "react";
 import { appRouter } from "~/server/api/root";
@@ -20,6 +19,7 @@ import {
 } from "@chakra-ui/react";
 import { trpc } from "~/utils/api";
 import { useRouter } from "next/router";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 
 const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
@@ -65,16 +65,15 @@ SignUpPage.getLayout = function getLayout(page: ReactElement) {
 export async function getServerSideProps(
   context: GetServerSidePropsContext<{ id: string }>
 ) {
-  const { userId } = getAuth(context.req);
-  const user = userId ? await clerkClient.users.getUser(userId) : undefined;
+  const auth = getAuth(context.req);
 
-  if (userId) {
-    const ssg = createProxySSGHelpers({
+  if (auth.userId) {
+    const ssg = createServerSideHelpers({
       router: appRouter,
-      ctx: createContextInner({ user }),
+      ctx: createContextInner({ auth }),
       transformer: superjson,
     });
-    userId && (await ssg.user.userById.prefetch({ id: userId }));
+    auth.userId && (await ssg.user.userById.prefetch({ id: auth.userId }));
 
     return {
       props: {
@@ -90,5 +89,4 @@ export async function getServerSideProps(
     },
   };
 }
-
 export default SignUpPage;

@@ -1,6 +1,7 @@
 import { get, set } from "idb-keyval";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { update } from "idb-keyval";
 import {
   PublishedSolution,
   Solution,
@@ -8,7 +9,6 @@ import {
   UpdateTransaction,
   Versions,
 } from "../../types/main";
-import { update } from "idb-keyval";
 
 import Publish from "./Publish";
 
@@ -18,9 +18,6 @@ import SolutionAttributes, {
   SolutionAttributesSkeleton,
 } from "./SolutionAttributes";
 
-import { trpc } from "~/utils/api";
-import { WorkspaceStore } from "~/zustand/workspace";
-import { mapReplacer } from "~/utils/mapReplacer";
 import {
   AlertDialog,
   AlertDialogBody,
@@ -34,7 +31,6 @@ import {
   Center,
   Flex,
   FormControl,
-  FormLabel,
   Input,
   Modal,
   ModalBody,
@@ -47,15 +43,16 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import dynamic from "next/dynamic";
-import TiptapEditor from "./TiptapEditor";
-import { NonEditableContent } from "./Preview";
-import { useRouter } from "next/router";
-import QuestComponent, { QuestComponentSkeleton } from "../QuestComponent";
-import produce from "immer";
-import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
+import produce from "immer";
+import { useRouter } from "next/router";
+import { trpc } from "~/utils/api";
+import { mapReplacer } from "~/utils/mapReplacer";
+import { WorkspaceStore } from "~/zustand/workspace";
+import QuestComponent, { QuestComponentSkeleton } from "../QuestComponent";
+import { NonEditableContent } from "./Preview";
+import TiptapEditor from "./TiptapEditor";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
