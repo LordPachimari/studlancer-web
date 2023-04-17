@@ -17,15 +17,46 @@
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { User } from "@clerk/nextjs/api";
 import { getAuth, clerkClient } from "@clerk/nextjs/server";
-/** Replace this with an object if you want to pass things to `createContextInner`. */
-type TEST_USER = {
-  id: string;
-  username: string;
-  email: string;
+import type {
+  SignedInAuthObject,
+  SignedOutAuthObject,
+} from "@clerk/nextjs/api";
+
+/**
+ * Replace this with an object if you want to pass things to createContextInner
+ */
+type AuthContextProps = {
+  auth: SignedInAuthObject | SignedOutAuthObject;
 };
-type IUserProps = {
-  user: User | undefined | null;
+
+/** Use this helper for:
+ *  - testing, where we dont have to Mock Next.js' req/res
+ *  - trpc's `createSSGHelpers` where we don't have req/res
+ * @see https://beta.create.t3.gg/en/usage/trpc#-servertrpccontextts
+ */
+export const createContextInner = ({ auth }: AuthContextProps) => {
+  return {
+    auth,
+  };
 };
+
+/**
+ * This is the actual context you'll use in your router
+ * @link https://trpc.io/docs/context
+ **/
+export const createContext = async (opts: CreateNextContextOptions) => {
+  const auth = getAuth(opts.req);
+
+  const user = auth.userId
+    ? await clerkClient.users.getUser(auth.userId)
+    : null;
+  auth.user = user;
+
+  return createContextInner({ auth });
+};
+
+export type Context = inferAsyncReturnType<typeof createContext>;
+
 /**
  * This helper generates the "internals" for a tRPC context. If you need to use it, you can export
  * it from here.
@@ -37,35 +68,6 @@ type IUserProps = {
  * @see https://create.t3.gg/en/usage/trpc#-servertrpccontextts
  */
 
-export const createContextInner = ({ user }: IUserProps) => {
-  return {
-    user,
-    // prisma,
-  };
-};
-
-/**
- * This is the actual context you will use in your router. It will be used to process every request
- * that goes through your tRPC endpoint.
- *
- * @see https://trpc.io/docs/context
- */
-
-export const createContext = async (opts: CreateNextContextOptions) => {
-  async function getUser() {
-    // get userId from request
-    const { userId } = getAuth(opts.req);
-    // get full user object
-    const user = userId ? await clerkClient.users.getUser(userId) : null;
-    return user;
-  }
-
-  const user = await getUser();
-  console.log("activated");
-
-  return createContextInner({ user });
-};
-
 /**
  * 2. INITIALIZATION
  *
@@ -73,11 +75,11 @@ export const createContext = async (opts: CreateNextContextOptions) => {
  * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
-import { initTRPC, TRPCError } from "@trpc/server";
+import { inferAsyncReturnType, initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-const t = initTRPC.context<typeof createContext>().create({
+const t = initTRPC.context<Context>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
     return {
@@ -113,19 +115,19 @@ export const createTRPCRouter = t.router;
  * are logged in.
  */
 const authedOnly = t.middleware(({ next, ctx }) => {
-  if (!ctx.user) {
+  if (!ctx.auth.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
   }
   return next({
     ctx: {
-      user: ctx.user,
+      auth: ctx.auth,
     },
   });
 });
 const publicAndAuthed = t.middleware(({ next, ctx }) => {
   return next({
     ctx: {
-      user: ctx.user,
+      auth: ctx.auth,
     },
   });
 });

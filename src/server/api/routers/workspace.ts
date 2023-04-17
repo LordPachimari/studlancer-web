@@ -12,16 +12,17 @@ import { protectedProcedure, router } from "../trpc";
 
 export const workspaceRouter = router({
   workspaceList: protectedProcedure.query(async ({ ctx }) => {
-    const { user } = ctx;
+    const { auth } = ctx;
     const queryParams: QueryCommandInput = {
       TableName: process.env.MAIN_TABLE_NAME,
 
       KeyConditionExpression: "#PK = :PK",
       ExpressionAttributeNames: { "#PK": "PK" },
-      ExpressionAttributeValues: { ":PK": `USER#${user.id}` },
+      ExpressionAttributeValues: { ":PK": `USER#${auth.userId}` },
     };
     const quests: Quest[] = [];
     const solutions: Quest[] = [];
+    //
 
     try {
       const result = await dynamoClient.send(new QueryCommand(queryParams));

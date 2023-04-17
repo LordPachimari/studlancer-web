@@ -15,14 +15,14 @@ import AboutUser from "../../../components/profile/About";
 import Achievements from "../../../components/profile/Achiements";
 import UserQuests from "../../../components/profile/Quests";
 import UserTopics from "../../../components/profile/Topics";
-import { createProxySSGHelpers } from "@trpc/react-query/ssg";
 import { createContextInner } from "~/server/api/trpc";
 import { appRouter } from "~/server/api/root";
 import superjson from "superjson";
 import { useRouter } from "next/router";
 import { trpc } from "~/utils/api";
 import { useAuth } from "@clerk/nextjs";
-
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import { getAuth } from "@clerk/nextjs/server";
 export default function Profile() {
   const router = useRouter();
   const id = router.query.id as string;
@@ -123,9 +123,10 @@ Profile.getLayout = function getLayout(page: ReactElement) {
 export async function getServerSideProps(
   context: GetServerSidePropsContext<{ id: string }>
 ) {
-  const ssg = createProxySSGHelpers({
+  const auth = getAuth(context.req);
+  const ssg = createServerSideHelpers({
     router: appRouter,
-    ctx: createContextInner({ user: null }),
+    ctx: createContextInner({ auth }),
     transformer: superjson,
   });
   const id = context.params?.id as string;

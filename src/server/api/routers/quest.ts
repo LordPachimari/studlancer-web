@@ -57,7 +57,7 @@ export const questRouter = router({
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
       const { id } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
 
       try {
         const getResponse = await momento.get(
@@ -148,7 +148,7 @@ export const questRouter = router({
   publishedQuests: publicProcedure
     .input(PublishedQuestsInputZod)
     .query(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { topic, subtopic, filter = "latest" } = input;
       if (!topic && !subtopic && filter === "latest") {
         //rockset
@@ -200,19 +200,19 @@ export const questRouter = router({
   workspaceQuest: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { id } = input;
       const params: GetCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
 
-        Key: { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
       };
 
       try {
         const result = await dynamoClient.send(new GetCommand(params));
         if (result.Item) {
           const quest = result.Item as Quest;
-          if (quest.creatorId !== user.id) {
+          if (quest.creatorId !== auth.userId) {
             throw new TRPCError({
               code: "UNAUTHORIZED",
               message: "UNAUTHORIZED TO VIEW THE QUEST",
@@ -234,12 +234,12 @@ export const questRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const { id } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
       const questItem: QuestDynamo = {
-        PK: `USER#${user.id}`,
+        PK: `USER#${auth.userId}`,
         SK: `QUEST#${id}`,
         id,
-        creatorId: user.id,
+        creatorId: auth.userId,
         inTrash: false,
         published: false,
         lastUpdated: new Date().toISOString(),
@@ -265,7 +265,7 @@ export const questRouter = router({
   updateQuestAttributes: protectedProcedure
     .input(z.object({ transactionsString: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { transactionsString } = input;
 
       const transactionMap = JSON.parse(
@@ -299,7 +299,7 @@ export const questRouter = router({
           Update: {
             TableName: process.env.MAIN_TABLE_NAME,
             Key: {
-              PK: `USER#${user.id}`,
+              PK: `USER#${auth.userId}`,
               SK: `QUEST#${key}`,
             },
 
@@ -341,7 +341,7 @@ export const questRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
 
       const tableName = process.env.MAIN_TABLE_NAME || "";
       const RequestItems: Record<
@@ -352,8 +352,8 @@ export const questRouter = router({
       > = {};
       RequestItems[tableName] = {
         Keys: [
-          { PK: `USER#${user.id}`, SK: `USER#${user.id}` },
-          { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+          { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
+          { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
         ],
       };
       const params: BatchGetCommandInput = {
@@ -410,7 +410,7 @@ export const questRouter = router({
             TransactItems: [
               {
                 Update: {
-                  Key: { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+                  Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
                   TableName: process.env.MAIN_TABLE_NAME,
                   ConditionExpression:
                     "#published =:published AND #creatorId =:creatorId",
@@ -431,7 +431,7 @@ export const questRouter = router({
                     ":value": true,
                     ":time": new Date().toISOString(),
                     ":publishedAt": publishedQuest.publishedAt,
-                    ":creatorId": user.id,
+                    ":creatorId": auth.userId,
                     ":true": true,
                   },
                 },
@@ -475,12 +475,12 @@ export const questRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
       const params: TransactWriteCommandInput = {
         TransactItems: [
           {
             Update: {
-              Key: { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+              Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
               TableName: process.env.MAIN_TABLE_NAME,
               ConditionExpression:
                 "#creatorId =:creatorId AND #allowUnpublish = :true",
@@ -497,7 +497,7 @@ export const questRouter = router({
                 ":true": true,
                 ":value": false,
                 ":time": new Date().toISOString(),
-                ":creatorId": user.id,
+                ":creatorId": auth.userId,
               },
             },
           },
@@ -535,9 +535,9 @@ export const questRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const { id } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
-        Key: { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
         TableName: process.env.MAIN_TABLE_NAME,
         ConditionExpression:
           "#inTrash =:inTrash AND #creatorId =:creatorId AND #published =:false",
@@ -551,7 +551,7 @@ export const questRouter = router({
           ":false": false,
           ":value": true,
           ":inTrash": false,
-          ":creatorId": user.id,
+          ":creatorId": auth.userId,
         },
       };
 
@@ -570,10 +570,10 @@ export const questRouter = router({
   deleteQuestPermanently: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { id } = input;
       const deleteParams: DeleteCommandInput = {
-        Key: { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
         TableName: process.env.MAIN_TABLE_NAME,
         ConditionExpression: "#creatorId =:creatorId AND #published =:false",
         ExpressionAttributeNames: {
@@ -582,7 +582,7 @@ export const questRouter = router({
         },
         ExpressionAttributeValues: {
           ":false": false,
-          ":creatorId": user.id,
+          ":creatorId": auth.userId,
         },
       };
       try {
@@ -600,11 +600,11 @@ export const questRouter = router({
   restoreQuest: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { id } = input;
 
       const updateParams: UpdateCommandInput = {
-        Key: { PK: `USER#${user.id}`, SK: `QUEST#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
         TableName: process.env.MAIN_TABLE_NAME,
         ConditionExpression: "#inTrash =:inTrash AND #creatorId =:creatorId",
         UpdateExpression: "SET #inTrash = :value",
@@ -615,7 +615,7 @@ export const questRouter = router({
         ExpressionAttributeValues: {
           ":value": false,
           ":inTrash": true,
-          ":creatorId": user.id,
+          ":creatorId": auth.userId,
         },
       };
 
@@ -634,7 +634,7 @@ export const questRouter = router({
   addSolver: protectedProcedure
     .input(z.object({ questId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { questId } = input;
       const transactParams: TransactWriteCommandInput = {
         TransactItems: [
@@ -655,7 +655,7 @@ export const questRouter = router({
                 ":number": 0,
                 ":dec": 1,
                 ":inc": 1,
-                ":id": user.id,
+                ":id": auth.userId,
               },
             },
           },
@@ -666,8 +666,8 @@ export const questRouter = router({
               ConditionExpression: "attribute_not_exists(#SK)",
               Item: {
                 PK: `QUEST#${questId}`,
-                SK: `SOLVER#${user.id}`,
-                id: user.id,
+                SK: `SOLVER#${auth.userId}`,
+                id: auth.userId,
                 questId,
               },
               ExpressionAttributeNames: { "#SK": "SK" },
@@ -700,9 +700,9 @@ export const questRouter = router({
   removeSolver: protectedProcedure
     .input(z.object({ questId: z.string(), solverId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { questId, solverId } = input;
-      if (user.id !== solverId) {
+      if (auth.userId !== solverId) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
           message: "NOT ALLOWED TO REMOVE THE SOLVER",
@@ -734,7 +734,7 @@ export const questRouter = router({
               ConditionExpression: "attribute_exists(#SK)",
               Key: {
                 PK: `QUEST#${questId}`,
-                SK: `SOLVER#${user.id}`,
+                SK: `SOLVER#${auth.userId}`,
               },
 
               ExpressionAttributeNames: { "#SK": "SK" },
@@ -818,7 +818,7 @@ export const questRouter = router({
     .input(DeclareWinnerZod)
     .mutation(async ({ input, ctx }) => {
       const { winnerId, questId, solutionId } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
       const transactParams: TransactWriteCommandInput = {
         TransactItems: [
           {
@@ -833,7 +833,7 @@ export const questRouter = router({
                 "#winnerId": "winnerId",
               },
               ExpressionAttributeValues: {
-                ":creatorId": user.id,
+                ":creatorId": auth.userId,
                 ":winnerId": winnerId,
               },
             },
@@ -890,14 +890,14 @@ export const questRouter = router({
   addComment: protectedProcedure
     .input(AddCommentZod)
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { questId, text, commentId } = input;
       const commentItem: CommentDynamo = {
         PK: `QUEST#${questId}`,
         SK: `COMMENT#${commentId}`,
         id: commentId,
         createdAt: new Date().toISOString(),
-        creatorId: user.id,
+        creatorId: auth.userId,
         questId,
         text,
         upvote: 0,

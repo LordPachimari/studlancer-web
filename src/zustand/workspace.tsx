@@ -22,9 +22,11 @@ interface WorkspaceState {
   createQuestOrSolution: ({
     id,
     type,
+    userId,
   }: {
     id: string;
     type: "QUEST" | "SOLUTION";
+    userId: string;
   }) => void;
   deleteQuestOrSolution: ({
     id,
@@ -76,14 +78,14 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
     );
   },
   clearTransactionQueue: () => set({ transactionQueue: new Map() }),
-  createQuestOrSolution: ({ id, type }) => {
+  createQuestOrSolution: ({ id, type, userId }) => {
     if (type === "QUEST") {
       const quest: Quest = {
         id,
         published: false,
         inTrash: false,
         createdAt: new Date().toISOString(),
-        creatorId: TEST_USER.id,
+        creatorId: userId,
         lastUpdated: new Date().toISOString(),
         type: "QUEST",
       };
@@ -96,7 +98,7 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
       const solution: Solution = {
         id,
         createdAt: new Date().toISOString(),
-        creatorId: TEST_USER.id,
+        creatorId: userId,
         inTrash: false,
         published: false,
         type: "SOLUTION",

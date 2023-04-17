@@ -35,7 +35,7 @@ export const solutionRouter = router({
     .input(z.object({ id: z.string(), questId: z.string() }))
     .query(async ({ input, ctx }) => {
       const { id, questId } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
 
       const params: GetCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
@@ -48,13 +48,13 @@ export const solutionRouter = router({
         if (result.Item) {
           const solution = result.Item as PublishedSolution;
           if (
-            solution.creatorId === user.id ||
-            solution.questCreatorId === user.id ||
-            (solution.contributors && solution.contributors.has(user.id)) ||
+            solution.creatorId === auth.userId ||
+            solution.questCreatorId === auth.userId ||
+            (solution.contributors && solution.contributors.has(auth.userId)) ||
             //allow winner solutions to be publicly viewed
             solution.status === "ACCEPTED"
           ) {
-            if (user.id === solution.creatorId) {
+            if (auth.userId === solution.creatorId) {
               //send notification to the solver that his solution has been viewed by the quest creator
               const transactParams: TransactWriteCommandInput = {
                 TransactItems: [
@@ -62,7 +62,7 @@ export const solutionRouter = router({
                     Put: {
                       TableName: process.env.VIEWCOUNT_TABLE_NAME,
                       ConditionExpression: "attribute_not_exists(#SK)",
-                      Item: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+                      Item: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
                       ExpressionAttributeNames: { "#SK": "SK" },
                     },
                   },
@@ -107,19 +107,19 @@ export const solutionRouter = router({
   workspaceSolution: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { id } = input;
       const params: GetCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
 
-        Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
       };
 
       try {
         const result = await dynamoClient.send(new GetCommand(params));
         if (result.Item) {
           const solution = result.Item as Solution;
-          if (solution.creatorId !== user.id) {
+          if (solution.creatorId !== auth.userId) {
             throw new TRPCError({
               code: "UNAUTHORIZED",
               message: "UNAUTHORIZED TO VIEW THE SOLUTION",
@@ -147,12 +147,12 @@ export const solutionRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const { id, questId, questCreatorId } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
       const solutionItem: SolutionDynamo = {
-        PK: `USER#${user.id}`,
+        PK: `USER#${auth.userId}`,
         SK: `SOLUTION#${id}`,
         id,
-        creatorId: user.id,
+        creatorId: auth.userId,
         inTrash: false,
         published: false,
         lastUpdated: new Date().toISOString(),
@@ -181,7 +181,7 @@ export const solutionRouter = router({
   updateSolutionAttributes: protectedProcedure
     .input(z.object({ transactionsString: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { transactionsString } = input;
 
       const transactionMap = JSON.parse(
@@ -215,7 +215,7 @@ export const solutionRouter = router({
           Update: {
             TableName: process.env.MAIN_TABLE_NAME,
             Key: {
-              PK: `USER#${user.id}`,
+              PK: `USER#${auth.userId}`,
               SK: `SOLUTION#${key}`,
             },
 
@@ -261,11 +261,11 @@ export const solutionRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, questId, questCreatorId } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
 
       const getParams: GetCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
-        Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
       };
 
       try {
@@ -293,7 +293,7 @@ export const solutionRouter = router({
             TransactItems: [
               {
                 Update: {
-                  Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+                  Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
                   TableName: process.env.MAIN_TABLE_NAME,
                   ConditionExpression:
                     "#published =:published AND #creatorId =:creatorId",
@@ -312,14 +312,14 @@ export const solutionRouter = router({
                     ":value": true,
                     ":lastUpdated": new Date().toISOString(),
                     ":publishedAt": publishedSolution.publishedAt,
-                    ":creatorId": user.id,
+                    ":creatorId": auth.userId,
                   },
                 },
               },
               {
                 Update: {
                   TableName: process.env.MAIN_TABLE_NAME,
-                  Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${user.id}` },
+                  Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${auth.userId}` },
                   ConditionExpression: "attribute_exists(SK)",
                   UpdateExpression:
                     "SET #solutionId = :solutionId, #status =:posted",
@@ -375,13 +375,13 @@ export const solutionRouter = router({
     .input(z.object({ id: z.string(), questId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { id, questId } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
 
       const params: TransactWriteCommandInput = {
         TransactItems: [
           {
             Update: {
-              Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+              Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
               TableName: process.env.MAIN_TABLE_NAME,
               ConditionExpression: "#creatorId =:creatorId",
 
@@ -395,7 +395,7 @@ export const solutionRouter = router({
               },
               ExpressionAttributeValues: {
                 ":value": false,
-                ":creatorId": user.id,
+                ":creatorId": auth.userId,
 
                 ":lastUpdated": new Date().toISOString(),
               },
@@ -415,7 +415,7 @@ export const solutionRouter = router({
               TableName: process.env.MAIN_TABLE_NAME,
               Key: {
                 PK: `QUEST#${questId}`,
-                SK: `SOLVER#${user.id}`,
+                SK: `SOLVER#${auth.userId}`,
               },
               UpdateExpression: "REMOVE #solutionId, #status ",
               ExpressionAttributeNames: {
@@ -448,9 +448,9 @@ export const solutionRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const { id } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
-        Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
         TableName: process.env.MAIN_TABLE_NAME,
         ConditionExpression:
           "#inTrash =:inTrash AND #creatorId =:creatorId AND #published = :false",
@@ -464,7 +464,7 @@ export const solutionRouter = router({
           ":false": false,
           ":value": true,
           ":inTrash": false,
-          ":creatorId": user.id,
+          ":creatorId": auth.userId,
         },
       };
 
@@ -483,10 +483,10 @@ export const solutionRouter = router({
   deleteSolutionPermanently: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { id } = input;
       const deleteParams: DeleteCommandInput = {
-        Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
         TableName: process.env.MAIN_TABLE_NAME,
         ConditionExpression: "#creatorId =:creatorId AND #published =:false",
         ExpressionAttributeNames: {
@@ -494,7 +494,7 @@ export const solutionRouter = router({
           "#published": "published",
         },
         ExpressionAttributeValues: {
-          ":creatorId": user.id,
+          ":creatorId": auth.userId,
           ":false": false,
         },
       };
@@ -513,10 +513,10 @@ export const solutionRouter = router({
   restoreSolution: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { user } = ctx;
+      const { auth } = ctx;
       const { id } = input;
       const updateParams: UpdateCommandInput = {
-        Key: { PK: `USER#${user.id}`, SK: `SOLUTION#${id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
         TableName: process.env.MAIN_TABLE_NAME,
         ConditionExpression: "#inTrash =:inTrash AND #creatorId =:creatorId",
         UpdateExpression: "SET #inTrash = :value",
@@ -527,7 +527,7 @@ export const solutionRouter = router({
         ExpressionAttributeValues: {
           ":value": false,
           ":inTrash": true,
-          ":creatorId": user.id,
+          ":creatorId": auth.userId,
         },
       };
 

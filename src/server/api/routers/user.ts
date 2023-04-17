@@ -77,19 +77,19 @@ export const userRouter = router({
     .input(CreateUserZod)
     .mutation(async ({ input, ctx }) => {
       const { username } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
+
       const userItem: UserDynamo = {
-        PK: `USER#${user.id}`,
-        SK: `USER#${user.id}`,
-        id: user.id,
+        PK: `USER#${auth.userId}`,
+        SK: `USER#${auth.userId}`,
+        id: auth.userId,
         balance: 0,
         createdAt: new Date().toISOString(),
         experience: 0,
         role: "USER",
         level: 0,
         profile: "default profile",
-        email: user.emailAddresses[0]!.emailAddress,
-        // email: user.email,
+        email: auth.user!.emailAddresses[0]!.emailAddress,
         username: username,
         verified: false,
         type: "USER",
@@ -99,7 +99,7 @@ export const userRouter = router({
         TableName: process.env.MAIN_TABLE_NAME,
         Item: userItem,
         ConditionExpression:
-          "attribute_not_exists(#sk), attribute_not_exists(username)",
+          "attribute_not_exists(#sk) AND attribute_not_exists(username)",
         ExpressionAttributeNames: { "#sk": "SK" },
       };
 
@@ -119,7 +119,7 @@ export const userRouter = router({
     .input(UpdateUserAttributesZod)
     .mutation(async ({ input, ctx }) => {
       const { about, email, subtopics, topics, username, profile } = input;
-      const { user } = ctx;
+      const { auth } = ctx;
 
       const updateAttributes: string[] = [];
       for (const property in input) {
@@ -131,7 +131,7 @@ export const userRouter = router({
 
       const params: UpdateCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
-        Key: { PK: `USER#${user.id}`, SK: `USER#${user.id}` },
+        Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
         UpdateExpression: UpdateExpression,
         ExpressionAttributeNames: {
           ...(about && { "#about": "about" }),

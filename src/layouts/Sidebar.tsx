@@ -131,10 +131,9 @@ const Sidebar = ({
         }
         if (isSignedIn && !l.finished) {
           return (
-            <>
+            <Box key={i}>
               <Stack
                 direction="row"
-                key={i}
                 w="100%"
                 h="10"
                 p="0"
@@ -168,7 +167,7 @@ const Sidebar = ({
               </Stack>
 
               <Divider />
-            </>
+            </Box>
           );
         }
         return (

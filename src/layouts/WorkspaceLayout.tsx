@@ -10,9 +10,14 @@ import { trpc } from "~/utils/api";
 
 const WorkspaceLayout = ({ children }: { children: React.ReactNode }) => {
   const [showList, toggleShowList] = useState(true);
+  const { userId } = useAuth();
   return (
     <Flex position="relative">
-      <List showList={showList} toggleShowList={toggleShowList} />
+      <List
+        showList={showList}
+        userId={userId || ""}
+        toggleShowList={toggleShowList}
+      />
       <div
         className={`${styles.workspaceContainer} ${showList && styles.adjust}`}
       >

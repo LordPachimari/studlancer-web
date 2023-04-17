@@ -37,7 +37,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useAuth } from "@clerk/nextjs";
-import { createProxySSGHelpers } from "@trpc/react-query/ssg";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import superjson from "superjson";
@@ -643,9 +643,10 @@ const EmptySlot = () => {
 export async function getServerSideProps(
   context: GetServerSidePropsContext<{ id: string }>
 ) {
-  const ssg = createProxySSGHelpers({
+  const auth = getAuth(context.req);
+  const ssg = createServerSideHelpers({
     router: appRouter,
-    ctx: createContextInner({ user: null }),
+    ctx: createContextInner({ auth }),
     transformer: superjson,
   });
   const id = context.params?.id as string;

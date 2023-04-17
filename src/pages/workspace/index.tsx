@@ -5,10 +5,12 @@ import SidebarLayout from "../../layouts/SidebarLayout";
 import WorkspaceLayout from "../../layouts/WorkspaceLayout";
 import { NextPageWithLayout } from "../_app";
 import { Box } from "@chakra-ui/react";
+import { useAuth } from "@clerk/nextjs";
 const Workspace: NextPageWithLayout = () => {
+  const { userId } = useAuth();
   return (
     <Box>
-      <Actions />
+      <Actions userId={userId || ""} />
     </Box>
   );
 };

@@ -67,9 +67,11 @@ import { TopicColor } from "~/utils/topicsColor";
 const List = ({
   showList,
   toggleShowList,
+  userId
 }: {
   showList: boolean;
   toggleShowList: React.Dispatch<React.SetStateAction<boolean>>;
+  userId:string
 }) => {
   const emptyLists: {}[] = [];
   for (let i = 0; i < 3; i++) {
@@ -93,15 +95,15 @@ const List = ({
     trpc.solution.deleteSolutionPermanently.useMutation();
 
   const setWorkspaceListState = WorkspaceStore(
-    (state) => state.setWorkspaceList
+    (state) => state.setWorkspaceList,
   );
   const createQuestOrSolutionState = WorkspaceStore(
-    (state) => state.createQuestOrSolution
+    (state) => state.createQuestOrSolution,
   );
 
   //deleteQuestState just deletes quest from the list state
   const deleteQuestOrSolution = WorkspaceStore(
-    (state) => state.deleteQuestOrSolution
+    (state) => state.deleteQuestOrSolution,
   );
   const [trash, setTrash] = useState<{
     quests: QuestListComponent[];
@@ -142,13 +144,13 @@ const List = ({
                   setTrash(
                     produce((trash) => {
                       trash.quests.push(component);
-                    })
+                    }),
                   );
 
                   del(id).catch((err) => console.log(err));
                   localStorage.removeItem(id);
                 },
-              }
+              },
             );
           } else {
             deleteQuestPermanently.mutate(
@@ -159,13 +161,13 @@ const List = ({
                   setTrash(
                     produce((trash) => {
                       trash.quests.push(component);
-                    })
+                    }),
                   );
 
                   del(id).catch((err) => console.log(err));
                   localStorage.removeItem(id);
                 },
-              }
+              },
             );
           }
         } else if (component.type === "SOLUTION") {
@@ -180,13 +182,13 @@ const List = ({
                   setTrash(
                     produce((trash) => {
                       trash.quests.push(component);
-                    })
+                    }),
                   );
 
                   del(id).catch((err) => console.log(err));
                   localStorage.removeItem(id);
                 },
-              }
+              },
             );
           } else {
             deleteSolutionPermanently.mutate(
@@ -197,14 +199,14 @@ const List = ({
                   setTrash(
                     produce((trash) => {
                       trash.quests.push(component);
-                    })
+                    }),
                   );
 
                   del(id).catch((err) => console.log(err));
 
                   localStorage.removeItem(id);
                 },
-              }
+              },
             );
           }
         }
@@ -232,8 +234,8 @@ const List = ({
   }) => {
     if (type === "QUEST") {
       const id = ulid();
-      createQuestOrSolutionState({ id, type: "QUEST" });
-      storeQuestOrSolution({ id, type: "QUEST" });
+      createQuestOrSolutionState({ id, type: "QUEST",userId });
+      storeQuestOrSolution({ id, type: "QUEST" ,userId});
       createQuest.mutate(
         { id },
         {
@@ -242,7 +244,7 @@ const List = ({
               void router.push(`/workspace/quests/${id}`);
             }
           },
-        }
+        },
       );
 
       if (router.query.id) {
@@ -252,9 +254,9 @@ const List = ({
       }
     } else if (type === "SOLUTION") {
       const id = ulid();
-      createQuestOrSolutionState({ id, type: "SOLUTION" });
+      createQuestOrSolutionState({ id, type: "SOLUTION" ,userId});
 
-      storeQuestOrSolution({ id, type: "SOLUTION" });
+      storeQuestOrSolution({ id, type: "SOLUTION",userId });
       createSolution.mutate(
         { id },
         {
@@ -263,7 +265,7 @@ const List = ({
               void router.push(`/workspace/solutions/${id}`);
             }
           },
-        }
+        },
       );
       if (router.query.id) {
         void router.push(`/workspace/solutions/${id}`, undefined, {
@@ -296,7 +298,7 @@ const List = ({
 
       nonDeletedQuests.forEach((q) => {
         const questVersion = JSON.parse(
-          localStorage.getItem(q.id) as string
+          localStorage.getItem(q.id) as string,
         ) as Versions | null;
         if (questVersion) {
           const updatedVersions: Versions = {
@@ -309,7 +311,7 @@ const List = ({
       });
       nonDeletedSolutions.forEach((s) => {
         const solutionVersion = JSON.parse(
-          localStorage.getItem(s.id) as string
+          localStorage.getItem(s.id) as string,
         ) as Versions | null;
         if (solutionVersion) {
           const updatedVersions: Versions = {
@@ -634,7 +636,7 @@ const SearchComponent = ({
 }) => {
   const initialRef = React.useRef(null);
   const [QuestOrSolutionList, setQuestOrSolutionList] = useState<WorkspaceList>(
-    { quests: [], solutions: [] }
+    { quests: [], solutions: [] },
   );
   const searchText = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
     setQuestOrSolutionList({
@@ -651,14 +653,14 @@ const SearchComponent = ({
           (value) =>
             value.type === "QUEST" &&
             ((value.content && value.content.search(e.target.value) > -1) ||
-              (value.title && value.title?.search(e.target.value) > -1))
+              (value.title && value.title?.search(e.target.value) > -1)),
         );
 
         const filteredSolution = values.filter(
           (value) =>
             value.type === "SOLUTION" &&
             ((value.content && value.content?.search(e.target.value) > -1) ||
-              (value.title && value.title?.search(e.target.value) > -1))
+              (value.title && value.title?.search(e.target.value) > -1)),
         );
 
         setQuestOrSolutionList({
@@ -836,7 +838,7 @@ const TrashComponent = ({
   const deleteSolutionPermanently =
     trpc.solution.deleteSolutionPermanently.useMutation();
   const [QuestOrSolutionList, setQuestOrSolutionList] = useState<WorkspaceList>(
-    { quests: [], solutions: [] }
+    { quests: [], solutions: [] },
   );
   useEffect(() => {
     setQuestOrSolutionList(trash);
@@ -858,14 +860,14 @@ const TrashComponent = ({
       (value) =>
         value.type === "QUEST" &&
         value.title &&
-        value.title?.search(e.target.value) > -1
+        value.title?.search(e.target.value) > -1,
     );
 
     const filteredSolution = trash.solutions.filter(
       (value) =>
         value.type === "SOLUTION" &&
         value.title &&
-        value.title?.search(e.target.value) > -1
+        value.title?.search(e.target.value) > -1,
     );
 
     setQuestOrSolutionList({
@@ -991,7 +993,7 @@ const TrashComponent = ({
                               {
                                 onSuccess: () => {
                                   const filteredQuests = trash.quests.filter(
-                                    (item) => item.id !== q.id
+                                    (item) => item.id !== q.id,
                                   );
 
                                   setTrash((trash) => {
@@ -1003,7 +1005,7 @@ const TrashComponent = ({
                                   del(q.id).catch((err) => console.log(err));
                                   onAlertClose();
                                 },
-                              }
+                              },
                             );
                           }}
                           ml={3}
@@ -1112,7 +1114,7 @@ const TrashComponent = ({
                                 onSuccess: () => {
                                   const filteredSolutions =
                                     QuestOrSolutionList.solutions.filter(
-                                      (item) => item.id !== s.id
+                                      (item) => item.id !== s.id,
                                     );
 
                                   setTrash((trash) => {
@@ -1125,7 +1127,7 @@ const TrashComponent = ({
                                   del(s.id).catch((err) => console.log(err));
                                   onAlertClose();
                                 },
-                              }
+                              },
                             );
                           }}
                           ml={3}

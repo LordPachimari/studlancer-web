@@ -140,6 +140,7 @@ export default function GlobalChat() {
       }
     }
     DoTheThing().catch((err) => console.log("error realtime"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     const fetchMessages = async () => {

@@ -11,9 +11,11 @@ import { WorkspaceStore } from "../../zustand/workspace";
 export const storeQuestOrSolution = ({
   id,
   type,
+  userId,
 }: {
   id: string;
   type: "QUEST" | "SOLUTION";
+  userId: string;
 }) => {
   const newDate = new Date().toISOString();
   if (type === "QUEST") {
@@ -24,7 +26,7 @@ export const storeQuestOrSolution = ({
       id,
       published: false,
       createdAt: newDate,
-      creatorId: TEST_USER.id,
+      creatorId: userId,
       inTrash: false,
       lastUpdated: newDate,
       type: "QUEST",
@@ -35,7 +37,7 @@ export const storeQuestOrSolution = ({
       id,
       published: false,
       createdAt: newDate,
-      creatorId: TEST_USER.id,
+      creatorId: userId,
       inTrash: false,
 
       lastUpdated: newDate,
@@ -48,7 +50,7 @@ export const storeQuestOrSolution = ({
   return true;
 };
 //hello world
-const Actions = () => {
+const Actions = ({ userId }: { userId: string }) => {
   const router = useRouter();
   const createQuestOrSolutionState = WorkspaceStore(
     (state) => state.createQuestOrSolution
@@ -64,8 +66,8 @@ const Actions = () => {
         isLoading={createQuest.isLoading}
         onClick={() => {
           const id = ulid();
-          createQuestOrSolutionState({ id, type: "QUEST" });
-          storeQuestOrSolution({ id, type: "QUEST" });
+          createQuestOrSolutionState({ id, type: "QUEST", userId });
+          storeQuestOrSolution({ id, type: "QUEST", userId });
           createQuest.mutate(
             { id },
             {
@@ -85,8 +87,8 @@ const Actions = () => {
         isLoading={createSolution.isLoading}
         onClick={() => {
           const id = ulid();
-          createQuestOrSolutionState({ id, type: "SOLUTION" });
-          storeQuestOrSolution({ id, type: "SOLUTION" });
+          createQuestOrSolutionState({ id, type: "SOLUTION", userId });
+          storeQuestOrSolution({ id, type: "SOLUTION", userId });
           createSolution.mutate(
             { id },
             {
