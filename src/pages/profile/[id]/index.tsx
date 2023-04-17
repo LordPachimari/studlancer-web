@@ -50,9 +50,9 @@ export default function Profile() {
     <Flex w="100%" justify="center" mb={20}>
       <Box
         w="90%"
-        maxW="8xl"
+        maxW="7xl"
         display={{ base: "block", md: "flex" }}
-        columnGap={15}
+        columnGap="16"
         mt={16}
       >
         <Flex

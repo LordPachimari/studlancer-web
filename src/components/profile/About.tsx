@@ -72,6 +72,7 @@ export default function AboutUser({
           />
           <EditProfile onClose={onClose} isOpen={isOpen} onOpen={onOpen} />
         </Flex>
+
         <Text fontSize={{ base: "xl", lg: "2xl" }} fontWeight="bold">
           {username}
         </Text>
