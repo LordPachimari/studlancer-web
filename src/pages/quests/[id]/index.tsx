@@ -8,6 +8,7 @@ import {
   SolutionStatus,
 } from "../../../types/main";
 import { useQueryClient } from "@tanstack/react-query";
+import { createServerSideHelpers } from "@trpc/react-query/server";
 
 import {
   AlertDialog,
@@ -37,7 +38,6 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useAuth } from "@clerk/nextjs";
-import { createServerSideHelpers } from "@trpc/react-query/server";
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 import superjson from "superjson";
@@ -227,6 +227,7 @@ export default function PublishedQuestPage() {
             emptySlots={emptySlots}
             solversPartial={quest.data.solvers}
             creatorId={quest.data.quest.creatorId}
+            questId={quest.data.quest.id}
           />
         </Box>
       </Box>
@@ -463,10 +464,12 @@ const SolverComponent = ({
   solversPartial,
   emptySlots,
   creatorId,
+  questId,
 }: {
   solversPartial: SolverPartial[];
   emptySlots: {}[];
   creatorId: string;
+  questId: string;
 }) => {
   const emptySkeletonSlots: {}[] = [];
   for (let i = 0; i < 5; i++) {
@@ -489,6 +492,7 @@ const SolverComponent = ({
               <_Solver
                 solver={s}
                 isAuthorised={userId === creatorId || userId === s.id}
+                questId={questId}
               />
             </Flex>
           ))}
@@ -522,16 +526,18 @@ const SolverSkeleton = () => {
 const _Solver = ({
   solver,
   isAuthorised,
+  questId,
 }: {
   solver: Solver;
   isAuthorised: boolean;
+  questId: string;
 }) => {
   return (
     <Box>
       <Flex gap={2}>
         <Link href={`/profile/${solver.id}`}>
           <Card
-            w="44"
+            w="28"
             h="14"
             display="flex"
             alignItems="center"
@@ -542,15 +548,22 @@ const _Solver = ({
             {/* <Circle size="40px" ml={2}></Circle> */}
             <Avatar
               ml={1}
-              size="md"
+              size="sm"
               name={solver.username}
               // src="https://bit.ly/sage-adebayo"
             />
-            <Flex flexDirection="column">
+            <Flex
+              flexDirection="column"
+              whiteSpace="nowrap"
+              overflow="hidden"
+              textOverflow="ellipsis"
+            >
               <Badge colorScheme="blue" w="10">
                 {solver.level} LVL
               </Badge>
               <Text
+                fontSize="sm"
+                fontWeight="bold"
                 whiteSpace="nowrap"
                 overflow="hidden"
                 textOverflow="ellipsis"
@@ -591,15 +604,8 @@ const _Solver = ({
         </Center>
       </Flex>
       {isAuthorised && solver.solutionId && (
-        <Link href={`/solutions/${solver.solutionId}`}>
-          <Button
-            colorScheme="green"
-            ml="7"
-            size="sm"
-            h="5"
-            mt="2"
-            textAlign="center"
-          >
+        <Link href={`/solutions/${solver.solutionId}?quest=${questId}`}>
+          <Button colorScheme="green" size="sm" h="5" textAlign="center">
             View solution
           </Button>
         </Link>
@@ -611,7 +617,7 @@ const EmptySlot = () => {
   return (
     <Flex gap={2}>
       <Center
-        w="44"
+        w="28"
         h="14"
         borderWidth="2px"
         borderColor="gray.300"

@@ -1,4 +1,10 @@
-import { PublishedQuest, Quest, Solution, TopicsType } from "../../types/main";
+import {
+  PublishedQuest,
+  PublishedSolution,
+  Quest,
+  Solution,
+  TopicsType,
+} from "../../types/main";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
@@ -224,9 +230,13 @@ export const NonEditableQuestAttributes = ({
 export const NonEditableSolutionAttributes = ({
   solution,
 }: {
-  solution: Solution;
+  solution: Solution | PublishedSolution;
 }) => {
-  return <Heading as="h2" title={solution.title} />;
+  return (
+    <>
+      <Title title={solution.title} />
+    </>
+  );
 };
 export const NonEditableContent = ({ content }: { content: string }) => {
   const contentJSON = JSON.parse(content) as JSONContent;

@@ -31,7 +31,11 @@ const SignUpPage: NextPageWithLayout = () => {
   if (isSignedIn && user.data) {
     return (
       <Card w="80" h="md" borderRadius="2xl">
-        <CardHeader>
+        <CardHeader
+          whiteSpace="nowrap"
+          overflow="hidden"
+          textOverflow="ellipsis"
+        >
           <Heading display="center" justifyContent="center">
             {user.data.username.toUpperCase()}
           </Heading>

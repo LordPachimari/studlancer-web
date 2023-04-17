@@ -814,7 +814,7 @@ export const questRouter = router({
       }
       return solvers;
     }),
-  declareWinner: protectedProcedure
+  acceptSolution: protectedProcedure
     .input(DeclareWinnerZod)
     .mutation(async ({ input, ctx }) => {
       const { winnerId, questId, solutionId } = input;
@@ -827,14 +827,16 @@ export const questRouter = router({
               Key: { PK: `QUEST#${questId}`, SK: `QUEST#${questId}` },
               ConditionExpression:
                 "#creatorId = :creatorId AND attribute_not_exists(#winnerId)",
-              UpdateExpression: "SET #winnerId = :winnerId",
+              UpdateExpression: "SET #winnerId = :winnerId, #status = :status",
               ExpressionAttributeNames: {
                 "#creatorId": "creatorId",
                 "#winnerId": "winnerId",
+                "#status": "status",
               },
               ExpressionAttributeValues: {
                 ":creatorId": auth.userId,
                 ":winnerId": winnerId,
+                ":status": "CLOSED",
               },
             },
           },
@@ -848,7 +850,7 @@ export const questRouter = router({
                 "#status": "status",
               },
               ExpressionAttributeValues: {
-                ":status": "SOLVED",
+                ":status": "ACCEPTED",
               },
             },
           },
@@ -862,7 +864,7 @@ export const questRouter = router({
                 "#status": "status",
               },
               ExpressionAttributeValues: {
-                ":status": "SOLVED",
+                ":status": "ACCEPTED",
               },
             },
           },
@@ -877,6 +879,112 @@ export const questRouter = router({
           momento.delete("accounts-cache", questId),
           momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
         ]);
+
+        if (result) {
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.log(error);
+        return false;
+      }
+    }),
+  rejectSolution: protectedProcedure
+    .input(DeclareWinnerZod)
+    .mutation(async ({ input, ctx }) => {
+      const { winnerId, questId, solutionId } = input;
+      const { auth } = ctx;
+      const transactParams: TransactWriteCommandInput = {
+        TransactItems: [
+          {
+            Update: {
+              TableName: process.env.MAIN_TABLE_NAME,
+              Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${winnerId}` },
+
+              UpdateExpression: "SET #status = :status",
+              ExpressionAttributeNames: {
+                "#status": "status",
+              },
+              ExpressionAttributeValues: {
+                ":status": "REJECTED",
+              },
+            },
+          },
+          {
+            Update: {
+              TableName: process.env.MAIN_TABLE_NAME,
+              Key: { PK: `QUEST#${questId}`, SK: `SOLUTION#${solutionId}` },
+
+              UpdateExpression: "SET #status = :status",
+              ExpressionAttributeNames: {
+                "#status": "status",
+              },
+              ExpressionAttributeValues: {
+                ":status": "REJECTED",
+              },
+            },
+          },
+        ],
+      };
+
+      try {
+        const result = await dynamoClient.send(
+          new TransactWriteCommand(transactParams)
+        );
+        await Promise.allSettled([momento.delete("accounts-cache", questId)]);
+
+        if (result) {
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.log(error);
+        return false;
+      }
+    }),
+  acknowledgeSolution: protectedProcedure
+    .input(DeclareWinnerZod)
+    .mutation(async ({ input, ctx }) => {
+      const { winnerId, questId, solutionId } = input;
+      const { auth } = ctx;
+      const transactParams: TransactWriteCommandInput = {
+        TransactItems: [
+          {
+            Update: {
+              TableName: process.env.MAIN_TABLE_NAME,
+              Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${winnerId}` },
+
+              UpdateExpression: "SET #status = :status",
+              ExpressionAttributeNames: {
+                "#status": "status",
+              },
+              ExpressionAttributeValues: {
+                ":status": "ACKNOWLEDGED",
+              },
+            },
+          },
+          {
+            Update: {
+              TableName: process.env.MAIN_TABLE_NAME,
+              Key: { PK: `QUEST#${questId}`, SK: `SOLUTION#${solutionId}` },
+
+              UpdateExpression: "SET #status = :status",
+              ExpressionAttributeNames: {
+                "#status": "status",
+              },
+              ExpressionAttributeValues: {
+                ":status": "ACKNOWLEDGED",
+              },
+            },
+          },
+        ],
+      };
+
+      try {
+        const result = await dynamoClient.send(
+          new TransactWriteCommand(transactParams)
+        );
+        await Promise.allSettled([momento.delete("accounts-cache", questId)]);
 
         if (result) {
           return true;

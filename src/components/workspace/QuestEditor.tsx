@@ -89,10 +89,12 @@ const QuestEditor = ({ id }: { id: string }) => {
       .then((val: string | undefined) => {
         if (val) {
           updateQuestAttributes.mutate({ transactionsString: val });
+          del(`TRANSACTIONS#${id}`).catch((err) => console.log(err));
         }
       })
       .catch((err) => console.log(err));
-  }, [id, updateQuestAttributes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateQuestAttributesHandler = useCallback(
