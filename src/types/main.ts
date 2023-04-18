@@ -95,7 +95,7 @@ const QuestPartialZod = z
     title: z.string(),
     topic: z.enum(Topics),
     subtopic: z.array(z.string()),
-    content: z.string(),
+    content: z.instanceof(Uint8Array),
     reward: z.number(),
     slots: z.number(),
     creatorId: z.string(),
@@ -130,6 +130,7 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   status: z.enum(QuestStatus),
   solverCount: z.number(),
   allowUnpublish: z.boolean(),
+  content: z.string(),
 }).omit({
   inTrash: true,
   createdAt: true,
@@ -213,7 +214,7 @@ export const DeclareWinnerZod = z.object({
 const SolutionPartialZod = z
   .object({
     id: z.string(),
-    content: z.string(),
+    content: z.instanceof(Uint8Array),
     creatorId: z.string(),
     topic: z.enum(Topics),
     contributors: z.set(z.string()),
@@ -260,7 +261,9 @@ export type SolutionListComponent = Pick<
   Solution,
   "id" | "title" | "topic" | "lastUpdated" | "inTrash" | "type"
 >;
-
+export type Content = {
+  content: Uint8Array;
+};
 export type WorkspaceList = {
   quests: QuestListComponent[];
   solutions: SolutionListComponent[];

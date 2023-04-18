@@ -9,30 +9,36 @@ import {
   useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { update } from "idb-keyval";
+import debounce from "lodash.debounce";
+import * as pako from "pako";
 import { ChangeEvent, useCallback, useRef } from "react";
-import { TransactionQueue, UpdateTransaction } from "../../types/main";
-import { WorkspaceStore } from "../../zustand/workspace";
+import { trpc } from "~/utils/api";
+import { Quest, Solution, Versions } from "../../types/main";
 import FileExtension from "../Tiptap/FileExtension";
 import ImageExtension from "../Tiptap/ImageExtension";
 import styles from "./workspace.module.css";
 
 const TiptapEditor = (props: {
   id: string;
-  content: string | undefined;
-  updateAttributesHandler: ({
-    transactionQueue,
-    //last transaction needs to be pushed into transactionQueue,
-    //as the last addTransaction function is executed in parallel with updateQuestAttributeHandler,
-    //and cannot be captured inside of updateQuestAttributeHandler function
-    lastTransaction,
-  }: {
-    transactionQueue: TransactionQueue;
-    lastTransaction: UpdateTransaction;
-  }) => void;
+  content: Uint8Array | undefined;
+  type: "QUEST" | "SOLUTION";
 }) => {
-  const { id, updateAttributesHandler, content } = props;
-  const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
-  const addQuestTransaction = WorkspaceStore((state) => state.addTransaction);
+  let contentRestored: string | undefined;
+  const { id, content, type } = props;
+
+  const updateQuestContent = trpc.quest.updateQuestContent.useMutation({
+    retry: 3,
+  });
+  const updateSolutionContent = trpc.solution.updateSolutionContent.useMutation(
+    { retry: 3 }
+  );
+  if (content) {
+    const restored = pako.inflate(content, { to: "string" });
+
+    contentRestored = JSON.parse(restored) as string;
+  }
+
   // const provider = new HocuspocusProvider({
   //   url: "ws://0.0.0.0:80",
   //   name: `${quest.id}`,
@@ -43,6 +49,95 @@ const TiptapEditor = (props: {
   // const ydoc = new Y.Doc();
   // new IndexeddbPersistence(`${quest.id}`, ydoc);
   // console.log("ydoc", ydoc);
+  const updateContent = useCallback(
+    debounce(
+      ({ content, type }: { content: string; type: "QUEST" | "SOLUTION" }) => {
+        //transactionQueue is immutable, but I'll allow myself to mutate the copy of it
+        const updateTime = new Date().toISOString();
+        const compressedData = pako.deflate(content);
+        if (type === "QUEST") {
+          updateQuestContent.mutate(
+            {
+              content: compressedData,
+              questId: id,
+            },
+            {
+              onSuccess: () => {
+                update<Quest | undefined>(id, (quest) => {
+                  if (quest) {
+                    quest.content = compressedData;
+
+                    return quest;
+                  }
+                }).catch((err) => console.log(err));
+
+                //updating the indexedb quest version after changes
+
+                update<Quest | undefined>(id, (quest) => {
+                  if (quest) {
+                    quest.lastUpdated = updateTime;
+                    return quest;
+                  }
+                }).catch((err) => console.log(err));
+                //updating the localstorage quest versions after change
+                const questVersion = JSON.parse(
+                  localStorage.getItem(id) as string
+                ) as Versions;
+                if (questVersion) {
+                  const newVersions = {
+                    server: updateTime,
+                    local: updateTime,
+                  };
+                  localStorage.setItem(id, JSON.stringify(newVersions));
+                }
+              },
+            }
+          );
+        }
+        if (type === "SOLUTION") {
+          updateSolutionContent.mutate(
+            {
+              content: compressedData,
+              solutionId: id,
+            },
+            {
+              onSuccess: () => {
+                update<Solution | undefined>(id, (solution) => {
+                  if (solution) {
+                    solution.content = compressedData;
+
+                    return solution;
+                  }
+                }).catch((err) => console.log(err));
+
+                //updating the indexedb quest version after changes
+
+                update<Solution | undefined>(id, (solution) => {
+                  if (solution) {
+                    solution.lastUpdated = updateTime;
+                    return solution;
+                  }
+                }).catch((err) => console.log(err));
+                //updating the localstorage quest versions after change
+                const solutionVersion = JSON.parse(
+                  localStorage.getItem(id) as string
+                ) as Versions;
+                if (solutionVersion) {
+                  const newVersions = {
+                    server: updateTime,
+                    local: updateTime,
+                  };
+                  localStorage.setItem(id, JSON.stringify(newVersions));
+                }
+              },
+            }
+          );
+        }
+      },
+      1000
+    ),
+    []
+  );
 
   const editor = useEditor(
     {
@@ -72,7 +167,9 @@ const TiptapEditor = (props: {
         // }),
       ],
       // content: JSON.parse(quest.content),
-      ...(content && { content: JSON.parse(content) as JSONContent }),
+      ...(contentRestored && {
+        content: JSON.parse(contentRestored) as JSONContent,
+      }),
       // onCreate: () => {
       //   console.log("editor created");
       // },
@@ -80,20 +177,8 @@ const TiptapEditor = (props: {
       onUpdate: ({ editor }) => {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
+        updateContent({ content: jsonString, type });
 
-        addQuestTransaction({
-          id: id,
-          attribute: "content",
-          value: jsonString,
-        });
-        updateAttributesHandler({
-          transactionQueue,
-          lastTransaction: {
-            id: id,
-            attribute: "content",
-            value: jsonString,
-          },
-        });
         // updateQuest();
         // send the content to an API here
       },

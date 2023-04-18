@@ -14,7 +14,7 @@ export const workspaceRouter = router({
   workspaceList: protectedProcedure.query(async ({ ctx }) => {
     const { auth } = ctx;
     const queryParams: QueryCommandInput = {
-      TableName: process.env.MAIN_TABLE_NAME,
+      TableName: process.env.WORKSPACE_TABLE_NAME,
 
       KeyConditionExpression: "#PK = :PK",
       ExpressionAttributeNames: { "#PK": "PK" },

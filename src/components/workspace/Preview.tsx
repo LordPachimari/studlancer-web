@@ -20,6 +20,7 @@ import { generateHTML } from "@tiptap/html";
 import Image, { ImageLoaderProps } from "next/image";
 import FileExtension from "../Tiptap/FileExtension";
 import ImageExtension from "../Tiptap/ImageExtension";
+import * as pako from "pako";
 
 import styles from "./workspace.module.css";
 import {
@@ -238,8 +239,9 @@ export const NonEditableSolutionAttributes = ({
     </>
   );
 };
-export const NonEditableContent = ({ content }: { content: string }) => {
-  const contentJSON = JSON.parse(content) as JSONContent;
+export const NonEditableContent = ({ content }: { content: Uint8Array }) => {
+  const restoredContent = pako.inflate(content, { to: "string" });
+  const contentJSON = JSON.parse(restoredContent) as JSONContent;
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
       Document,
@@ -261,7 +263,7 @@ const Preview = ({
   type,
 }: {
   quest?: Quest;
-  content?: string;
+  content?: Uint8Array;
   solution?: Solution;
   type: "SOLUTION" | "QUEST";
 }) => {

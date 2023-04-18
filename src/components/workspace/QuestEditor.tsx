@@ -84,17 +84,6 @@ const QuestEditor = ({ id }: { id: string }) => {
   const clearTransactionQueue = WorkspaceStore(
     (state) => state.clearTransactionQueue
   );
-  useEffect(() => {
-    get(`TRANSACTIONS#${id}`)
-      .then((val: string | undefined) => {
-        if (val) {
-          updateQuestAttributes.mutate({ transactionsString: val });
-          del(`TRANSACTIONS#${id}`).catch((err) => console.log(err));
-        }
-      })
-      .catch((err) => console.log(err));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateQuestAttributesHandler = useCallback(
@@ -144,64 +133,63 @@ const QuestEditor = ({ id }: { id: string }) => {
 
           _transactionQueue.set(lastTransaction.id, questTransactions);
         }
-        for (const [key, value] of _transactionQueue.entries()) {
-          for (const item of value.transactions) {
-            const { attribute, value, id } = item;
 
-            update<
-              | Record<
-                  string,
-                  (string | number | string[]) &
-                    (string | number | string[] | undefined)
-                >
-              | undefined
-            >(id, (quest) => {
-              if (quest) {
-                quest[attribute] = value;
-
-                return quest;
-              }
-            }).catch((err) => console.log(err));
-          }
-
-          //updating the indexedb quest version after changes
-
-          update<Quest | undefined>(key, (quest) => {
-            if (quest) {
-              quest.lastUpdated = updateTime;
-              return quest;
-            }
-          }).catch((err) => console.log(err));
-          //updating the localstorage quest versions after change
-          const questVersion = JSON.parse(
-            localStorage.getItem(key) as string
-          ) as Versions;
-          if (questVersion) {
-            const newVersions = {
-              server: updateTime,
-              local: updateTime,
-            };
-            localStorage.setItem(key, JSON.stringify(newVersions));
-          }
-        }
         const transactionString = JSON.stringify(
           _transactionQueue,
           mapReplacer
         );
-        set(`TRANSACTIONS#${id}`, transactionString).catch((err) =>
-          console.log("error storing transactions in local storage", err)
-        );
+
         updateQuestAttributes.mutate(
           {
             transactionsString: transactionString,
           },
           {
             onSuccess: () => {
-              del(`TRANSACTIONS#${id}`).catch((err) => console.log(err));
+              for (const [key, value] of _transactionQueue.entries()) {
+                for (const item of value.transactions) {
+                  const { attribute, value, id } = item;
+
+                  update<
+                    | Record<
+                        string,
+                        (string | number | string[]) &
+                          (string | number | string[] | undefined)
+                      >
+                    | undefined
+                  >(id, (quest) => {
+                    if (quest) {
+                      quest[attribute] = value;
+
+                      return quest;
+                    }
+                  }).catch((err) => console.log(err));
+                }
+
+                //updating the indexedb quest version after changes
+
+                update<Quest | undefined>(key, (quest) => {
+                  if (quest) {
+                    quest.lastUpdated = updateTime;
+                    return quest;
+                  }
+                }).catch((err) => console.log(err));
+                //updating the localstorage quest versions after change
+                const questVersion = JSON.parse(
+                  localStorage.getItem(key) as string
+                ) as Versions;
+                if (questVersion) {
+                  const newVersions = {
+                    server: updateTime,
+                    local: updateTime,
+                  };
+                  localStorage.setItem(key, JSON.stringify(newVersions));
+                }
+              }
+
+              clearTransactionQueue();
             },
           }
         );
-        clearTransactionQueue();
       },
       1000
     ),
@@ -301,11 +289,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         ) : quest.published && quest.content ? (
           <NonEditableContent content={quest.content} />
         ) : (
-          <TiptapEditor
-            id={quest.id}
-            content={quest.content}
-            updateAttributesHandler={updateQuestAttributesHandler}
-          />
+          <TiptapEditor id={quest.id} content={quest.content} type="QUEST" />
         )}
       </Card>
       {quest && !quest.published && (

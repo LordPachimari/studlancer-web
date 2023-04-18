@@ -17,6 +17,7 @@ import {
   SolverPartialZod,
   User,
   UserDynamo,
+  Content,
 } from "../../../types/main";
 
 import { NativeAttributeValue } from "@aws-sdk/util-dynamodb";
@@ -202,23 +203,61 @@ export const questRouter = router({
     .query(async ({ ctx, input }) => {
       const { auth } = ctx;
       const { id } = input;
-      const params: GetCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
 
-        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
+      const tableName = process.env.WORKSPACE_TABLE_NAME || "";
+      const RequestItems: Record<
+        string,
+        Omit<KeysAndAttributes, "Keys"> & {
+          Keys: Record<string, any>[] | undefined;
+        }
+      > = {};
+      RequestItems[tableName] = {
+        Keys: [
+          {
+            PK: `USER#${auth.userId}`,
+            SK: `QUEST#${id}`,
+          },
+          {
+            PK: `USER#${auth.userId}`,
+            SK: `CONTENT#${id}`,
+          },
+        ],
+      };
+      const getBatchParams: BatchGetCommandInput = {
+        RequestItems,
       };
 
       try {
-        const result = await dynamoClient.send(new GetCommand(params));
-        if (result.Item) {
-          const quest = result.Item as Quest;
-          if (quest.creatorId !== auth.userId) {
-            throw new TRPCError({
-              code: "UNAUTHORIZED",
-              message: "UNAUTHORIZED TO VIEW THE QUEST",
-            });
+        const result = await dynamoClient.send(
+          new BatchGetCommand(getBatchParams)
+        );
+        if (result.Responses) {
+          let content: Uint8Array | null = null;
+          let quest: Quest | null = null;
+          const QuestsAndContent = result.Responses[tableName] as {
+            PK: string;
+            SK: string;
+          }[];
+          for (const item of QuestsAndContent) {
+            if (item.SK.startsWith("QUEST#")) {
+              quest = item as QuestDynamo;
+            } else {
+              content = (item as Content & { PK: string; SK: string }).content;
+            }
           }
-          return result.Item as Quest;
+          if (quest) {
+            if (quest.creatorId !== auth.userId) {
+              throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "UNAUTHORIZED TO VIEW THE QUEST",
+              });
+            }
+            if (content) {
+              quest.content = content;
+            }
+            return quest;
+          }
+          return null;
         } else {
           return null;
         }
@@ -247,7 +286,7 @@ export const questRouter = router({
         type: "QUEST",
       };
       const putParams: PutCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         Item: questItem,
       };
 
@@ -277,12 +316,8 @@ export const questRouter = router({
       // ) as QuestTransactionStore;
       // QuestTransactionStoreZod.parse(QuestTransactionStore);
       TransactionQueueZod.parse(transactionMap);
-      const updateParamsArray: {
-        Update?: Omit<Update, "Key" | "ExpressionAttributeValues"> & {
-          Key: Record<string, NativeAttributeValue> | undefined;
-          ExpressionAttributeValues?: Record<string, NativeAttributeValue>;
-        };
-      }[] = [];
+
+      let updateParams: UpdateCommandInput | null = null;
       for (const [key, value] of transactionMap.entries()) {
         const attributes = value.transactions.map((t) => {
           return `${t.attribute} = :${t.attribute}`;
@@ -290,50 +325,79 @@ export const questRouter = router({
         const UpdateExpression = `set ${attributes.join(", ")}`;
         const ExpressionAttributeValues: Record<
           string,
-          string | number | string[]
+          string | number | string[] | Uint8Array
         > = {};
         value.transactions.forEach((t) => {
           ExpressionAttributeValues[`:${t.attribute}`] = t.value;
         });
-        updateParamsArray.push({
-          Update: {
-            TableName: process.env.MAIN_TABLE_NAME,
-            Key: {
-              PK: `USER#${auth.userId}`,
-              SK: `QUEST#${key}`,
-            },
-
-            ConditionExpression: "#published = :published",
-
-            ExpressionAttributeNames: { "#published": "published" },
-            UpdateExpression,
-            ExpressionAttributeValues: {
-              ":published": false,
-              ...ExpressionAttributeValues,
-            },
+        updateParams = {
+          TableName: process.env.WORKSPACE_TABLE_NAME,
+          Key: {
+            PK: `USER#${auth.userId}`,
+            SK: `QUEST#${key}`,
           },
+
+          ConditionExpression: "#published = :published",
+
+          ExpressionAttributeNames: { "#published": "published" },
+          UpdateExpression,
+          ExpressionAttributeValues: {
+            ":published": false,
+            ...ExpressionAttributeValues,
+          },
+        };
+      }
+
+      try {
+        if (updateParams) {
+          const result = await dynamoClient.send(
+            new UpdateCommand(updateParams)
+          );
+          if (result) {
+            return true;
+          }
+          return false;
+        }
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "UNABLE TO UPDATE THE QUEST",
         });
       }
-      const transactParams: TransactWriteCommandInput = {
-        TransactItems: updateParamsArray,
-        // ClientRequestToken: user.id,
+    }),
+  updateQuestContent: protectedProcedure
+    .input(z.object({ questId: z.string(), content: z.instanceof(Uint8Array) }))
+    .mutation(async ({ ctx, input }) => {
+      const { auth } = ctx;
+      const { questId, content } = input;
+      const updateParams: UpdateCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Key: {
+          PK: `USER#${auth.userId}`,
+          SK: `CONTENT#${questId}`,
+        },
+
+        UpdateExpression: "SET content = :content",
+        ExpressionAttributeValues: { ":content": content },
       };
 
       try {
-        const result = await dynamoClient.send(
-          new TransactWriteCommand(transactParams)
-        );
-        if (result) {
-          return true;
+        if (updateParams) {
+          const result = await dynamoClient.send(
+            new UpdateCommand(updateParams)
+          );
+          if (result) {
+            return true;
+          }
+          return false;
         }
-        return false;
       } catch (error) {
         console.log(error);
-        return false;
-        // throw new TRPCError({
-        //   code: "BAD_REQUEST",
-        //   message: "UNABLE TO UPDATE THE QUEST",
-        // });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "UNABLE TO UPDATE THE QUEST",
+        });
       }
     }),
 
@@ -343,54 +407,34 @@ export const questRouter = router({
       const { id } = input;
       const { auth } = ctx;
 
-      const tableName = process.env.MAIN_TABLE_NAME || "";
-      const RequestItems: Record<
-        string,
-        Omit<KeysAndAttributes, "Keys"> & {
-          Keys: Record<string, any>[] | undefined;
-        }
-      > = {};
-      RequestItems[tableName] = {
-        Keys: [
-          { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
-          { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-        ],
+      const getUserParams: GetCommandInput = {
+        Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
+        TableName: process.env.MAIN_TABLE_NAME,
       };
-      const params: BatchGetCommandInput = {
-        RequestItems,
+      const getQuestParams: GetCommandInput = {
+        Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
+        TableName: process.env.WORKSPACE_TABLE_NAME || "",
       };
-      type BatchGetType = Record<string, (QuestDynamo | UserDynamo)[]>;
 
       try {
-        const { Responses } = await dynamoClient.send(
-          new BatchGetCommand(params)
-        );
+        const [userItem, questItem] = await Promise.all([
+          dynamoClient.send(new GetCommand(getUserParams)),
+          dynamoClient.send(new GetCommand(getQuestParams)),
+        ]);
 
-        if (Responses) {
-          const questAndUser = Responses as BatchGetType;
-          let creator: User | null = null;
-          let currentQuest: Quest | null = null;
-          for (const item of questAndUser[tableName]!) {
-            if (item.SK.startsWith("QUEST")) {
-              currentQuest = item as Quest;
-            } else {
-              creator = item as User;
-            }
-          }
-          if (!currentQuest || !creator) {
-            console.log("user or quest not found");
-            return false;
-          }
-          //HEHE, ! GO BRRRR
+        if (questItem.Item && userItem.Item) {
+          const currentQuest = questItem.Item as PublishedQuest;
+          const creator = userItem.Item as User;
+
           const publishedQuest: PublishedQuest = {
             id: currentQuest.id,
-            title: currentQuest.title!,
-            content: currentQuest.content!,
-            deadline: currentQuest.deadline!,
-            topic: currentQuest.topic!,
-            subtopic: currentQuest.subtopic!,
-            reward: currentQuest.reward!,
-            slots: currentQuest.slots!,
+            title: currentQuest.title,
+            content: currentQuest.content,
+            deadline: currentQuest.deadline,
+            topic: currentQuest.topic,
+            subtopic: currentQuest.subtopic,
+            reward: currentQuest.reward,
+            slots: currentQuest.slots,
             solverCount: 0,
             status: "OPEN",
             published: true,
@@ -404,14 +448,13 @@ export const questRouter = router({
             allowUnpublish: true,
           };
 
-          //KINDA MESSI ISNIT? HAHA?  JUST LET THE ZOD DO ITS THING (VALIDATION)
           PublishedQuestZod.parse(publishedQuest);
           const params: TransactWriteCommandInput = {
             TransactItems: [
               {
                 Update: {
                   Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-                  TableName: process.env.MAIN_TABLE_NAME,
+                  TableName: process.env.WORKSPACE_TABLE_NAME,
                   ConditionExpression:
                     "#published =:published AND #creatorId =:creatorId",
 
@@ -461,6 +504,7 @@ export const questRouter = router({
           }
           return false;
         }
+
         return false;
       } catch (error) {
         console.log(error);
@@ -481,7 +525,7 @@ export const questRouter = router({
           {
             Update: {
               Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-              TableName: process.env.MAIN_TABLE_NAME,
+              TableName: process.env.WORKSPACE_TABLE_NAME,
               ConditionExpression:
                 "#creatorId =:creatorId AND #allowUnpublish = :true",
 
@@ -538,7 +582,7 @@ export const questRouter = router({
       const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         ConditionExpression:
           "#inTrash =:inTrash AND #creatorId =:creatorId AND #published =:false",
         UpdateExpression: "SET #inTrash = :value",
@@ -572,21 +616,37 @@ export const questRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { auth } = ctx;
       const { id } = input;
-      const deleteParams: DeleteCommandInput = {
-        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-        TableName: process.env.MAIN_TABLE_NAME,
-        ConditionExpression: "#creatorId =:creatorId AND #published =:false",
-        ExpressionAttributeNames: {
-          "#creatorId": "creatorId",
-          "#published": "published",
-        },
-        ExpressionAttributeValues: {
-          ":false": false,
-          ":creatorId": auth.userId,
-        },
+     
+      const transactParams: TransactWriteCommandInput = {
+        TransactItems: [
+          {
+            Delete: {
+              Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
+              TableName: process.env.WORKSPACE_TABLE_NAME,
+              ConditionExpression:
+                "#creatorId =:creatorId AND #published =:false",
+              ExpressionAttributeNames: {
+                "#creatorId": "creatorId",
+                "#published": "published",
+              },
+              ExpressionAttributeValues: {
+                ":false": false,
+                ":creatorId": auth.userId,
+              },
+            },
+          },
+          {
+            Delete: {
+              Key: { PK: `USER#${auth.userId}`, SK: `CONTENT#${id}` },
+              TableName: process.env.WORKSPACE_TABLE_NAME,
+            },
+          },
+        ],
       };
       try {
-        const result = await dynamoClient.send(new DeleteCommand(deleteParams));
+        const result = await dynamoClient.send(
+          new TransactWriteCommand(transactParams)
+        );
         if (result) {
           return true;
         }
@@ -605,7 +665,7 @@ export const questRouter = router({
 
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         ConditionExpression: "#inTrash =:inTrash AND #creatorId =:creatorId",
         UpdateExpression: "SET #inTrash = :value",
         ExpressionAttributeNames: {

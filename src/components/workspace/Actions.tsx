@@ -66,12 +66,13 @@ const Actions = ({ userId }: { userId: string }) => {
         isLoading={createQuest.isLoading}
         onClick={() => {
           const id = ulid();
-          createQuestOrSolutionState({ id, type: "QUEST", userId });
-          storeQuestOrSolution({ id, type: "QUEST", userId });
+
           createQuest.mutate(
             { id },
             {
               onSuccess: () => {
+                createQuestOrSolutionState({ id, type: "QUEST", userId });
+                storeQuestOrSolution({ id, type: "QUEST", userId });
                 void router.push(`/workspace/quests/${id}`);
               },
             }
@@ -87,12 +88,13 @@ const Actions = ({ userId }: { userId: string }) => {
         isLoading={createSolution.isLoading}
         onClick={() => {
           const id = ulid();
-          createQuestOrSolutionState({ id, type: "SOLUTION", userId });
-          storeQuestOrSolution({ id, type: "SOLUTION", userId });
+
           createSolution.mutate(
             { id },
             {
               onSuccess: () => {
+                createQuestOrSolutionState({ id, type: "SOLUTION", userId });
+                storeQuestOrSolution({ id, type: "SOLUTION", userId });
                 void router.push(`/workspace/solutions/${id}`);
               },
             }

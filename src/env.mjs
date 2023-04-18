@@ -10,6 +10,7 @@ const server = z.object({
   REGION: z.enum(["ap-southeast-2"]),
   PUBLIC_BUCKET_NAME: z.string(),
   MAIN_TABLE_NAME: z.string(),
+  WORKSPACE_TABLE_NAME:z.string(),
   ACCESS_KEY: z.string(),
   SECRET_KEY: z.string(),
   MOMENTO_AUTH_TOKEN: z.string(),
@@ -41,7 +42,7 @@ const processEnv = {
 
   MAIN_TABLE_NAME: process.env.MAIN_TABLE_NAME,
   CLERK_SECRET_KEY: process.env.NEXT_ENV_CLERK_SECRET_KEY,
- 
+  WORKSPACE_TABLE_NAME:process.env.WORKSPACE_TABLE_NAME,
   REGION: process.env.REGION,
   PUBLIC_BUCKET_NAME: process.env.PUBLIC_BUCKET_NAME,
   MOMENTO_CACHE_NAME: process.env.MOMENTO_CACHE_NAME,
@@ -53,7 +54,6 @@ const processEnv = {
   NEXT_PUBLIC_SUPABASE_URL:process.env.NEXT_PUBLIC_SUPABASE_URL
 
 
-  // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 };
 
 // Don't touch the part below

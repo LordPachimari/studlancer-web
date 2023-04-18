@@ -1,4 +1,5 @@
 import {
+  Content,
   PublishedSolution,
   PublishedSolutionZod,
   Solution,
@@ -9,6 +10,8 @@ import {
 
 import { NativeAttributeValue } from "@aws-sdk/util-dynamodb";
 import {
+  BatchGetCommand,
+  BatchGetCommandInput,
   DeleteCommand,
   DeleteCommandInput,
   GetCommand,
@@ -21,7 +24,11 @@ import {
   UpdateCommandInput,
 } from "@aws-sdk/lib-dynamodb";
 
-import { Update } from "@aws-sdk/client-dynamodb";
+import {
+  BatchGetItemCommand,
+  KeysAndAttributes,
+  Update,
+} from "@aws-sdk/client-dynamodb";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -109,23 +116,60 @@ export const solutionRouter = router({
     .query(async ({ ctx, input }) => {
       const { auth } = ctx;
       const { id } = input;
-      const params: GetCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
-
-        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
+      const tableName = process.env.WORKSPACE_TABLE_NAME || "";
+      const RequestItems: Record<
+        string,
+        Omit<KeysAndAttributes, "Keys"> & {
+          Keys: Record<string, any>[] | undefined;
+        }
+      > = {};
+      RequestItems[tableName] = {
+        Keys: [
+          {
+            PK: `USER#${auth.userId}`,
+            SK: `SOLUTION#${id}`,
+          },
+          {
+            PK: `USER#${auth.userId}`,
+            SK: `CONTENT#${id}`,
+          },
+        ],
+      };
+      const getBatchParams: BatchGetCommandInput = {
+        RequestItems,
       };
 
       try {
-        const result = await dynamoClient.send(new GetCommand(params));
-        if (result.Item) {
-          const solution = result.Item as Solution;
-          if (solution.creatorId !== auth.userId) {
-            throw new TRPCError({
-              code: "UNAUTHORIZED",
-              message: "UNAUTHORIZED TO VIEW THE SOLUTION",
-            });
+        const result = await dynamoClient.send(
+          new BatchGetCommand(getBatchParams)
+        );
+        if (result.Responses) {
+          let content: Uint8Array | null = null;
+          let solution: Solution | null = null;
+          const SolutionAndContent = result.Responses[tableName] as {
+            PK: string;
+            SK: string;
+          }[];
+          for (const item of SolutionAndContent) {
+            if (item.SK.startsWith("SOLUTION#")) {
+              solution = item as SolutionDynamo;
+            } else {
+              content = (item as Content & { PK: string; SK: string }).content;
+            }
           }
-          return result.Item as Solution;
+          if (solution) {
+            if (solution.creatorId !== auth.userId) {
+              throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "UNAUTHORIZED TO VIEW THE QUEST",
+              });
+            }
+            if (content) {
+              solution.content = content;
+            }
+            return solution;
+          }
+          return null;
         } else {
           return null;
         }
@@ -163,7 +207,7 @@ export const solutionRouter = router({
         ...(questCreatorId && { questCreatorId }),
       };
       const putParams: PutCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         Item: solutionItem,
       };
       try {
@@ -193,12 +237,7 @@ export const solutionRouter = router({
       // ) as QuestTransactionStore;
       // QuestTransactionStoreZod.parse(QuestTransactionStore);
       TransactionQueueZod.parse(transactionMap);
-      const updateParamsArray: {
-        Update?: Omit<Update, "Key" | "ExpressionAttributeValues"> & {
-          Key: Record<string, NativeAttributeValue> | undefined;
-          ExpressionAttributeValues?: Record<string, NativeAttributeValue>;
-        };
-      }[] = [];
+      let updateParams: UpdateCommandInput | null = null;
       for (const [key, value] of transactionMap.entries()) {
         const attributes = value.transactions.map((t) => {
           return `${t.attribute} = :${t.attribute}`;
@@ -206,51 +245,85 @@ export const solutionRouter = router({
         const UpdateExpression = `set ${attributes.join(", ")}`;
         const ExpressionAttributeValues: Record<
           string,
-          string | number | string[]
+          string | number | string[] | Uint8Array
         > = {};
         value.transactions.forEach((t) => {
           ExpressionAttributeValues[`:${t.attribute}`] = t.value;
         });
-        updateParamsArray.push({
-          Update: {
-            TableName: process.env.MAIN_TABLE_NAME,
-            Key: {
-              PK: `USER#${auth.userId}`,
-              SK: `SOLUTION#${key}`,
-            },
-
-            ConditionExpression: "#published = :published",
-
-            ExpressionAttributeNames: { "#published": "published" },
-            UpdateExpression,
-            ExpressionAttributeValues: {
-              ":published": false,
-              ...ExpressionAttributeValues,
-            },
+        updateParams = {
+          TableName: process.env.WORKSPACE_TABLE_NAME,
+          Key: {
+            PK: `USER#${auth.userId}`,
+            SK: `SOLUTION#${key}`,
           },
+
+          ConditionExpression: "#published = :published",
+
+          ExpressionAttributeNames: { "#published": "published" },
+          UpdateExpression,
+          ExpressionAttributeValues: {
+            ":published": false,
+            ...ExpressionAttributeValues,
+          },
+        };
+      }
+
+      try {
+        if (updateParams) {
+          const result = await dynamoClient.send(
+            new UpdateCommand(updateParams)
+          );
+          if (result) {
+            return true;
+          }
+          return false;
+        }
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "UNABLE TO UPDATE THE SOLUTION",
         });
       }
-      const transactParams: TransactWriteCommandInput = {
-        TransactItems: updateParamsArray,
+    }),
+  updateSolutionContent: protectedProcedure
+    .input(
+      z.object({ solutionId: z.string(), content: z.instanceof(Uint8Array) })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { auth } = ctx;
+      const { solutionId, content } = input;
+      const updateParams: UpdateCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Key: {
+          PK: `USER#${auth.userId}`,
+          SK: `CONTENT#${solutionId}`,
+        },
+
+        UpdateExpression: "SET content = :content",
+
+        ExpressionAttributeValues: { ":content": content },
       };
 
       try {
-        const result = await dynamoClient.send(
-          new TransactWriteCommand(transactParams)
-        );
-        if (result) {
-          return true;
+        if (updateParams) {
+          const result = await dynamoClient.send(
+            new UpdateCommand(updateParams)
+          );
+          if (result) {
+            return true;
+          }
+          return false;
         }
-        return false;
       } catch (error) {
         console.log(error);
-        return false;
-        // throw new TRPCError({
-        //   code: "BAD_REQUEST",
-        //   message: "UNABLE TO UPDATE THE QUEST",
-        // });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "UNABLE TO UPDATE THE SOLUTION",
+        });
       }
     }),
+
   publishSolution: protectedProcedure
     .input(
       z.object({
@@ -264,7 +337,7 @@ export const solutionRouter = router({
       const { auth } = ctx;
 
       const getParams: GetCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
       };
 
@@ -294,7 +367,7 @@ export const solutionRouter = router({
               {
                 Update: {
                   Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-                  TableName: process.env.MAIN_TABLE_NAME,
+                  TableName: process.env.WORKSPACE_TABLE_NAME,
                   ConditionExpression:
                     "#published =:published AND #creatorId =:creatorId",
 
@@ -382,7 +455,7 @@ export const solutionRouter = router({
           {
             Update: {
               Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-              TableName: process.env.MAIN_TABLE_NAME,
+              TableName: process.env.WORKSPACE_TABLE_NAME,
               ConditionExpression: "#creatorId =:creatorId",
 
               UpdateExpression:
@@ -451,7 +524,7 @@ export const solutionRouter = router({
       const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         ConditionExpression:
           "#inTrash =:inTrash AND #creatorId =:creatorId AND #published = :false",
         UpdateExpression: "SET #inTrash = :value",
@@ -487,7 +560,7 @@ export const solutionRouter = router({
       const { id } = input;
       const deleteParams: DeleteCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         ConditionExpression: "#creatorId =:creatorId AND #published =:false",
         ExpressionAttributeNames: {
           "#creatorId": "creatorId",
@@ -498,8 +571,36 @@ export const solutionRouter = router({
           ":false": false,
         },
       };
+      const transactParams: TransactWriteCommandInput = {
+        TransactItems: [
+          {
+            Delete: {
+              Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
+              TableName: process.env.WORKSPACE_TABLE_NAME,
+              ConditionExpression:
+                "#creatorId =:creatorId AND #published =:false",
+              ExpressionAttributeNames: {
+                "#creatorId": "creatorId",
+                "#published": "published",
+              },
+              ExpressionAttributeValues: {
+                ":creatorId": auth.userId,
+                ":false": false,
+              },
+            },
+          },
+          {
+            Delete: {
+              Key: { PK: `USER#${auth.userId}`, SK: `CONTENT#${id}` },
+              TableName: process.env.WORKSPACE_TABLE_NAME,
+            },
+          },
+        ],
+      };
       try {
-        const result = await dynamoClient.send(new DeleteCommand(deleteParams));
+        const result = await dynamoClient.send(
+          new TransactWriteCommand(transactParams)
+        );
         if (result) {
           return true;
         }
@@ -517,7 +618,7 @@ export const solutionRouter = router({
       const { id } = input;
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: process.env.WORKSPACE_TABLE_NAME,
         ConditionExpression: "#inTrash =:inTrash AND #creatorId =:creatorId",
         UpdateExpression: "SET #inTrash = :value",
         ExpressionAttributeNames: {

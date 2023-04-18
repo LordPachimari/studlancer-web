@@ -93,7 +93,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
   const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
   const updateSolutionAttributes =
     trpc.solution.updateSolutionAttributes.useMutation({
-      // retry: 3,
+      retry: 3,
     });
   const quest = trpc.quest.publishedQuest.useQuery(
     { id: (!!solution && solution.questId) || "" },
@@ -210,51 +210,58 @@ const SolutionEditor = ({ id }: { id: string }) => {
 
           _transactionQueue.set(lastTransaction.id, solutionTransactions);
         }
-        for (const [key, value] of _transactionQueue.entries()) {
-          for (const item of value.transactions) {
-            const { attribute, value, id } = item;
 
-            update<
-              | Record<
-                  string,
-                  (string | number | string[]) &
-                    (string | number | string[] | undefined)
-                >
-              | undefined
-            >(id, (quest) => {
-              if (quest) {
-                quest[attribute] = value;
+        updateSolutionAttributes.mutate(
+          {
+            transactionsString: JSON.stringify(_transactionQueue, mapReplacer),
+          },
+          {
+            onSuccess: () => {
+              for (const [key, value] of _transactionQueue.entries()) {
+                for (const item of value.transactions) {
+                  const { attribute, value, id } = item;
 
-                return quest;
+                  update<
+                    | Record<
+                        string,
+                        (string | number | string[]) &
+                          (string | number | string[] | undefined)
+                      >
+                    | undefined
+                  >(id, (quest) => {
+                    if (quest) {
+                      quest[attribute] = value;
+
+                      return quest;
+                    }
+                  }).catch((err) => console.log(err));
+                }
+
+                //updating the indexedb quest version after changes
+
+                update<Solution | undefined>(key, (solution) => {
+                  if (solution) {
+                    solution.lastUpdated = updateDate;
+                    return solution;
+                  }
+                }).catch((err) => console.log(err));
+                //updating the localstorage quest versions after change
+                const solutionVersion = JSON.parse(
+                  localStorage.getItem(key) as string
+                ) as Versions;
+                if (solutionVersion) {
+                  const newVersions = {
+                    server: updateDate,
+                    local: updateDate,
+                  };
+                  localStorage.setItem(key, JSON.stringify(newVersions));
+                }
               }
-            }).catch((err) => console.log(err));
+
+              clearTransactionQueue();
+            },
           }
-
-          //updating the indexedb quest version after changes
-
-          update<Solution | undefined>(key, (solution) => {
-            if (solution) {
-              solution.lastUpdated = updateDate;
-              return solution;
-            }
-          }).catch((err) => console.log(err));
-          //updating the localstorage quest versions after change
-          const solutionVersion = JSON.parse(
-            localStorage.getItem(key) as string
-          ) as Versions;
-          if (solutionVersion) {
-            const newVersions = {
-              server: updateDate,
-              local: updateDate,
-            };
-            localStorage.setItem(key, JSON.stringify(newVersions));
-          }
-        }
-
-        updateSolutionAttributes.mutate({
-          transactionsString: JSON.stringify(_transactionQueue, mapReplacer),
-        });
-        clearTransactionQueue();
+        );
       },
       1000
     ),
@@ -354,7 +361,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           <TiptapEditor
             id={solution.id}
             content={solution.content}
-            updateAttributesHandler={updateSolutionAttributesHandler}
+            type="SOLUTION"
           />
         )}
       </Card>
