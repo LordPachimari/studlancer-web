@@ -455,7 +455,7 @@ const QuestComponent = ({ quest }: { quest: PublishedQuest }) => {
         <NonEditableQuestAttributes quest={quest} />
       </CardHeader>
       <CardBody>
-        <NonEditableContent content={quest.content} />
+        {quest.content && <NonEditableContent content={quest.content} />}
       </CardBody>
     </Card>
   );

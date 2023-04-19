@@ -118,6 +118,7 @@ const authedOnly = t.middleware(({ next, ctx }) => {
   if (!ctx.auth.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
   }
+  console.log("request...");
   return next({
     ctx: {
       auth: ctx.auth,
@@ -125,6 +126,7 @@ const authedOnly = t.middleware(({ next, ctx }) => {
   });
 });
 const publicAndAuthed = t.middleware(({ next, ctx }) => {
+  console.log("request...");
   return next({
     ctx: {
       auth: ctx.auth,

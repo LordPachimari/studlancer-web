@@ -19,6 +19,7 @@ import {
   UserDynamo,
   Content,
 } from "../../../types/main";
+import * as pako from "pako";
 
 import { NativeAttributeValue } from "@aws-sdk/util-dynamodb";
 import {
@@ -52,6 +53,7 @@ import { rocksetClient } from "~/constants/rocksetClient";
 import { reviver } from "~/utils/mapReplacer";
 import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
+import { JSONContent } from "@tiptap/core";
 
 export const questRouter = router({
   publishedQuest: publicProcedure
@@ -83,15 +85,24 @@ export const questRouter = router({
             ExpressionAttributeNames: { "#PK": "PK" },
             ExpressionAttributeValues: { ":value": `QUEST#${id}` },
           };
+          const contentParams: GetCommandInput = {
+            TableName: process.env.WORKSPACE_TABLE_NAME,
+
+            Key: { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
+          };
 
           let quest: PublishedQuest | null = null;
 
           const solvers: SolverPartial[] = [];
           const commentsId: string[] = [];
 
-          const result = await dynamoClient.send(new QueryCommand(params));
-          if (result.Items) {
-            const questOrSolver = result.Items as (
+          const [queryItems, contentItem] = await Promise.all([
+            dynamoClient.send(new QueryCommand(params)),
+            dynamoClient.send(new GetCommand(contentParams)),
+          ]);
+          if (queryItems.Items && contentItem) {
+            const content = contentItem.Item as Content;
+            const questOrSolver = queryItems.Items as (
               | PublishedQuestDynamo
               | SolverDynamo
             )[];
@@ -119,6 +130,7 @@ export const questRouter = router({
                 message: "UNAUTHORIZED TO VIEW THE QUEST",
               });
             }
+            quest.content = content.content;
           }
 
           const setResponse = await momento.set(
@@ -218,7 +230,7 @@ export const questRouter = router({
             SK: `QUEST#${id}`,
           },
           {
-            PK: `USER#${auth.userId}`,
+            PK: `QUEST#${id}`,
             SK: `CONTENT#${id}`,
           },
         ],
@@ -374,7 +386,7 @@ export const questRouter = router({
       const updateParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: {
-          PK: `USER#${auth.userId}`,
+          PK: `QUEST#${questId}`,
           SK: `CONTENT#${questId}`,
         },
 
@@ -402,18 +414,19 @@ export const questRouter = router({
     }),
 
   publishQuest: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), textContent: z.instanceof(Uint8Array) }))
     .mutation(async ({ ctx, input }) => {
-      const { id } = input;
+      const { id, textContent } = input;
       const { auth } = ctx;
+
+      const getQuestParams: GetCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${auth.userId}` },
+      };
 
       const getUserParams: GetCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
         TableName: process.env.MAIN_TABLE_NAME,
-      };
-      const getQuestParams: GetCommandInput = {
-        Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
-        TableName: process.env.WORKSPACE_TABLE_NAME || "",
       };
 
       try {
@@ -423,29 +436,29 @@ export const questRouter = router({
         ]);
 
         if (questItem.Item && userItem.Item) {
-          const currentQuest = questItem.Item as PublishedQuest;
           const creator = userItem.Item as User;
+          const quest = questItem.Item as Quest;
+
+          const contentText = pako.inflate(textContent, { to: "string" });
 
           const publishedQuest: PublishedQuest = {
-            id: currentQuest.id,
-            title: currentQuest.title,
-            content: currentQuest.content,
-            deadline: currentQuest.deadline,
-            topic: currentQuest.topic,
-            subtopic: currentQuest.subtopic,
-            reward: currentQuest.reward,
-            slots: currentQuest.slots,
+            id: quest.id,
+            title: quest.title!,
+            deadline: quest.deadline!,
+            topic: quest.topic!,
+            subtopic: quest.subtopic!,
+            reward: quest.reward!,
+            slots: quest.slots!,
             solverCount: 0,
             status: "OPEN",
             published: true,
-            creatorId: currentQuest.creatorId,
+            creatorId: quest.creatorId,
             creatorProfile: creator.profile,
             creatorUsername: creator.username,
             publishedAt: new Date().toISOString(),
             type: "QUEST",
-            lastUpdated: currentQuest.lastUpdated,
-
-            allowUnpublish: true,
+            lastUpdated: quest.lastUpdated,
+            text: contentText,
           };
 
           PublishedQuestZod.parse(publishedQuest);
@@ -502,10 +515,11 @@ export const questRouter = router({
           if (transactResult) {
             return true;
           }
-          return false;
         }
-
-        return false;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error publishing quest, fill all the attributes",
+        });
       } catch (error) {
         console.log(error);
         throw new TRPCError({
@@ -616,7 +630,7 @@ export const questRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { auth } = ctx;
       const { id } = input;
-     
+
       const transactParams: TransactWriteCommandInput = {
         TransactItems: [
           {
@@ -637,7 +651,7 @@ export const questRouter = router({
           },
           {
             Delete: {
-              Key: { PK: `USER#${auth.userId}`, SK: `CONTENT#${id}` },
+              Key: { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
               TableName: process.env.WORKSPACE_TABLE_NAME,
             },
           },
@@ -917,7 +931,10 @@ export const questRouter = router({
           {
             Update: {
               TableName: process.env.MAIN_TABLE_NAME,
-              Key: { PK: `QUEST#${questId}`, SK: `SOLUTION#${solutionId}` },
+              Key: {
+                PK: `SOLUTION#${solutionId}`,
+                SK: `SOLUTION#${solutionId}`,
+              },
 
               UpdateExpression: "SET #status = :status",
               ExpressionAttributeNames: {
@@ -973,7 +990,7 @@ export const questRouter = router({
           {
             Update: {
               TableName: process.env.MAIN_TABLE_NAME,
-              Key: { PK: `QUEST#${questId}`, SK: `SOLUTION#${solutionId}` },
+              Key: { PK: `SOLUTION#${questId}`, SK: `SOLUTION#${solutionId}` },
 
               UpdateExpression: "SET #status = :status",
               ExpressionAttributeNames: {
@@ -1026,7 +1043,10 @@ export const questRouter = router({
           {
             Update: {
               TableName: process.env.MAIN_TABLE_NAME,
-              Key: { PK: `QUEST#${questId}`, SK: `SOLUTION#${solutionId}` },
+              Key: {
+                PK: `SOLUTION#${solutionId}`,
+                SK: `SOLUTION#${solutionId}`,
+              },
 
               UpdateExpression: "SET #status = :status",
               ExpressionAttributeNames: {

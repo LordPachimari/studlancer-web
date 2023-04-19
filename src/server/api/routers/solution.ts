@@ -31,7 +31,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-
+import * as pako from "pako";
 import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
 import { reviver } from "~/utils/mapReplacer";
@@ -47,13 +47,23 @@ export const solutionRouter = router({
       const params: GetCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
 
-        Key: { PK: `QUEST#${questId}`, SK: `SOLUTION#${id}` },
+        Key: { PK: `SOLUTION#${id}`, SK: `SOLUTION#${id}` },
+      };
+      const contentParams: GetCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+
+        Key: { PK: `SOLUTION#${id}`, SK: `CONTENT#${id}` },
       };
 
       try {
-        const result = await dynamoClient.send(new GetCommand(params));
-        if (result.Item) {
-          const solution = result.Item as PublishedSolution;
+        const [solutionItem, contentItem] = await Promise.all([
+          dynamoClient.send(new GetCommand(params)),
+          dynamoClient.send(new GetCommand(contentParams)),
+        ]);
+        if (solutionItem.Item && contentItem.Item) {
+          const solution = solutionItem.Item as PublishedSolution;
+          const content = contentItem.Item as Content;
+          solution.content = content.content;
           if (
             solution.creatorId === auth.userId ||
             solution.questCreatorId === auth.userId ||
@@ -61,28 +71,35 @@ export const solutionRouter = router({
             //allow winner solutions to be publicly viewed
             solution.status === "ACCEPTED"
           ) {
-            if (auth.userId === solution.creatorId) {
+            if (auth.userId === solution.creatorId && !solution.viewed) {
               //send notification to the solver that his solution has been viewed by the quest creator
               const transactParams: TransactWriteCommandInput = {
                 TransactItems: [
-                  {
-                    Put: {
-                      TableName: process.env.VIEWCOUNT_TABLE_NAME,
-                      ConditionExpression: "attribute_not_exists(#SK)",
-                      Item: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-                      ExpressionAttributeNames: { "#SK": "SK" },
-                    },
-                  },
                   //not allow unpublish the quest after the quest creator has viewed the solution
                   {
                     Update: {
                       TableName: process.env.MAIN_TABLE_NAME,
-                      Key: { PK: `QUEST#${questId}`, SK: `QUEST#${questId}` },
+                      Key: {
+                        PK: `USER#${solution.questCreatorId}`,
+                        SK: `QUEST#${questId}`,
+                      },
                       UpdateExpression: "SET #allowUnpublish =:false",
                       ExpressionAttributeNames: {
                         "#allowUnpublish": "allowUnpublish",
                       },
                       ExpressionAttributeValues: { ":false": false },
+                    },
+                  },
+                  {
+                    Update: {
+                      TableName: process.env.WORKSPACE_TABLE_NAME,
+                      Key: {
+                        PK: `USER#${solution.questCreatorId}`,
+                        SK: `SOLUTION#${questId}`,
+                      },
+                      UpdateExpression: "SET viewed = :viewed",
+
+                      ExpressionAttributeValues: { ":viewed": true },
                     },
                   },
                 ],
@@ -130,7 +147,7 @@ export const solutionRouter = router({
             SK: `SOLUTION#${id}`,
           },
           {
-            PK: `USER#${auth.userId}`,
+            PK: `SOLUTION#${id}`,
             SK: `CONTENT#${id}`,
           },
         ],
@@ -296,7 +313,7 @@ export const solutionRouter = router({
       const updateParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: {
-          PK: `USER#${auth.userId}`,
+          PK: `SOLUTION#${solutionId}`,
           SK: `CONTENT#${solutionId}`,
         },
 
@@ -330,36 +347,40 @@ export const solutionRouter = router({
         id: z.string(),
         questId: z.string(),
         questCreatorId: z.string(),
+        textContent: z.instanceof(Uint8Array),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, questId, questCreatorId } = input;
+      const { id, questId, questCreatorId, textContent } = input;
       const { auth } = ctx;
 
-      const getParams: GetCommandInput = {
+      const getSolutionParams: GetCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
       };
 
       try {
-        const result = await dynamoClient.send(new GetCommand(getParams));
-
+        const result = await dynamoClient.send(
+          new GetCommand(getSolutionParams)
+        );
         if (result.Item) {
-          const currentSolution = result.Item as Solution;
+          const solution = result.Item as Solution;
 
+          const decompressedContent = pako.inflate(textContent, {
+            to: "string",
+          });
           const publishedSolution: PublishedSolution = {
-            id: currentSolution.id,
-            title: currentSolution.title!,
-            content: currentSolution.content!,
+            id: solution.id,
+            title: solution.title!,
             published: true,
-            creatorId: currentSolution.creatorId,
+            creatorId: solution.creatorId,
             publishedAt: new Date().toISOString(),
-            contributors: currentSolution.contributors,
+            contributors: solution.contributors,
             questCreatorId,
             questId,
-            views: 0,
+            text: decompressedContent,
             type: "SOLUTION",
-            lastUpdated: currentSolution.lastUpdated,
+            lastUpdated: solution.lastUpdated,
           };
           PublishedSolutionZod.parse(publishedSolution);
           const params: TransactWriteCommandInput = {
@@ -392,7 +413,10 @@ export const solutionRouter = router({
               {
                 Update: {
                   TableName: process.env.MAIN_TABLE_NAME,
-                  Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${auth.userId}` },
+                  Key: {
+                    PK: `QUEST#${questId}`,
+                    SK: `SOLVER#${auth.userId}`,
+                  },
                   ConditionExpression: "attribute_exists(SK)",
                   UpdateExpression:
                     "SET #solutionId = :solutionId, #status =:posted",
@@ -412,7 +436,7 @@ export const solutionRouter = router({
                   TableName: process.env.MAIN_TABLE_NAME,
                   Item: {
                     ...publishedSolution,
-                    PK: `QUEST#${questId}`,
+                    PK: `SOLUTION#${id}`,
                     SK: `SOLUTION#${id}`,
                   },
                   ExpressionAttributeNames: { "#PK": "PK" },
@@ -430,16 +454,25 @@ export const solutionRouter = router({
           if (transactResult) {
             return true;
           }
-          return false;
+
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Could not publish the solution, check whether the quest exist or all attributes are filled",
+          });
         } else {
-          return false;
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "Could not publish the solution, check whether the quest exist or all attributes are filled",
+          });
         }
       } catch (error) {
         console.log(error);
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            "Could not publish the solution, check whether the quest exist",
+            "Could not publish the solution, check whether the quest exist or all attributes are filled",
         });
       }
     }),
@@ -478,7 +511,7 @@ export const solutionRouter = router({
             Delete: {
               TableName: process.env.MAIN_TABLE_NAME,
               Key: {
-                PK: `QUEST#${questId}`,
+                PK: `SOLUTION#${id}`,
                 SK: `SOLUTION#${id}`,
               },
             },
@@ -591,7 +624,7 @@ export const solutionRouter = router({
           },
           {
             Delete: {
-              Key: { PK: `USER#${auth.userId}`, SK: `CONTENT#${id}` },
+              Key: { PK: `SOLUTION#${id}`, SK: `CONTENT#${id}` },
               TableName: process.env.WORKSPACE_TABLE_NAME,
             },
           },

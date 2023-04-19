@@ -9,10 +9,10 @@ import {
   useEditor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { update } from "idb-keyval";
+import { set, update } from "idb-keyval";
 import debounce from "lodash.debounce";
 import * as pako from "pako";
-import { ChangeEvent, useCallback, useRef } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { trpc } from "~/utils/api";
 import { Quest, Solution, Versions } from "../../types/main";
 import FileExtension from "../Tiptap/FileExtension";
@@ -36,7 +36,7 @@ const TiptapEditor = (props: {
   if (content) {
     const restored = pako.inflate(content, { to: "string" });
 
-    contentRestored = JSON.parse(restored) as string;
+    contentRestored = restored;
   }
 
   // const provider = new HocuspocusProvider({
@@ -178,6 +178,7 @@ const TiptapEditor = (props: {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
         updateContent({ content: jsonString, type });
+        console.log(editor.getText());
 
         // updateQuest();
         // send the content to an API here
@@ -185,6 +186,12 @@ const TiptapEditor = (props: {
     },
     [id]
   );
+  useEffect(() => {
+    if (editor) {
+      const compressedText = pako.deflate(editor.getText());
+      set(`TEXT_CONTENT${id}`, compressedText).catch((err) => console.log(err));
+    }
+  }, [id, editor]);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 

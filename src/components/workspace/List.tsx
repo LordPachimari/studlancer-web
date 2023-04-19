@@ -191,6 +191,7 @@ const List = ({
                 },
               }
             );
+            //791038091
           } else {
             deleteSolutionPermanently.mutate(
               { id: solution.id },
@@ -655,15 +656,17 @@ const SearchComponent = ({
         const filteredQuests = values.filter(
           (value) =>
             value.type === "QUEST" &&
-            ((value.content && value.content.search(e.target.value) > -1) ||
-              (value.title && value.title?.search(e.target.value) > -1))
+            // (value.content && value.content.search(e.target.value) > -1) ||
+            value.title &&
+            value.title?.search(e.target.value) > -1
         );
 
         const filteredSolution = values.filter(
           (value) =>
             value.type === "SOLUTION" &&
-            ((value.content && value.content?.search(e.target.value) > -1) ||
-              (value.title && value.title?.search(e.target.value) > -1))
+            // (value.content && value.content?.search(e.target.value) > -1) ||
+            value.title &&
+            value.title?.search(e.target.value) > -1
         );
 
         setQuestOrSolutionList({

@@ -106,6 +106,10 @@ const QuestPartialZod = z
     deadline: z.string(),
     lastUpdated: z.string(),
 
+    text: z.optional(z.string()),
+
+    allowUnpublish: z.optional(z.boolean()),
+
     type: z.enum(ObjectTypes),
   })
   .partial();
@@ -129,11 +133,11 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   winnerId: z.optional(z.string()),
   status: z.enum(QuestStatus),
   solverCount: z.number(),
-  allowUnpublish: z.boolean(),
-  content: z.string(),
+  content: z.optional(z.instanceof(Uint8Array)),
 }).omit({
   inTrash: true,
   createdAt: true,
+  allowUnpublish: true,
 });
 export type PublishedQuest = z.infer<typeof PublishedQuestZod>;
 
@@ -225,7 +229,9 @@ const SolutionPartialZod = z
     questId: z.string(),
     title: z.string(),
     lastUpdated: z.string(),
-    views: z.number(),
+    viewed: z.boolean(),
+
+    text: z.optional(z.string()),
 
     questCreatorId: z.string(),
 
@@ -249,6 +255,8 @@ export const PublishedSolutionZod = SolutionPartialZod.omit({
   .required()
   .extend({
     status: z.optional(z.enum(SolutionStatus)),
+    content: z.optional(z.instanceof(Uint8Array)),
+    viewed: z.optional(z.boolean()),
   })
   .partial({ contributors: true, topic: true });
 export type PublishedSolution = z.infer<typeof PublishedSolutionZod>;

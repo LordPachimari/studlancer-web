@@ -34,20 +34,7 @@ import { PublishedQuest, TopicsType } from "~/types/main";
 import { FromNow } from "~/utils/dayjs";
 import FileExtension from "./Tiptap/FileExtension";
 import ImageExtension from "./Tiptap/ImageExtension";
-const HtmlParseOptions: HTMLReactParserOptions = {
-  replace: (_domNode) => {
-    const domNode = _domNode as Element;
-    if (domNode.attribs && domNode.name === "image-component") {
-      return <></>;
-    }
 
-    if (domNode.attribs && domNode.name === "file-component") {
-      const props = attributesToProps(domNode.attribs);
-
-      return <></>;
-    }
-  },
-};
 export default function QuestComponent({
   quest,
   includeContent,
@@ -70,19 +57,6 @@ export default function QuestComponent({
       return "teal";
     }
   };
-
-  const contentJSON = JSON.parse(quest.content) as JSONContent;
-  const output = useMemo(() => {
-    return generateHTML(contentJSON, [
-      Document,
-      Paragraph,
-      _Text,
-      Bold,
-      ImageExtension,
-      FileExtension,
-      // other extensions …
-    ]);
-  }, [contentJSON]);
 
   return (
     <Card w="100%" h="fit-content" borderRadius="2xl">
@@ -159,7 +133,7 @@ export default function QuestComponent({
             textOverflow="ellipsis"
             h={{ base: "20", md: "16" }}
           >
-            {parse(output, HtmlParseOptions)}
+            {quest.text}
           </CardBody>
         )}
 
