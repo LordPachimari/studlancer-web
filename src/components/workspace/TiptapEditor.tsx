@@ -49,6 +49,7 @@ const TiptapEditor = (props: {
   // const ydoc = new Y.Doc();
   // new IndexeddbPersistence(`${quest.id}`, ydoc);
   // console.log("ydoc", ydoc);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateContent = useCallback(
     debounce(
       ({ content, type }: { content: string; type: "QUEST" | "SOLUTION" }) => {
