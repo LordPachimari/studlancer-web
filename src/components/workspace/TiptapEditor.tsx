@@ -179,7 +179,6 @@ const TiptapEditor = (props: {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
         updateContent({ content: jsonString, type });
-        console.log(editor.getText());
 
         // updateQuest();
         // send the content to an API here
