@@ -106,7 +106,7 @@ const QuestPartialZod = z
     deadline: z.string(),
     lastUpdated: z.string(),
 
-    text: z.optional(z.string()),
+    text: z.optional(z.instanceof(Uint8Array)),
 
     allowUnpublish: z.optional(z.boolean()),
 
@@ -134,6 +134,7 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   status: z.enum(QuestStatus),
   solverCount: z.number(),
   content: z.optional(z.instanceof(Uint8Array)),
+  text: z.string(),
 }).omit({
   inTrash: true,
   createdAt: true,
@@ -231,7 +232,7 @@ const SolutionPartialZod = z
     lastUpdated: z.string(),
     viewed: z.boolean(),
 
-    text: z.optional(z.string()),
+    text: z.optional(z.instanceof(Uint8Array)),
 
     questCreatorId: z.string(),
 
@@ -257,6 +258,7 @@ export const PublishedSolutionZod = SolutionPartialZod.omit({
     status: z.optional(z.enum(SolutionStatus)),
     content: z.optional(z.instanceof(Uint8Array)),
     viewed: z.optional(z.boolean()),
+    text: z.string(),
   })
   .partial({ contributors: true, topic: true });
 export type PublishedSolution = z.infer<typeof PublishedSolutionZod>;
@@ -271,6 +273,7 @@ export type SolutionListComponent = Pick<
 >;
 export type Content = {
   content: Uint8Array;
+  text: Uint8Array;
 };
 export type WorkspaceList = {
   quests: QuestListComponent[];

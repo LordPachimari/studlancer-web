@@ -379,10 +379,16 @@ export const questRouter = router({
       }
     }),
   updateQuestContent: protectedProcedure
-    .input(z.object({ questId: z.string(), content: z.instanceof(Uint8Array) }))
+    .input(
+      z.object({
+        questId: z.string(),
+        content: z.instanceof(Uint8Array),
+        textContent: z.instanceof(Uint8Array),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { questId, content } = input;
+      const { questId, content, textContent } = input;
       const updateParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: {
@@ -390,8 +396,12 @@ export const questRouter = router({
           SK: `CONTENT#${questId}`,
         },
 
-        UpdateExpression: "SET content = :content",
-        ExpressionAttributeValues: { ":content": content },
+        UpdateExpression: "SET content = :content, #text = :text",
+        ExpressionAttributeNames: { "#text": "text" },
+        ExpressionAttributeValues: {
+          ":content": content,
+          ":text": textContent,
+        },
       };
 
       try {
@@ -414,14 +424,26 @@ export const questRouter = router({
     }),
 
   publishQuest: protectedProcedure
-    .input(z.object({ id: z.string(), textContent: z.instanceof(Uint8Array) }))
+    .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { id, textContent } = input;
+      const { id } = input;
       const { auth } = ctx;
 
-      const getQuestParams: GetCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
-        Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${auth.userId}` },
+      const tableName = process.env.WORKSPACE_TABLE_NAME || "";
+      const RequestItems: Record<
+        string,
+        Omit<KeysAndAttributes, "Keys"> & {
+          Keys: Record<string, any>[] | undefined;
+        }
+      > = {};
+      RequestItems[tableName] = {
+        Keys: [
+          { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
+          { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
+        ],
+      };
+      const batchParams: BatchGetCommandInput = {
+        RequestItems,
       };
 
       const getUserParams: GetCommandInput = {
@@ -430,90 +452,116 @@ export const questRouter = router({
       };
 
       try {
-        const [userItem, questItem] = await Promise.all([
+        const [userItem, batchResult] = await Promise.all([
           dynamoClient.send(new GetCommand(getUserParams)),
-          dynamoClient.send(new GetCommand(getQuestParams)),
+          dynamoClient.send(new BatchGetCommand(batchParams)),
         ]);
 
-        if (questItem.Item && userItem.Item) {
+        if (batchResult.Responses && userItem.Item) {
+          const questAndContent = batchResult.Responses[tableName] as {
+            PK: string;
+            SK: string;
+          }[];
+          let quest: Quest | null = null;
+          let content: Content | null = null;
+
           const creator = userItem.Item as User;
-          const quest = questItem.Item as Quest;
 
-          const contentText = pako.inflate(textContent, { to: "string" });
+          console.log("item", questAndContent);
+          for (const item of questAndContent) {
+            if (item.SK.startsWith("QUEST#")) {
+              quest = item as QuestDynamo;
+            } else {
+              content = item as Content & { PK: string; SK: string };
+            }
+          }
 
-          const publishedQuest: PublishedQuest = {
-            id: quest.id,
-            title: quest.title!,
-            deadline: quest.deadline!,
-            topic: quest.topic!,
-            subtopic: quest.subtopic!,
-            reward: quest.reward!,
-            slots: quest.slots!,
-            solverCount: 0,
-            status: "OPEN",
-            published: true,
-            creatorId: quest.creatorId,
-            creatorProfile: creator.profile,
-            creatorUsername: creator.username,
-            publishedAt: new Date().toISOString(),
-            type: "QUEST",
-            lastUpdated: quest.lastUpdated,
-            text: contentText,
-          };
+          console.log("heloooooooooooooo", quest, content);
+          if (quest && content) {
+            const decompressedText = pako.inflate(content.text, {
+              to: "string",
+            });
+            const publishedQuest: PublishedQuest = {
+              id: quest.id,
+              title: quest.title!,
+              deadline: quest.deadline!,
+              topic: quest.topic!,
+              subtopic: quest.subtopic!,
+              reward: quest.reward!,
+              slots: quest.slots!,
+              solverCount: 0,
+              status: "OPEN",
+              published: true,
+              creatorId: quest.creatorId,
+              creatorProfile: creator.profile,
+              creatorUsername: creator.username,
+              publishedAt: new Date().toISOString(),
+              type: "QUEST",
+              lastUpdated: quest.lastUpdated,
+              text: decompressedText,
+            };
 
-          PublishedQuestZod.parse(publishedQuest);
-          const params: TransactWriteCommandInput = {
-            TransactItems: [
-              {
-                Update: {
-                  Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
-                  TableName: process.env.WORKSPACE_TABLE_NAME,
-                  ConditionExpression:
-                    "#published =:published AND #creatorId =:creatorId",
+            PublishedQuestZod.parse(publishedQuest);
+            const params: TransactWriteCommandInput = {
+              TransactItems: [
+                {
+                  Update: {
+                    Key: { PK: `USER#${auth.userId}`, SK: `QUEST#${id}` },
+                    TableName: process.env.WORKSPACE_TABLE_NAME,
+                    ConditionExpression:
+                      "#published =:published AND #creatorId =:creatorId",
 
-                  UpdateExpression:
-                    "SET #published = :value, #lastUpdated = :time, #publishedAt = :publishedAt, #allowUnpublish = :true",
+                    UpdateExpression:
+                      "SET #published = :value, #lastUpdated = :time, #publishedAt = :publishedAt, #allowUnpublish = :true",
 
-                  ExpressionAttributeNames: {
-                    "#published": "published",
-                    "#publishedAt": "publishedAt",
-                    "#lastUpdated": "lastUpdated",
+                    ExpressionAttributeNames: {
+                      "#published": "published",
+                      "#publishedAt": "publishedAt",
+                      "#lastUpdated": "lastUpdated",
 
-                    "#creatorId": "creatorId",
-                    "#allowUnpublish": "allowUnpublish",
-                  },
-                  ExpressionAttributeValues: {
-                    ":published": false,
-                    ":value": true,
-                    ":time": new Date().toISOString(),
-                    ":publishedAt": publishedQuest.publishedAt,
-                    ":creatorId": auth.userId,
-                    ":true": true,
+                      "#creatorId": "creatorId",
+                      "#allowUnpublish": "allowUnpublish",
+                    },
+                    ExpressionAttributeValues: {
+                      ":published": false,
+                      ":value": true,
+                      ":time": new Date().toISOString(),
+                      ":publishedAt": publishedQuest.publishedAt,
+                      ":creatorId": auth.userId,
+                      ":true": true,
+                    },
                   },
                 },
-              },
-              {
-                Put: {
-                  TableName: process.env.MAIN_TABLE_NAME,
-                  Item: {
-                    ...publishedQuest,
-                    PK: `QUEST#${id}`,
-                    SK: `QUEST#${id}`,
+                {
+                  Put: {
+                    TableName: process.env.MAIN_TABLE_NAME,
+                    Item: {
+                      ...publishedQuest,
+                      PK: `QUEST#${id}`,
+                      SK: `QUEST#${id}`,
+                    },
                   },
                 },
-              },
-            ],
-          };
-          const transactResult = await dynamoClient.send(
-            new TransactWriteCommand(params)
-          );
+              ],
+            };
+            const transactResult = await dynamoClient.send(
+              new TransactWriteCommand(params)
+            );
 
-          await Promise.allSettled([
-            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-            momento.delete("accounts-cache", id),
-          ]);
-          if (transactResult) {
-            return true;
+            try {
+              await Promise.all([
+                momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+                momento.delete("accounts-cache", id),
+              ]);
+            } catch (error) {
+              console.log("error in cache", error);
+            }
+
+            console.log("result", transactResult);
+            if (transactResult) {
+              console.log("helooooooooooooooooooooooo");
+              return true;
+            }
           }
         }
         throw new TRPCError({
@@ -575,10 +623,15 @@ export const questRouter = router({
         const transactResult = await dynamoClient.send(
           new TransactWriteCommand(params)
         );
-        await Promise.allSettled([
-          momento.delete("accounts-cache", id),
-          momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-        ]);
+
+        try {
+          await Promise.all([
+            momento.delete("accounts-cache", id),
+            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+          ]);
+        } catch (error) {
+          console.log("error in cache", error);
+        }
         if (transactResult) {
           return true;
         }
@@ -753,10 +806,15 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        await Promise.allSettled([
-          momento.delete("accounts-cache", questId),
-          momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-        ]);
+
+        try {
+          await Promise.all([
+            momento.delete("accounts-cache", questId),
+            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+          ]);
+        } catch (error) {
+          console.log("error in cache", error);
+        }
 
         if (result) {
           return true;
@@ -820,10 +878,15 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        await Promise.allSettled([
-          momento.delete("accounts-cache", questId),
-          momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-        ]);
+
+        try {
+          await Promise.all([
+            momento.delete("accounts-cache", questId),
+            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+          ]);
+        } catch (error) {
+          console.log("error in cache", error);
+        }
 
         if (result) {
           return true;
@@ -952,10 +1015,15 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        await Promise.allSettled([
-          momento.delete("accounts-cache", questId),
-          momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-        ]);
+
+        try {
+          await Promise.all([
+            momento.delete("accounts-cache", questId),
+            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+          ]);
+        } catch (error) {
+          console.log("error in cache", error);
+        }
 
         if (result) {
           return true;
@@ -1008,7 +1076,11 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        await Promise.allSettled([momento.delete("accounts-cache", questId)]);
+        try {
+          await Promise.all([momento.delete("accounts-cache", questId)]);
+        } catch (error) {
+          console.log("error in cache", error);
+        }
 
         if (result) {
           return true;
@@ -1064,7 +1136,11 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        await Promise.allSettled([momento.delete("accounts-cache", questId)]);
+        try {
+          await Promise.all([momento.delete("accounts-cache", questId)]);
+        } catch (error) {
+          console.log("error in cache", error);
+        }
 
         if (result) {
           return true;

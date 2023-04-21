@@ -33,7 +33,6 @@ export const workspaceRouter = router({
           | SolutionDynamo
         )[];
 
-        console.log("items", items);
         for (const item of items) {
           if (item.SK.startsWith("QUEST")) {
             quests.push(item as Quest);

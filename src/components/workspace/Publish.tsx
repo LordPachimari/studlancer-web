@@ -74,7 +74,7 @@ const Publish = ({
     title: z.string(),
     subtopic: z.array(z.string()),
     topic: z.string(),
-    content: z.string(),
+    content: z.instanceof(Uint8Array),
     reward: z
       .number()
       .min(1, { message: "Number of diamonds must be greater than 1" }),
@@ -95,7 +95,7 @@ const Publish = ({
   const SolutionAttributesZod = z.object({
     id: z.string(),
     title: z.string(),
-    content: z.string(),
+    content: z.instanceof(Uint8Array),
   });
   const publishQuest = trpc.quest.publishQuest.useMutation();
   const publishSolution = trpc.solution.publishSolution.useMutation();
@@ -112,27 +112,23 @@ const Publish = ({
 
   const validate = () => {
     if (type === "QUEST" && questId) {
-      get(`TEXT_CONTENT${questId}`)
-        .then((val: Uint8Array) => {
-          get(questId)
-            .then((quest: Quest) => {
-              setQuestOrSolution(quest);
+      get(questId)
+        .then((quest: Quest) => {
+          setQuestOrSolution(quest);
 
-              const result = QuestAttributesZod.safeParse(quest);
+          const result = QuestAttributesZod.safeParse(quest);
 
-              if (!result.success) {
-                setErrorMessage(
-                  result.error.issues[0]?.message.startsWith("Required")
-                    ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
-                    : result.error.issues[0]?.message
-                    ? result.error.issues[0].message
-                    : "Please fill all the quest attributes"
-                );
+          if (!result.success) {
+            setErrorMessage(
+              result.error.issues[0]?.message.startsWith("Required")
+                ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
+                : result.error.issues[0]?.message
+                ? result.error.issues[0].message
+                : "Please fill all the quest attributes"
+            );
 
-                return false;
-              }
-            })
-            .catch((err) => console.log(err));
+            return false;
+          }
         })
         .catch((err) => console.log(err));
     }
@@ -176,110 +172,99 @@ const Publish = ({
     const workspaceQuestKey = getQueryKey(trpc.quest.workspaceQuest);
     const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
     if (questId && type === "QUEST") {
-      get(`TEXT_CONTENT${questId}`)
-        .then((val: Uint8Array | undefined) => {
-          if (val)
-            publishQuest.mutate(
-              { id: questId, textContent: val },
-              {
-                onSuccess: () => {
-                  update<(Quest & { status: "OPEN" | "CLOSED" }) | undefined>(
-                    questId,
-                    (value) => {
-                      if (value) {
-                        value.published = true;
-                        value.status = "OPEN";
-                        if (setQuest) {
-                          setQuest(value);
-                        }
-                        return value;
-                      }
-                    }
-                  ).catch((err) => console.log(err));
-                  queryClient
-                    .invalidateQueries({
-                      queryKey: [
-                        ...publishedQuestKey,
-                        ...workspaceQuestKey,
-                        ...publishedQuestsKey,
-                      ],
-                    })
-                    .then(() => {
-                      onClose();
-                      toast({
-                        title: "Quest uploaded successfully",
-                        status: "success",
-                        isClosable: true,
-                      });
-                    })
-                    .catch((err) => {
-                      console.log("error invalidating");
-                    });
-                },
-                onError(error, variables, context) {
-                  setErrorMessage(error.message);
-                  toast({
-                    title: "Quest failed to upload",
-                    status: "error",
-                    isClosable: true,
-                  });
-                },
+      publishQuest.mutate(
+        { id: questId },
+        {
+          onSuccess: () => {
+            update<(Quest & { status: "OPEN" | "CLOSED" }) | undefined>(
+              questId,
+              (value) => {
+                if (value) {
+                  value.published = true;
+                  value.status = "OPEN";
+                  if (setQuest) {
+                    setQuest(value);
+                  }
+                  return value;
+                }
               }
-            );
-        })
-        .catch((err) => console.log(err));
+            ).catch((err) => console.log(err));
+            queryClient
+              .invalidateQueries({
+                queryKey: [
+                  ...publishedQuestKey,
+                  ...workspaceQuestKey,
+                  ...publishedQuestsKey,
+                ],
+              })
+              .then(() => {
+                onClose();
+                toast({
+                  title: "Quest uploaded successfully",
+                  status: "success",
+                  isClosable: true,
+                });
+              })
+              .catch((err) => {
+                console.log("error invalidating");
+              });
+          },
+          onError(error, variables, context) {
+            setErrorMessage(error.message);
+            toast({
+              title: "Quest failed to upload",
+              status: "error",
+              isClosable: true,
+            });
+          },
+        }
+      );
     }
     if (solutionId && type === "SOLUTION" && questId && questCreatorId) {
-      get(`TEXT_CONTENT${solutionId}`)
-        .then((val: Uint8Array | undefined) => {
-          if (val)
-            publishSolution.mutate(
-              {
-                id: solutionId,
-                questCreatorId,
-                questId,
-                textContent: val,
-              },
-              {
-                onSuccess: () => {
-                  update<Solution | undefined>(solutionId, (value) => {
-                    if (value) {
-                      value.published = true;
+      publishSolution.mutate(
+        {
+          id: solutionId,
+          questCreatorId,
+          questId,
+        },
+        {
+          onSuccess: () => {
+            update<Solution | undefined>(solutionId, (value) => {
+              if (value) {
+                value.published = true;
 
-                      if (setSolution) {
-                        setSolution(value);
-                      }
-                      return value;
-                    }
-                  }).catch((err) => console.log(err));
-                  queryClient
-                    .invalidateQueries({
-                      queryKey: [...publishedQuestKey, workspaceSolutionKey],
-                    })
-                    .then(() => {
-                      onClose();
-                      toast({
-                        title: "Solution uploaded successfully",
-                        status: "success",
-                        isClosable: true,
-                      });
-                    })
-                    .catch((err) => {
-                      console.log("error invalidating");
-                    });
-                },
-                onError(error, variables, context) {
-                  setErrorMessage(error.message);
-                  toast({
-                    title: "Solution failed to upload",
-                    status: "error",
-                    isClosable: true,
-                  });
-                },
+                if (setSolution) {
+                  setSolution(value);
+                }
+                return value;
               }
-            );
-        })
-        .catch((err) => console.log(err));
+            }).catch((err) => console.log(err));
+            queryClient
+              .invalidateQueries({
+                queryKey: [...publishedQuestKey, workspaceSolutionKey],
+              })
+              .then(() => {
+                onClose();
+                toast({
+                  title: "Solution uploaded successfully",
+                  status: "success",
+                  isClosable: true,
+                });
+              })
+              .catch((err) => {
+                console.log("error invalidating");
+              });
+          },
+          onError(error, variables, context) {
+            setErrorMessage(error.message);
+            toast({
+              title: "Solution failed to upload",
+              status: "error",
+              isClosable: true,
+            });
+          },
+        }
+      );
     }
   };
 

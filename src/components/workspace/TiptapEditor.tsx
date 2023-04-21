@@ -52,21 +52,31 @@ const TiptapEditor = (props: {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateContent = useCallback(
     debounce(
-      ({ content, type }: { content: string; type: "QUEST" | "SOLUTION" }) => {
+      ({
+        content,
+        textContent,
+        type,
+      }: {
+        content: string;
+        textContent: string;
+        type: "QUEST" | "SOLUTION";
+      }) => {
         //transactionQueue is immutable, but I'll allow myself to mutate the copy of it
         const updateTime = new Date().toISOString();
-        const compressedData = pako.deflate(content);
+        const compressedContent = pako.deflate(content);
+        const compressedTextContent = pako.deflate(textContent);
         if (type === "QUEST") {
           updateQuestContent.mutate(
             {
-              content: compressedData,
+              content: compressedContent,
               questId: id,
+              textContent: compressedTextContent,
             },
             {
               onSuccess: () => {
                 update<Quest | undefined>(id, (quest) => {
                   if (quest) {
-                    quest.content = compressedData;
+                    quest.content = compressedContent;
 
                     return quest;
                   }
@@ -98,14 +108,16 @@ const TiptapEditor = (props: {
         if (type === "SOLUTION") {
           updateSolutionContent.mutate(
             {
-              content: compressedData,
+              content: compressedContent,
               solutionId: id,
+
+              textContent: compressedTextContent,
             },
             {
               onSuccess: () => {
                 update<Solution | undefined>(id, (solution) => {
                   if (solution) {
-                    solution.content = compressedData;
+                    solution.content = compressedContent;
 
                     return solution;
                   }
@@ -178,7 +190,11 @@ const TiptapEditor = (props: {
       onUpdate: ({ editor }) => {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
-        updateContent({ content: jsonString, type });
+        updateContent({
+          content: jsonString,
+          type,
+          textContent: editor.getText(),
+        });
 
         // updateQuest();
         // send the content to an API here
@@ -186,12 +202,6 @@ const TiptapEditor = (props: {
     },
     [id]
   );
-  useEffect(() => {
-    if (editor) {
-      const compressedText = pako.deflate(editor.getText());
-      set(`TEXT_CONTENT${id}`, compressedText).catch((err) => console.log(err));
-    }
-  }, [id, editor]);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 

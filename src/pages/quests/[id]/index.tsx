@@ -189,7 +189,7 @@ export default function PublishedQuestPage() {
               />
             </Center>
           )}
-          <Heading size="sm" my="5">
+          <Heading textAlign="center" size="sm" my="5">
             Solution statuses
           </Heading>
 
@@ -198,9 +198,10 @@ export default function PublishedQuestPage() {
             wrap="wrap"
             mb={5}
             borderWidth="2px"
-            borderColor="gray.200"
+            borderColor="green.200"
             padding="2"
             borderRadius="xl"
+            justifyContent="center"
           >
             {solutionStatuses.map((status, i) => (
               <Flex key={i} gap={2}>
@@ -209,7 +210,7 @@ export default function PublishedQuestPage() {
                   color="white"
                   bg={
                     status === "POSTED SOLUTION"
-                      ? "yellow.200"
+                      ? "yellow.300"
                       : status === "ACCEPTED"
                       ? "green.300"
                       : status === "ACKOWLEDGED"
@@ -620,9 +621,9 @@ const EmptySlot = () => {
         w="28"
         h="14"
         borderWidth="2px"
-        borderColor="gray.300"
+        borderColor="blue.200"
         borderRadius="xl"
-        bg="gray.200"
+        bg="cyan.100"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -633,14 +634,14 @@ const EmptySlot = () => {
           <path fill="none" d="M0 0h24v24H0z" />
           <path
             d="M14 14.252v2.09A6 6 0 0 0 6 22l-2-.001a8 8 0 0 1 10-7.748zM12 13c-3.315 0-6-2.685-6-6s2.685-6 6-6 6 2.685 6 6-2.685 6-6 6zm0-2c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm6 6v-3h2v3h3v2h-3v3h-2v-3h-3v-2h3z"
-            fill="var(--gray)"
+            fill="var(--blue)"
           />
         </svg>
       </Center>
 
       <Center alignItems="center" h="14">
         <Tooltip label="status" placement="top">
-          <Circle size="25px" borderWidth="2px" borderColor="gray.300"></Circle>
+          <Circle size="25px" borderWidth="2px" borderColor="blue.200"></Circle>
         </Tooltip>
       </Center>
     </Flex>

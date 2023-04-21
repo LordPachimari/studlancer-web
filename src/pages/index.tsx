@@ -66,31 +66,31 @@ SignUpPage.getLayout = function getLayout(page: ReactElement) {
     </GlobalLayout>
   );
 };
-export async function getServerSideProps(
-  context: GetServerSidePropsContext<{ id: string }>
-) {
-  const auth = getAuth(context.req);
+// export async function getServerSideProps(
+//   context: GetServerSidePropsContext<{ id: string }>
+// ) {
+//   const auth = getAuth(context.req);
 
-  if (auth.userId) {
-    const ssg = createServerSideHelpers({
-      router: appRouter,
-      ctx: createContextInner({ auth }),
-      transformer: superjson,
-    });
-    auth.userId && (await ssg.user.userById.prefetch({ id: auth.userId }));
+//   if (auth.userId) {
+//     const ssg = createServerSideHelpers({
+//       router: appRouter,
+//       ctx: createContextInner({ auth }),
+//       transformer: superjson,
+//     });
+//     auth.userId && (await ssg.user.userById.prefetch({ id: auth.userId }));
 
-    return {
-      props: {
-        ...buildClerkProps(context.req),
-        trpcState: ssg.dehydrate(),
-      },
-    };
-  }
+//     return {
+//       props: {
+//         ...buildClerkProps(context.req),
+//         trpcState: ssg.dehydrate(),
+//       },
+//     };
+//   }
 
-  return {
-    props: {
-      ...buildClerkProps(context.req),
-    },
-  };
-}
+//   return {
+//     props: {
+//       ...buildClerkProps(context.req),
+//     },
+//   };
+// }
 export default SignUpPage;

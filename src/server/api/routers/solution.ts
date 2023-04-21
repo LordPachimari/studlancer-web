@@ -305,11 +305,11 @@ export const solutionRouter = router({
     }),
   updateSolutionContent: protectedProcedure
     .input(
-      z.object({ solutionId: z.string(), content: z.instanceof(Uint8Array) })
+      z.object({ solutionId: z.string(), content: z.instanceof(Uint8Array) , textContent:z.instanceof(Uint8Array)})
     )
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { solutionId, content } = input;
+      const { solutionId, content, textContent } = input;
       const updateParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: {
@@ -317,9 +317,10 @@ export const solutionRouter = router({
           SK: `CONTENT#${solutionId}`,
         },
 
-        UpdateExpression: "SET content = :content",
+        UpdateExpression: "SET content = :content, #text = :text",
+        ExpressionAttributeNames:{"#text":"text"},
 
-        ExpressionAttributeValues: { ":content": content },
+        ExpressionAttributeValues: { ":content": content, ":text":textContent },
       };
 
       try {
@@ -347,112 +348,135 @@ export const solutionRouter = router({
         id: z.string(),
         questId: z.string(),
         questCreatorId: z.string(),
-        textContent: z.instanceof(Uint8Array),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, questId, questCreatorId, textContent } = input;
+      const { id, questId, questCreatorId } = input;
       const { auth } = ctx;
 
-      const getSolutionParams: GetCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
-        Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
+      const tableName = process.env.WORKSPACE_TABLE_NAME || "";
+      const RequestItems: Record<
+        string,
+        Omit<KeysAndAttributes, "Keys"> & {
+          Keys: Record<string, any>[] | undefined;
+        }
+      > = {};
+      RequestItems[tableName] = {
+        Keys: [
+          { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
+          { PK: `SOLUTION#${id}`, SK: `CONTENT#${id}` },
+        ],
+      };
+      const batchParams: BatchGetCommandInput = {
+        RequestItems,
       };
 
       try {
         const result = await dynamoClient.send(
-          new GetCommand(getSolutionParams)
+          new BatchGetCommand(batchParams)
         );
-        if (result.Item) {
-          const solution = result.Item as Solution;
+        if (result.Responses) {
+          const solutionAndContent = result.Responses[tableName] as {
+            PK: string;
+            SK: string;
+          }[];
+          let solution: Solution | null = null;
+          let content: Content | null = null;
+          for (const item of solutionAndContent) {
+            if (item.SK.startsWith("SOLUTION#")) {
+              solution = item as SolutionDynamo;
+            } else {
+              content = item as Content & { PK: string; SK: string };
+            }
+          }
+          if (solution && content) {
+            const decompressedContent = pako.inflate(content.text, {
+              to: "string",
+            });
+            const publishedSolution: PublishedSolution = {
+              id: solution.id,
+              title: solution.title!,
+              published: true,
+              creatorId: solution.creatorId,
+              publishedAt: new Date().toISOString(),
+              contributors: solution.contributors,
+              questCreatorId,
+              questId,
+              text: decompressedContent,
+              type: "SOLUTION",
+              lastUpdated: solution.lastUpdated,
+            };
+            PublishedSolutionZod.parse(publishedSolution);
+            const params: TransactWriteCommandInput = {
+              TransactItems: [
+                {
+                  Update: {
+                    Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
+                    TableName: process.env.WORKSPACE_TABLE_NAME,
+                    ConditionExpression:
+                      "#published =:published AND #creatorId =:creatorId",
 
-          const decompressedContent = pako.inflate(textContent, {
-            to: "string",
-          });
-          const publishedSolution: PublishedSolution = {
-            id: solution.id,
-            title: solution.title!,
-            published: true,
-            creatorId: solution.creatorId,
-            publishedAt: new Date().toISOString(),
-            contributors: solution.contributors,
-            questCreatorId,
-            questId,
-            text: decompressedContent,
-            type: "SOLUTION",
-            lastUpdated: solution.lastUpdated,
-          };
-          PublishedSolutionZod.parse(publishedSolution);
-          const params: TransactWriteCommandInput = {
-            TransactItems: [
-              {
-                Update: {
-                  Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-                  TableName: process.env.WORKSPACE_TABLE_NAME,
-                  ConditionExpression:
-                    "#published =:published AND #creatorId =:creatorId",
+                    UpdateExpression:
+                      "SET #published = :value, #lastUpdated = :lastUpdated, #publishedAt = :publishedAt",
 
-                  UpdateExpression:
-                    "SET #published = :value, #lastUpdated = :lastUpdated, #publishedAt = :publishedAt",
-
-                  ExpressionAttributeNames: {
-                    "#published": "published",
-                    "#publishedAt": "publishedAt",
-                    "#creatorId": "creatorId",
-                    "#lastUpdated": "lastUpdated",
-                  },
-                  ExpressionAttributeValues: {
-                    ":published": false,
-                    ":value": true,
-                    ":lastUpdated": new Date().toISOString(),
-                    ":publishedAt": publishedSolution.publishedAt,
-                    ":creatorId": auth.userId,
+                    ExpressionAttributeNames: {
+                      "#published": "published",
+                      "#publishedAt": "publishedAt",
+                      "#creatorId": "creatorId",
+                      "#lastUpdated": "lastUpdated",
+                    },
+                    ExpressionAttributeValues: {
+                      ":published": false,
+                      ":value": true,
+                      ":lastUpdated": new Date().toISOString(),
+                      ":publishedAt": publishedSolution.publishedAt,
+                      ":creatorId": auth.userId,
+                    },
                   },
                 },
-              },
-              {
-                Update: {
-                  TableName: process.env.MAIN_TABLE_NAME,
-                  Key: {
-                    PK: `QUEST#${questId}`,
-                    SK: `SOLVER#${auth.userId}`,
-                  },
-                  ConditionExpression: "attribute_exists(SK)",
-                  UpdateExpression:
-                    "SET #solutionId = :solutionId, #status =:posted",
-                  ExpressionAttributeNames: {
-                    "#solutionId": "solutionId",
-                    "#status": "status",
-                  },
-                  ExpressionAttributeValues: {
-                    ":solutionId": id,
-                    ":posted": "POSTED",
+                {
+                  Update: {
+                    TableName: process.env.MAIN_TABLE_NAME,
+                    Key: {
+                      PK: `QUEST#${questId}`,
+                      SK: `SOLVER#${auth.userId}`,
+                    },
+                    ConditionExpression: "attribute_exists(SK)",
+                    UpdateExpression:
+                      "SET #solutionId = :solutionId, #status =:posted",
+                    ExpressionAttributeNames: {
+                      "#solutionId": "solutionId",
+                      "#status": "status",
+                    },
+                    ExpressionAttributeValues: {
+                      ":solutionId": id,
+                      ":posted": "POSTED",
+                    },
                   },
                 },
-              },
 
-              {
-                Put: {
-                  TableName: process.env.MAIN_TABLE_NAME,
-                  Item: {
-                    ...publishedSolution,
-                    PK: `SOLUTION#${id}`,
-                    SK: `SOLUTION#${id}`,
+                {
+                  Put: {
+                    TableName: process.env.MAIN_TABLE_NAME,
+                    Item: {
+                      ...publishedSolution,
+                      PK: `SOLUTION#${id}`,
+                      SK: `SOLUTION#${id}`,
+                    },
                   },
-                  ExpressionAttributeNames: { "#PK": "PK" },
                 },
-              },
-            ],
-          };
-          const transactResult = await dynamoClient.send(
-            new TransactWriteCommand(params)
-          );
-          momento
-            .delete("accounts-cache", questId)
-            .catch((err) => console.log(err));
+              ],
+            };
+            const transactResult = await dynamoClient.send(
+              new TransactWriteCommand(params)
+            );
+            momento
+              .delete("accounts-cache", questId)
+              .catch((err) => console.log(err));
 
-          if (transactResult) {
-            return true;
+            if (transactResult) {
+              return true;
+            }
           }
 
           throw new TRPCError({
