@@ -1,3 +1,4 @@
+export {};
 // const SearchComponent = ({
 //   isOpen,
 //   onClose,
