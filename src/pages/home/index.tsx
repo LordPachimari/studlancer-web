@@ -10,7 +10,7 @@ import {
   Select,
   Spinner,
 } from "@chakra-ui/react";
-import { ReactElement } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import QuestComponent, {
   QuestComponentSkeleton,
 } from "~/components/QuestComponent";
@@ -21,6 +21,8 @@ import Leaderboard from "../../components/home/Leaderboard";
 // import { GlobalChat } from "~/components/home/GlobalChat/GlobalChat";
 import dynamic from "next/dynamic";
 import { LoadingChat } from "../../components/home/GlobalChat/GlobalChat";
+import { PublishedQuest } from "~/types/main";
+import SearchQuest from "~/components/home/SearchQuest";
 
 const GlobalChat = dynamic(
   () => import("../../components/home/GlobalChat/GlobalChat"),
@@ -31,76 +33,71 @@ const GlobalChat = dynamic(
 );
 const LoadingSpinner = () => {
   return (
-    <Center w="100%" h="90vh">
-      <Spinner colorScheme="blue" />
+    <Center w="100%" h="50vh">
+      <Spinner
+        thickness="4px"
+        speed="0.65s"
+        emptyColor="gray.200"
+        color="blue.500"
+        size="lg"
+      />
     </Center>
   );
 };
 
 export default function Home() {
-  const quests = trpc.quest.publishedQuests.useQuery({});
+  const [quests, setQuests] = useState<PublishedQuest[] | null | undefined>(
+    null
+  );
+  const serverQuests = trpc.quest.publishedQuests.useQuery({});
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectValue, setSelectValue] = useState<"latest" | "high reward">(
+    "latest"
+  );
 
+  console.log(searchLoading);
   const emptyQuests: {}[] = [];
   for (let i = 0; i < 3; i++) {
     emptyQuests.push({});
   }
+  useEffect(() => {
+    if (serverQuests.data) {
+      setQuests(serverQuests.data);
+    }
+  }, [serverQuests.data]);
 
   return (
     <Flex w="100%" justifyContent="center" mt={20} mb={20}>
       <Flex w="90%" justify="center" position="relative">
         <Flex w={{ base: "100%", lg: "50%" }} flexDirection="column" gap={3}>
-          <InputGroup size="md" w="100%">
-            <Input
-              bg="white"
-              borderRadius="2xl"
-              placeholder="Search for quests..."
-            />
-
-            <InputRightElement>
-              <IconButton
-                aria-label="search quests"
-                justifyContent="flex-start"
-                pl="2"
-                borderRadius={0}
-                borderRightRadius="2xl"
-                bg="none"
-                icon={
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    width="24"
-                    height="24"
-                  >
-                    <path fill="none" d="M0 0h24v24H0z" />
-                    <path
-                      d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0 1 11 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 0 1-1.969 5.617zm-2.006-.742A6.977 6.977 0 0 0 18 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 0 0 4.875-1.975l.15-.15zm-3.847-8.699a2 2 0 1 0 2.646 2.646 4 4 0 1 1-2.646-2.646z"
-                      fill="var(--blue)"
-                    />
-                  </svg>
-                }
-                w="100%"
-                color="gray.500"
-              />
-            </InputRightElement>
-          </InputGroup>
           <Flex w="100%" flexDirection="row-reverse">
             <Select
               w="40"
               border="2px"
               borderColor="blue.200"
-              value="latest"
+              value={selectValue}
+              onChange={(e) =>
+                setSelectValue(e.target.value as "latest" | "high reward")
+              }
               bg="white"
             >
               <option value="latest">latest</option>
-              <option value="high reward">high reward</option>
+              {/* <option value="high reward">high reward</option> */}
             </Select>
           </Flex>
-          {quests.isLoading ? (
+          <SearchQuest
+            serverQuests={serverQuests.data}
+            setQuests={setQuests}
+            setSearchLoading={setSearchLoading}
+          />
+          {searchLoading ? (
+            <LoadingSpinner />
+          ) : serverQuests.isLoading ? (
             emptyQuests.map((q, i) => (
               <QuestComponentSkeleton key={i} includeContent={true} />
             ))
-          ) : quests.data && quests.data.length > 0 ? (
-            quests.data.map((quest) => (
+          ) : quests && quests.length > 0 ? (
+            quests.map((quest) => (
               <QuestComponent
                 key={quest.id}
                 quest={quest}
@@ -109,7 +106,7 @@ export default function Home() {
               />
             ))
           ) : (
-            <Center w="100%" h="90vh">
+            <Center w="100%" h="50vh">
               No quests...
             </Center>
           )}

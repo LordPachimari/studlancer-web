@@ -64,6 +64,7 @@ export default function GlobalChat() {
         const { data } = await supabase
           .from(TABLE_GLOBAL_CHAT)
           .insert([{ message, channel, user_id, username, profile_url }]);
+
         // .select();
         return data;
       }
@@ -145,29 +146,28 @@ export default function GlobalChat() {
   useEffect(() => {
     const fetchMessages = async () => {
       const supabaseAccessToken = await getToken({ template: "supabase" });
-      if (supabaseAccessToken) {
-        const supabase = supabaseClient({ supabaseAccessToken });
 
-        try {
-          setIsLoading(true);
+      const supabase = supabaseClient({ supabaseAccessToken });
 
-          const { data } = await supabase
-            .from(TABLE_GLOBAL_CHAT)
-            .select(`*`)
-            .eq("channel", channel)
-            .order("created_at", { ascending: true });
-          console.log("fetching messages from supabase...", data);
+      try {
+        setIsLoading(true);
 
-          if (data) {
-            setMessages(data as Message[]);
+        const { data } = await supabase
+          .from(TABLE_GLOBAL_CHAT)
+          .select(`*`)
+          .eq("channel", channel)
+          .order("created_at", { ascending: true });
+        console.log("fetching messages from supabase...", data);
 
-            return data;
-          }
-        } catch (error) {
-          console.log("error", error);
-        } finally {
-          setIsLoading(false);
+        if (data) {
+          setMessages(data as Message[]);
+
+          return data;
         }
+      } catch (error) {
+        console.log("error", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 

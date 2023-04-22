@@ -17,17 +17,19 @@ export const MessageInput = ({
       onSubmit(messageText).catch((err) => console.log(err));
       setMessageText("");
     }
-    if (!isSignedIn) {
-      toast({
-        title: "Please sign up to send a message",
-        description: (
-          <Link href="/">
-            <Text as="u">Click here to sign up</Text>
-          </Link>
-        ),
-        status: "info",
-        isClosable: true,
-      });
+    if (event.key === "Enter") {
+      if (!isSignedIn) {
+        toast({
+          title: "Please sign up to send a message",
+          description: (
+            <Link href="/">
+              <Text as="u">Click here to sign up</Text>
+            </Link>
+          ),
+          status: "info",
+          isClosable: true,
+        });
+      }
     }
   };
   return (

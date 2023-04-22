@@ -51,14 +51,43 @@ import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { dynamoClient } from "~/constants/dynamoClient";
 import { rocksetClient } from "~/constants/rocksetClient";
 import { reviver } from "~/utils/mapReplacer";
-import { momento } from "~/constants/momentoClient";
+// import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
 import { JSONContent } from "@tiptap/core";
 
 export const questRouter = router({
-  // searchPublishedQuest: publicProcedure
-  //   .input(z.object({ text: z.string() }))
-  //   .query(({ ctx, input }) => {}),
+  searchPublishedQuest: publicProcedure
+    .input(z.object({ text: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { text } = input;
+      try {
+        const publishedQuests =
+          await rocksetClient.queryLambdas.executeQueryLambda(
+            "commons",
+            "PublishedQuestSearch",
+            "28817c4c58a9dc8c",
+            {
+              parameters: [
+                {
+                  name: "text",
+                  type: "string",
+                  value: text,
+                },
+              ],
+            }
+          );
+        if (publishedQuests.results) {
+          return publishedQuests.results as PublishedQuest[];
+        }
+        return null;
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "FAILED RETRIEVING QUEST, PLEASE TRY AGAIN",
+        });
+      }
+    }),
   publishedQuest: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
@@ -66,98 +95,101 @@ export const questRouter = router({
       const { auth } = ctx;
 
       try {
-        const getResponse = await momento.get(
-          process.env.MOMENTO_CACHE_NAME || "",
-          id
-        );
-        if (getResponse instanceof CacheGet.Hit) {
-          console.log("cache hit!");
+        // const getResponse = await momento.get(
+        //   process.env.MOMENTO_CACHE_NAME || "",
+        //   id
+        // );
+        // if (getResponse instanceof CacheGet.Hit) {
+        //   console.log("cache hit!");
 
-          //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
-          const result = JSON.parse(getResponse.valueString()) as {
-            quest: PublishedQuest;
-            solvers: SolverPartial[];
-            commentsId: string[];
-          };
+        //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+        //   const result = JSON.parse(getResponse.valueString()) as {
+        //     quest: PublishedQuest;
+        //     solvers: SolverPartial[];
+        //     commentsId: string[];
+        //   };
 
-          return result;
-        } else if (getResponse instanceof CacheGet.Miss) {
-          const params: QueryCommandInput = {
-            TableName: process.env.MAIN_TABLE_NAME,
-            KeyConditionExpression: "#PK = :value",
-            ExpressionAttributeNames: { "#PK": "PK" },
-            ExpressionAttributeValues: { ":value": `QUEST#${id}` },
-          };
-          const contentParams: GetCommandInput = {
-            TableName: process.env.WORKSPACE_TABLE_NAME,
+        //   return result;
+        // } else if (getResponse instanceof CacheGet.Miss) {
+        const params: QueryCommandInput = {
+          TableName: process.env.MAIN_TABLE_NAME,
+          KeyConditionExpression: "#PK = :value",
+          ExpressionAttributeNames: { "#PK": "PK" },
+          ExpressionAttributeValues: { ":value": `QUEST#${id}` },
+        };
+        const contentParams: GetCommandInput = {
+          TableName: process.env.WORKSPACE_TABLE_NAME,
 
-            Key: { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
-          };
+          Key: { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
+        };
 
-          let quest: PublishedQuest | null = null;
+        let quest: PublishedQuest | null = null;
 
-          const solvers: SolverPartial[] = [];
-          const commentsId: string[] = [];
+        const solvers: SolverPartial[] = [];
+        const commentsId: string[] = [];
 
-          const [queryItems, contentItem] = await Promise.all([
-            dynamoClient.send(new QueryCommand(params)),
-            dynamoClient.send(new GetCommand(contentParams)),
-          ]);
-          if (queryItems.Items && contentItem) {
-            const content = contentItem.Item as Content;
-            const questOrSolver = queryItems.Items as (
-              | PublishedQuestDynamo
-              | SolverDynamo
-            )[];
+        const [queryItems, contentItem] = await Promise.all([
+          dynamoClient.send(new QueryCommand(params)),
+          dynamoClient.send(new GetCommand(contentParams)),
+        ]);
+        if (queryItems.Items && contentItem) {
+          const content = contentItem.Item as Content;
+          const questOrSolver = queryItems.Items as (
+            | PublishedQuestDynamo
+            | SolverDynamo
+          )[];
 
-            for (const item of questOrSolver) {
-              if (item.SK.startsWith("QUEST#")) {
-                quest = item as PublishedQuest;
-              } else if (item.SK.startsWith("SOLVER")) {
-                const solver = item as Solver;
-                solvers.push({
-                  id: solver.id,
-                  solutionId: solver.solutionId,
-                  status: solver.status,
-                });
-              } else if (item.SK.startsWith("COMMENT")) {
-                commentsId.push(item.id);
-              }
-            }
-            if (!quest) {
-              return { quest: null, solvers: [], commentsId: [] };
-            }
-            if (!quest.published) {
-              throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "UNAUTHORIZED TO VIEW THE QUEST",
+          for (const item of questOrSolver) {
+            if (item.SK.startsWith("QUEST#")) {
+              quest = item as PublishedQuest;
+            } else if (item.SK.startsWith("SOLVER")) {
+              const solver = item as Solver;
+              solvers.push({
+                id: solver.id,
+                solutionId: solver.solutionId,
+                status: solver.status,
               });
+            } else if (item.SK.startsWith("COMMENT")) {
+              commentsId.push(item.id);
             }
-            quest.content = content.content;
           }
-
-          const setResponse = await momento.set(
-            process.env.MOMENTO_CACHE_NAME || "",
-            id,
-            JSON.stringify({ quest, solvers, commentsId } || ""),
-            { ttl: 1800 }
-          );
-          if (setResponse instanceof CacheSet.Success) {
-            console.log("Key stored successfully!");
-          } else {
-            console.log(`Error setting key: ${setResponse.toString()}`);
+          if (!quest) {
+            return { quest: null, solvers: [], commentsId: [] };
           }
-          //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
-
-          return { quest, solvers, commentsId };
-        } else if (getResponse instanceof CacheGet.Error) {
-          console.log(`Error: ${getResponse.message()}`);
+          if (!quest.published) {
+            throw new TRPCError({
+              code: "UNAUTHORIZED",
+              message: "UNAUTHORIZED TO VIEW THE QUEST",
+            });
+          }
+          quest.content = content.content;
         }
+
+        // const setResponse = await momento.set(
+        //   process.env.MOMENTO_CACHE_NAME || "",
+        //   id,
+        //   JSON.stringify({ quest, solvers, commentsId } || ""),
+        //   { ttl: 1800 }
+        // );
+        // if (setResponse instanceof CacheSet.Success) {
+        //   console.log("Key stored successfully!");
+        // } else {
+        //   console.log(`Error setting key: ${setResponse.toString()}`);
+        // }
+        //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+
+        return { quest, solvers, commentsId };
+        // } else if (getResponse instanceof CacheGet.Error) {
+        //   console.log(`Error: ${getResponse.message()}`);
+        // }
 
         return { quest: null, solvers: [], commentsId: [] };
       } catch (error) {
         console.log(error);
-        return { quest: null, solvers: [], commentsId: [] };
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "FAILED RETRIEVING QUEST, PLEASE TRY AGAIN",
+        });
       }
     }),
 
@@ -169,38 +201,38 @@ export const questRouter = router({
       if (!topic && !subtopic && filter === "latest") {
         //rockset
         try {
-          const getResponse = await momento.get(
-            process.env.MOMENTO_CACHE_NAME || "",
-            "LATEST_PUBLISHED_QUESTS"
-          );
-          if (getResponse instanceof CacheGet.Hit) {
-            console.log("cache hit!");
-            return JSON.parse(getResponse.valueString()) as PublishedQuest[];
-          } else if (getResponse instanceof CacheGet.Miss) {
-            const publishedQuests =
-              await rocksetClient.queryLambdas.executeQueryLambda(
-                "commons",
-                "LatestPublishedQuests",
-                "3ba69e69ae548365",
-                undefined
-              );
-
-            const setResponse = await momento.set(
-              process.env.MOMENTO_CACHE_NAME || "",
-              "LATEST_PUBLISHED_QUESTS",
-              JSON.stringify(publishedQuests.results || ""),
-              { ttl: 1800 }
+          // const getResponse = await momento.get(
+          //   process.env.MOMENTO_CACHE_NAME || "",
+          //   "LATEST_PUBLISHED_QUESTS"
+          // );
+          // if (getResponse instanceof CacheGet.Hit) {
+          //   console.log("cache hit!");
+          //   return JSON.parse(getResponse.valueString()) as PublishedQuest[];
+          // } else if (getResponse instanceof CacheGet.Miss) {
+          const publishedQuests =
+            await rocksetClient.queryLambdas.executeQueryLambda(
+              "commons",
+              "LatestPublishedQuests",
+              "944211782e412b16",
+              undefined
             );
-            if (setResponse instanceof CacheSet.Success) {
-              console.log("Key stored successfully!");
-            } else {
-              console.log(`Error setting key: ${setResponse.toString()}`);
-            }
-            return publishedQuests.results as PublishedQuest[];
-          } else if (getResponse instanceof CacheGet.Error) {
-            console.log(`Error: ${getResponse.message()}`);
-          }
-          return null;
+
+          // const setResponse = await momento.set(
+          //   process.env.MOMENTO_CACHE_NAME || "",
+          //   "LATEST_PUBLISHED_QUESTS",
+          //   JSON.stringify(publishedQuests.results || ""),
+          //   { ttl: 1800 }
+          // );
+          // if (setResponse instanceof CacheSet.Success) {
+          //   console.log("Key stored successfully!");
+          // } else {
+          //   console.log(`Error setting key: ${setResponse.toString()}`);
+          // }
+          return publishedQuests.results as PublishedQuest[];
+          // } else if (getResponse instanceof CacheGet.Error) {
+          //   console.log(`Error: ${getResponse.message()}`);
+          // }
+          // return null;
         } catch (error) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -551,14 +583,14 @@ export const questRouter = router({
               new TransactWriteCommand(params)
             );
 
-            try {
-              await Promise.all([
-                momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-                momento.delete("accounts-cache", id),
-              ]);
-            } catch (error) {
-              console.log("error in cache", error);
-            }
+            // try {
+            //   await Promise.all([
+            //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+            //     momento.delete("accounts-cache", id),
+            //   ]);
+            // } catch (error) {
+            //   console.log("error in cache", error);
+            // }
 
             console.log("result", transactResult);
             if (transactResult) {
@@ -627,14 +659,14 @@ export const questRouter = router({
           new TransactWriteCommand(params)
         );
 
-        try {
-          await Promise.all([
-            momento.delete("accounts-cache", id),
-            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-          ]);
-        } catch (error) {
-          console.log("error in cache", error);
-        }
+        // try {
+        //   await Promise.all([
+        //     momento.delete("accounts-cache", id),
+        //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+        //   ]);
+        // } catch (error) {
+        //   console.log("error in cache", error);
+        // }
         if (transactResult) {
           return true;
         }
@@ -810,14 +842,14 @@ export const questRouter = router({
           new TransactWriteCommand(transactParams)
         );
 
-        try {
-          await Promise.all([
-            momento.delete("accounts-cache", questId),
-            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-          ]);
-        } catch (error) {
-          console.log("error in cache", error);
-        }
+        // try {
+        //   await Promise.all([
+        //     momento.delete("accounts-cache", questId),
+        //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+        //   ]);
+        // } catch (error) {
+        //   console.log("error in cache", error);
+        // }
 
         if (result) {
           return true;
@@ -882,14 +914,14 @@ export const questRouter = router({
           new TransactWriteCommand(transactParams)
         );
 
-        try {
-          await Promise.all([
-            momento.delete("accounts-cache", questId),
-            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-          ]);
-        } catch (error) {
-          console.log("error in cache", error);
-        }
+        // try {
+        //   await Promise.all([
+        //     momento.delete("accounts-cache", questId),
+        //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+        //   ]);
+        // } catch (error) {
+        //   console.log("error in cache", error);
+        // }
 
         if (result) {
           return true;
@@ -1019,14 +1051,14 @@ export const questRouter = router({
           new TransactWriteCommand(transactParams)
         );
 
-        try {
-          await Promise.all([
-            momento.delete("accounts-cache", questId),
-            momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-          ]);
-        } catch (error) {
-          console.log("error in cache", error);
-        }
+        // try {
+        //   await Promise.all([
+        //     momento.delete("accounts-cache", questId),
+        //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+        //   ]);
+        // } catch (error) {
+        //   console.log("error in cache", error);
+        // }
 
         if (result) {
           return true;
@@ -1079,11 +1111,11 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        try {
-          await Promise.all([momento.delete("accounts-cache", questId)]);
-        } catch (error) {
-          console.log("error in cache", error);
-        }
+        // try {
+        //   await Promise.all([momento.delete("accounts-cache", questId)]);
+        // } catch (error) {
+        //   console.log("error in cache", error);
+        // }
 
         if (result) {
           return true;
@@ -1139,11 +1171,11 @@ export const questRouter = router({
         const result = await dynamoClient.send(
           new TransactWriteCommand(transactParams)
         );
-        try {
-          await Promise.all([momento.delete("accounts-cache", questId)]);
-        } catch (error) {
-          console.log("error in cache", error);
-        }
+        // try {
+        //   await Promise.all([momento.delete("accounts-cache", questId)]);
+        // } catch (error) {
+        //   console.log("error in cache", error);
+        // }
 
         if (result) {
           return true;
@@ -1176,9 +1208,9 @@ export const questRouter = router({
       };
       try {
         const result = await dynamoClient.send(new PutCommand(putParams));
-        momento
-          .delete("accounts-cache", questId)
-          .catch((err) => console.log("cache error", err));
+        // momento
+        //   .delete("accounts-cache", questId)
+        //   .catch((err) => console.log("cache error", err));
         if (result) {
           return true;
         }
