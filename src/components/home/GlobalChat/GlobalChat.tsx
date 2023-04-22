@@ -87,9 +87,6 @@ export default function GlobalChat() {
       console.log("error", error);
     }
   };
-  console.log("channel", channel);
-
-  console.log("messages", messages);
 
   useEffect(() => {
     async function DoTheThing() {
@@ -157,7 +154,6 @@ export default function GlobalChat() {
           .select(`*`)
           .eq("channel", channel)
           .order("created_at", { ascending: true });
-        console.log("fetching messages from supabase...", data);
 
         if (data) {
           setMessages(data as Message[]);

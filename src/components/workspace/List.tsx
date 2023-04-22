@@ -571,7 +571,7 @@ const ListSettings = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <>
-      <Button
+      {/* <Button
         justifyContent="flex-start"
         pl="2"
         borderRadius={0}
@@ -595,7 +595,7 @@ const ListSettings = ({ children }: { children: React.ReactNode }) => {
         onClick={onOpenSearchModal}
       >
         Search
-      </Button>
+      </Button> */}
       {/* <SearchComponent
         onClose={onCloseSearchModal}
         isOpen={isOpenSearchModal}

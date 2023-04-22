@@ -3,6 +3,7 @@ import { questRouter } from "./routers/quest";
 import { solutionRouter } from "./routers/solution";
 import { userRouter } from "./routers/user";
 import { workspaceRouter } from "./routers/workspace";
+import { searchRouter } from "./routers/search";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   quest: questRouter,
   solution: solutionRouter,
   workspace: workspaceRouter,
+  search: searchRouter,
 });
 
 // export type definition of API

@@ -15,7 +15,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { clearTimeout } from "timers";
 import { PublishedQuest } from "~/types/main";
 import { trpc } from "~/utils/api";
 
@@ -34,14 +33,13 @@ export default function SearchQuest({
     { text },
     { enabled: enableFetch }
   );
-  console.log("searched quests", searchQuest.data);
-  console.log("hello", searchQuest.isFetching);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleSearch = useCallback(
     debounce((event: ChangeEvent<HTMLInputElement>) => {
       setEnableFetch(true);
       setText(event.target.value);
-      // console.log("yoooo");
-    }, 700),
+    }, 500),
     []
   );
 
@@ -51,6 +49,7 @@ export default function SearchQuest({
       setSearchLoading(false);
       setEnableFetch(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuest.data]);
 
   return (

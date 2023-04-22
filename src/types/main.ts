@@ -309,3 +309,14 @@ export type Message = {
   level: number;
   channel: TopicsType | "GENERAL";
 };
+
+export const Post = z.object({
+  id: z.string(),
+  title: z.string(),
+  topic: z.enum(Topics),
+  publishedAt: z.string(),
+  content: z.optional(z.instanceof(Uint8Array)),
+  text: z.string(),
+  type: z.enum(ObjectTypes),
+});
+export type Post = z.infer<typeof Post>;
