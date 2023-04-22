@@ -164,7 +164,7 @@ const SolutionComponent = ({ solution }: { solution: PublishedSolution }) => {
         <NonEditableSolutionAttributes solution={solution} />
       </CardHeader>
       <CardBody>
-        <NonEditableContent content={solution.content} />
+        {solution.content && <NonEditableContent content={solution.content} />}
       </CardBody>
     </Card>
   );
