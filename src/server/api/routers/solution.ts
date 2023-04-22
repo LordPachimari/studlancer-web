@@ -36,7 +36,7 @@ import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
 import { reviver } from "~/utils/mapReplacer";
 import { momento } from "~/constants/momentoClient";
-
+//hey
 export const solutionRouter = router({
   publishedSolution: protectedProcedure
     .input(z.object({ id: z.string(), questId: z.string() }))
@@ -305,7 +305,11 @@ export const solutionRouter = router({
     }),
   updateSolutionContent: protectedProcedure
     .input(
-      z.object({ solutionId: z.string(), content: z.instanceof(Uint8Array) , textContent:z.instanceof(Uint8Array)})
+      z.object({
+        solutionId: z.string(),
+        content: z.instanceof(Uint8Array),
+        textContent: z.instanceof(Uint8Array),
+      })
     )
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
@@ -318,9 +322,12 @@ export const solutionRouter = router({
         },
 
         UpdateExpression: "SET content = :content, #text = :text",
-        ExpressionAttributeNames:{"#text":"text"},
+        ExpressionAttributeNames: { "#text": "text" },
 
-        ExpressionAttributeValues: { ":content": content, ":text":textContent },
+        ExpressionAttributeValues: {
+          ":content": content,
+          ":text": textContent,
+        },
       };
 
       try {
