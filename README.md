@@ -18,9 +18,9 @@
 - [x] **Authentication**. Utilized third-party clerk authentication.
 - [x] **Global chat**. Used supabase realtime, with rate limiting and cron jobs that delete all the messages except last 100.
 - [x] **Image upload  (needs more optimisation)**. Image upload to S3 bucket via NEXT.js api route. The max image size is 10MB. Image loading state is not added yet, multipart upload will be added in the future. 
+- [x] **Global Search (for quests and users)**. Utilizing Rockset real-time data-analytics.
 
 ## In progress
-- [ ] **GLobal Search (for quests and users)**. Utilizing Rockset real-time data-analytics.
 - [ ] **Notifications**. Notifications will be stored in supabase tables,  every new table insertion of a notification will trigger an event that can be captured by supabase Realtime listeners, which will notify the clients that are subscribed to the updates on the table.
 - [ ] **Payment**. Stripe for payment.
 - [ ] **Private chat**. Supabase realtime. 
