@@ -56,9 +56,9 @@ import { CacheGet, CacheSet } from "@gomomento/sdk";
 import { JSONContent } from "@tiptap/core";
 
 export const questRouter = router({
-  searchPublishedQuest: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ ctx, input }) => {}),
+  // searchPublishedQuest: publicProcedure
+  //   .input(z.object({ text: z.string() }))
+  //   .query(({ ctx, input }) => {}),
   publishedQuest: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {

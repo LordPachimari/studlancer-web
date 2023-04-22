@@ -36,7 +36,6 @@ import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
 import { reviver } from "~/utils/mapReplacer";
 import { momento } from "~/constants/momentoClient";
-//hey
 export const solutionRouter = router({
   publishedSolution: protectedProcedure
     .input(z.object({ id: z.string(), questId: z.string() }))

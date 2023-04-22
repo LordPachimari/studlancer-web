@@ -114,7 +114,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
       unpublish.mutate(
         {
           id,
-          questId: (solution as PublishedSolution).questId,
+          questId: (solution as Solution & { questId: string }).questId,
         },
         {
           onSuccess: () => {
