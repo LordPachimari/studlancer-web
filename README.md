@@ -21,6 +21,7 @@
 - [x] **Global Search (for quests and users)**. Utilizing Rockset real-time data-analytics.
 
 ## In progress
+- [ ] **Pagination.
 - [ ] **Notifications**. Notifications will be stored in supabase tables,  every new table insertion of a notification will trigger an event that can be captured by supabase Realtime listeners, which will notify the clients that are subscribed to the updates on the table.
 - [ ] **Payment**. Stripe for payment.
 - [ ] **Private chat**. Supabase realtime. 
