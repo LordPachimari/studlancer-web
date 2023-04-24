@@ -17,6 +17,7 @@ import { useState } from "react";
 import { trpc } from "~/utils/api";
 import { LoadingSpinner } from "../LoadingSpinner";
 import { LeaderboardType } from "~/types/main";
+import Link from "next/link";
 const UserComponent = ({
   username,
   level,
@@ -180,9 +181,11 @@ export default function Leaderboard() {
         ))
       )}
       <CardFooter justifyContent="center">
-        <Button bg="blue.50" color="blue.500" _hover={{ bg: "blue.100" }}>
-          See full leaderboard
-        </Button>
+        <Link href="/leaderboard">
+          <Button bg="blue.50" color="blue.500" _hover={{ bg: "blue.100" }}>
+            See full leaderboard
+          </Button>
+        </Link>
       </CardFooter>
     </Card>
   );
