@@ -30,15 +30,15 @@ const Sidebar = ({
   const { signOut } = useClerk();
 
   const links = [
-    { page: "home", finished: true },
-    { page: "leaderboard", finished: true },
-    { page: "workspace", finished: true },
-    { page: "chat", finished: false },
-    { page: "notifications", finished: false },
-    { page: "guild", finished: false },
+    { page: "home", finished: true, public: true },
+    { page: "leaderboard", finished: true, public: true },
+    { page: "workspace", finished: true, public: false },
+    { page: "chat", finished: false, public: false },
+    { page: "notifications", finished: false, public: false },
+    { page: "guild", finished: false, public: false },
 
-    { page: "forum", finished: false },
-    { page: "settings", finished: false },
+    { page: "forum", finished: false, public: true },
+    { page: "settings", finished: false, public: false },
   ] as const;
 
   // document.documentElement.setAttribute("data-theme", "dark");
@@ -95,7 +95,7 @@ const Sidebar = ({
         //     </Link>
         //   );
         // }
-        if ((isSignedIn && l.finished) || l.page === "home") {
+        if ((isSignedIn && l.finished) || l.public) {
           return (
             <Link href={`/${l.page}`} key={l.page}>
               <Stack
