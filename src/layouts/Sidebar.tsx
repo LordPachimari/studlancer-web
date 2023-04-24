@@ -31,7 +31,7 @@ const Sidebar = ({
 
   const links = [
     { page: "home", finished: true },
-    { page: "leaderboard", finished: false },
+    { page: "leaderboard", finished: true },
     { page: "workspace", finished: true },
     { page: "chat", finished: false },
     { page: "notifications", finished: false },

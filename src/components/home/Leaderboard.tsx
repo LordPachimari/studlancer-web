@@ -16,26 +16,18 @@ import {
 import { useState } from "react";
 import { trpc } from "~/utils/api";
 import { LoadingSpinner } from "../LoadingSpinner";
+import { LeaderboardType } from "~/types/main";
 const UserComponent = ({
   username,
   level,
-  profileUrl,
+  profile,
   questsSolved,
   rewarded,
   position,
   filter,
-}: {
-  username: string;
-  level: number;
-  profileUrl: string;
-  questsSolved?: number;
-  rewarded?: number;
-  position: number;
-  filter: "quests" | "reward";
-}) => {
+}: LeaderboardType) => {
   return (
-    <Box
-      display="flex"
+    <Flex
       flexDir="row"
       gap="2"
       alignItems="center"
@@ -58,7 +50,7 @@ const UserComponent = ({
       />
       <Box whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
         <Badge color="white" bg="blue.500">
-          {level} lvl
+          {`${level} lvl`}
         </Badge>
         <Text
           fontSize="sm"
@@ -107,7 +99,7 @@ const UserComponent = ({
           </Text>
         </Flex>
       )}
-    </Box>
+    </Flex>
   );
 };
 export default function Leaderboard() {
@@ -179,7 +171,7 @@ export default function Leaderboard() {
             key={u.id}
             username={u.username}
             level={u.level}
-            profileUrl={u.profile}
+            profile={u.profile}
             questsSolved={u.questsSolved}
             position={i + 1}
             filter={filter}

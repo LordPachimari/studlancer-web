@@ -321,3 +321,12 @@ export const Post = z.object({
   type: z.enum(ObjectTypes),
 });
 export type Post = z.infer<typeof Post>;
+export type LeaderboardType = {
+  username: string;
+  level: number;
+  profile: string;
+  questsSolved?: number;
+  rewarded?: number;
+  position: number;
+  filter: "quests" | "reward";
+};
