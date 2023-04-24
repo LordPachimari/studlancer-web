@@ -68,6 +68,9 @@ export const UserZod = z.object({
   guildId: z.optional(z.string()),
   createdAt: z.string(),
   type: z.enum(ObjectTypes),
+  questsSolved: z.optional(z.number()),
+  rewarded: z.optional(z.number()),
+  links: z.optional(z.object({ twitter: z.string(), discord: z.string() })),
 });
 export type User = z.infer<typeof UserZod>;
 export const UserDynamoZod = UserZod.extend({
@@ -135,6 +138,7 @@ export const PublishedQuestZod = QuestRequiredZod.extend({
   solverCount: z.number(),
   content: z.optional(z.instanceof(Uint8Array)),
   text: z.string(),
+  _event_time: z.optional(z.string()),
 }).omit({
   inTrash: true,
   createdAt: true,
@@ -199,6 +203,7 @@ export const PublishedQuestsInputZod = z.object({
   topic: z.optional(z.array(z.string())),
   subtopic: z.optional(z.array(z.string())),
   filter: z.optional(z.enum(["more views", "higher reward", "latest"])),
+  cursor: z.optional(z.string()),
 });
 export type PublishedQuestsInput = z.infer<typeof PublishedQuestsInputZod>;
 export const UpdateUserAttributesZod = UserZod.pick({
@@ -208,13 +213,9 @@ export const UpdateUserAttributesZod = UserZod.pick({
   email: true,
   topics: true,
   subtopics: true,
+  links: true,
 }).partial();
 export type UpdateUserAttributes = z.infer<typeof UpdateUserAttributesZod>;
-export const DeclareWinnerZod = z.object({
-  winnerId: z.string(),
-  questId: z.string(),
-  solutionId: z.string(),
-});
 
 const SolutionPartialZod = z
   .object({

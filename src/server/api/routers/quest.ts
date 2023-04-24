@@ -2,7 +2,6 @@ import {
   AddCommentZod,
   Comment,
   CommentDynamo,
-  DeclareWinnerZod,
   PublishedQuest,
   PublishedQuestDynamo,
   PublishedQuestsInputZod,
@@ -44,7 +43,7 @@ import {
 // const rockset = require("@rockset/client").default;
 
 import { KeysAndAttributes, Update } from "@aws-sdk/client-dynamodb";
-import { TRPCError } from "@trpc/server";
+import { TRPCError, inferProcedureOutput } from "@trpc/server";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../trpc";
@@ -54,40 +53,13 @@ import { reviver } from "~/utils/mapReplacer";
 // import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
 import { JSONContent } from "@tiptap/core";
-
+import { AppRouter } from "../root";
+export type TQuery = keyof AppRouter["quest"]["publishedQuests"];
+export type InferQueryOutput<TRouteKey extends TQuery> = inferProcedureOutput<
+  AppRouter["quest"]["publishedQuests"][TRouteKey]
+>;
+const limit = 10;
 export const questRouter = router({
-  searchPublishedQuest: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const { text } = input;
-      try {
-        const publishedQuests =
-          await rocksetClient.queryLambdas.executeQueryLambda(
-            "commons",
-            "PublishedQuestSearch",
-            "28817c4c58a9dc8c",
-            {
-              parameters: [
-                {
-                  name: "text",
-                  type: "string",
-                  value: text,
-                },
-              ],
-            }
-          );
-        if (publishedQuests.results) {
-          return publishedQuests.results as PublishedQuest[];
-        }
-        return null;
-      } catch (error) {
-        console.log(error);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "FAILED RETRIEVING QUEST, PLEASE TRY AGAIN",
-        });
-      }
-    }),
   publishedQuest: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
@@ -182,8 +154,6 @@ export const questRouter = router({
         // } else if (getResponse instanceof CacheGet.Error) {
         //   console.log(`Error: ${getResponse.message()}`);
         // }
-
-        return { quest: null, solvers: [], commentsId: [] };
       } catch (error) {
         console.log(error);
         throw new TRPCError({
@@ -197,7 +167,12 @@ export const questRouter = router({
     .input(PublishedQuestsInputZod)
     .query(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { topic, subtopic, filter = "latest" } = input;
+      const {
+        topic,
+        subtopic,
+        filter = "latest",
+        cursor = "9223372036854775807",
+      } = input;
       if (!topic && !subtopic && filter === "latest") {
         //rockset
         try {
@@ -209,14 +184,34 @@ export const questRouter = router({
           //   console.log("cache hit!");
           //   return JSON.parse(getResponse.valueString()) as PublishedQuest[];
           // } else if (getResponse instanceof CacheGet.Miss) {
-          const publishedQuests =
+          const rocksetResult =
             await rocksetClient.queryLambdas.executeQueryLambda(
               "commons",
               "LatestPublishedQuests",
-              "944211782e412b16",
-              undefined
+              "2b6dab1bfbcb158f",
+              {
+                parameters: [
+                  {
+                    name: "limit",
+                    type: "int",
+                    value: (limit + 1).toString(),
+                  },
+                  {
+                    name: "next_cursor",
+                    type: "timestamp",
+                    value: cursor,
+                  },
+                ],
+              }
             );
+          let next_cursor: typeof cursor | undefined = undefined;
 
+          const publishedQuests = rocksetResult.results as PublishedQuest[];
+
+          if (publishedQuests && publishedQuests.length > limit) {
+            const lastItem = publishedQuests.pop();
+            if (lastItem) next_cursor = lastItem._event_time;
+          }
           // const setResponse = await momento.set(
           //   process.env.MOMENTO_CACHE_NAME || "",
           //   "LATEST_PUBLISHED_QUESTS",
@@ -228,7 +223,10 @@ export const questRouter = router({
           // } else {
           //   console.log(`Error setting key: ${setResponse.toString()}`);
           // }
-          return publishedQuests.results as PublishedQuest[];
+          return {
+            publishedQuests,
+            next_cursor,
+          };
           // } else if (getResponse instanceof CacheGet.Error) {
           //   console.log(`Error: ${getResponse.message()}`);
           // }
@@ -484,6 +482,7 @@ export const questRouter = router({
       const getUserParams: GetCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
         TableName: process.env.MAIN_TABLE_NAME,
+        ProjectionExpression: "profile, username",
       };
 
       try {
@@ -987,90 +986,141 @@ export const questRouter = router({
       return solvers;
     }),
   acceptSolution: protectedProcedure
-    .input(DeclareWinnerZod)
+    .input(
+      z.object({
+        winnerId: z.string(),
+        questId: z.string(),
+        solutionId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { winnerId, questId, solutionId } = input;
       const { auth } = ctx;
-      const transactParams: TransactWriteCommandInput = {
-        TransactItems: [
-          {
-            Update: {
-              TableName: process.env.MAIN_TABLE_NAME,
-              Key: { PK: `QUEST#${questId}`, SK: `QUEST#${questId}` },
-              ConditionExpression:
-                "#creatorId = :creatorId AND attribute_not_exists(#winnerId)",
-              UpdateExpression: "SET #winnerId = :winnerId, #status = :status",
-              ExpressionAttributeNames: {
-                "#creatorId": "creatorId",
-                "#winnerId": "winnerId",
-                "#status": "status",
-              },
-              ExpressionAttributeValues: {
-                ":creatorId": auth.userId,
-                ":winnerId": winnerId,
-                ":status": "CLOSED",
-              },
-            },
-          },
-          {
-            Update: {
-              TableName: process.env.MAIN_TABLE_NAME,
-              Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${winnerId}` },
-
-              UpdateExpression: "SET #status = :status",
-              ExpressionAttributeNames: {
-                "#status": "status",
-              },
-              ExpressionAttributeValues: {
-                ":status": "ACCEPTED",
-              },
-            },
-          },
-          {
-            Update: {
-              TableName: process.env.MAIN_TABLE_NAME,
-              Key: {
-                PK: `SOLUTION#${solutionId}`,
-                SK: `SOLUTION#${solutionId}`,
-              },
-
-              UpdateExpression: "SET #status = :status",
-              ExpressionAttributeNames: {
-                "#status": "status",
-              },
-              ExpressionAttributeValues: {
-                ":status": "ACCEPTED",
-              },
-            },
-          },
-        ],
+      const getParams: GetCommandInput = {
+        Key: { PK: `QUEST#${questId}`, SK: `QUEST#${questId}` },
+        TableName: process.env.MAIN_TABLE,
+        ProjectionExpression: "reward",
       };
 
       try {
-        const result = await dynamoClient.send(
-          new TransactWriteCommand(transactParams)
-        );
+        const quest = await dynamoClient.send(new GetCommand(getParams));
+        if (quest.Item) {
+          const reward = (quest.Item as PublishedQuest).reward;
 
-        // try {
-        //   await Promise.all([
-        //     momento.delete("accounts-cache", questId),
-        //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
-        //   ]);
-        // } catch (error) {
-        //   console.log("error in cache", error);
-        // }
+          const transactParams: TransactWriteCommandInput = {
+            TransactItems: [
+              {
+                Update: {
+                  TableName: process.env.MAIN_TABLE_NAME,
+                  Key: { PK: `QUEST#${questId}`, SK: `QUEST#${questId}` },
+                  ConditionExpression:
+                    "#creatorId = :creatorId AND attribute_not_exists(#winnerId)",
+                  UpdateExpression:
+                    "SET #winnerId = :winnerId, #status = :status",
+                  ExpressionAttributeNames: {
+                    "#creatorId": "creatorId",
+                    "#winnerId": "winnerId",
+                    "#status": "status",
+                  },
+                  ExpressionAttributeValues: {
+                    ":creatorId": auth.userId,
+                    ":winnerId": winnerId,
+                    ":status": "CLOSED",
+                  },
+                },
+              },
+              {
+                Update: {
+                  TableName: process.env.MAIN_TABLE_NAME,
+                  Key: { PK: `QUEST#${questId}`, SK: `SOLVER#${winnerId}` },
 
-        if (result) {
-          return true;
+                  UpdateExpression: "SET #status = :status",
+                  ExpressionAttributeNames: {
+                    "#status": "status",
+                  },
+                  ExpressionAttributeValues: {
+                    ":status": "ACCEPTED",
+                  },
+                },
+              },
+              {
+                Update: {
+                  TableName: process.env.MAIN_TABLE_NAME,
+                  Key: {
+                    PK: `SOLUTION#${solutionId}`,
+                    SK: `SOLUTION#${solutionId}`,
+                  },
+
+                  UpdateExpression: "SET #status = :status",
+                  ExpressionAttributeNames: {
+                    "#status": "status",
+                  },
+                  ExpressionAttributeValues: {
+                    ":status": "ACCEPTED",
+                  },
+                },
+              },
+
+              {
+                Update: {
+                  TableName: process.env.MAIN_TABLE_NAME,
+                  Key: {
+                    PK: `USER#${winnerId}`,
+                    SK: `USER#${winnerId}`,
+                  },
+
+                  UpdateExpression:
+                    "SET questsSolved = questsSolved + :inc, balance = balance + :reward, rewarded = rewarded + :reward",
+
+                  ExpressionAttributeValues: {
+                    ":reward": reward,
+                    ":status": "ACCEPTED",
+                    ":inc": 1,
+                  },
+                },
+              },
+            ],
+          };
+
+          const result = await dynamoClient.send(
+            new TransactWriteCommand(transactParams)
+          );
+
+          // try {
+          //   await Promise.all([
+          //     momento.delete("accounts-cache", questId),
+          //     momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+          //   ]);
+          // } catch (error) {
+          //   console.log("error in cache", error);
+          // }
+
+          if (result) {
+            return true;
+          }
         }
-        return false;
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not accept the solution",
+        });
       } catch (error) {
         console.log(error);
-        return false;
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not accept the solution",
+        });
       }
     }),
   rejectSolution: protectedProcedure
-    .input(DeclareWinnerZod)
+    .input(
+      z.object({
+        winnerId: z.string(),
+        questId: z.string(),
+        solutionId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { winnerId, questId, solutionId } = input;
       const { auth } = ctx;
@@ -1120,14 +1170,27 @@ export const questRouter = router({
         if (result) {
           return true;
         }
-        return false;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not reject the solution",
+        });
       } catch (error) {
         console.log(error);
-        return false;
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not reject the solution",
+        });
       }
     }),
   acknowledgeSolution: protectedProcedure
-    .input(DeclareWinnerZod)
+    .input(
+      z.object({
+        winnerId: z.string(),
+        questId: z.string(),
+        solutionId: z.string(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { winnerId, questId, solutionId } = input;
       const { auth } = ctx;
@@ -1180,10 +1243,18 @@ export const questRouter = router({
         if (result) {
           return true;
         }
-        return false;
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not acknowledge the solution",
+        });
       } catch (error) {
         console.log(error);
-        return false;
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not acknowledge the solution",
+        });
       }
     }),
   addComment: protectedProcedure

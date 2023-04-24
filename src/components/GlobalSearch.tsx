@@ -73,7 +73,7 @@ const SearchInput = ({
       <Input
         borderBottomRadius={isFocused ? "0" : "md"}
         size="lg"
-        bg="blue.50"
+        bg="gray.100"
         height="10"
         placeholder="Global Search..."
         onBlur={() => {
@@ -217,13 +217,7 @@ const SearchComponent = ({
 const LoadingSpinner = () => {
   return (
     <Center w="100%" h="14">
-      <Spinner
-        thickness="4px"
-        speed="0.65s"
-        emptyColor="gray.200"
-        color="blue.500"
-        size="lg"
-      />
+      <LoadingSpinner />
     </Center>
   );
 };

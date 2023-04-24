@@ -22,18 +22,27 @@ import {
   Text,
   Textarea,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
-import { useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
+import produce from "immer";
+import { useRef, useState } from "react";
+import { UpdateUserAttributesZod, User } from "~/types/main";
+import { trpc } from "~/utils/api";
 
 export default function AboutUser({
   username,
   about,
   level,
+  experience,
+  links,
 }: {
   username: string;
   about: string | undefined;
   level: number;
   experience: number;
+  links: { twitter: string; discord: string } | undefined;
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   return (
@@ -46,7 +55,7 @@ export default function AboutUser({
           <Progress
             colorScheme="green"
             size="lg"
-            value={20}
+            value={experience}
             w="100%"
             ml={5}
             borderRadius="xl"
@@ -70,13 +79,21 @@ export default function AboutUser({
               </svg>
             }
           />
-          <EditProfile onClose={onClose} isOpen={isOpen} onOpen={onOpen} />
+          <EditProfile
+            onClose={onClose}
+            isOpen={isOpen}
+            onOpen={onOpen}
+            username={username}
+            about={about}
+            level={level}
+            links={links}
+          />
         </Flex>
 
         <Text fontSize={{ base: "xl", lg: "2xl" }} fontWeight="bold">
           {username}
         </Text>
-        <Text fontSize={{ base: "xl" }}>{about && about}</Text>
+        <Text fontSize={{ base: "md" }}>{about && about}</Text>
       </CardBody>
       <CardFooter>
         <HStack>
@@ -93,7 +110,7 @@ export default function AboutUser({
             />
           </svg>
           <Text color="blue.500" ml="none">
-            @Ivannguyen666
+            {links?.twitter}
           </Text>
         </HStack>
         <HStack ml="5">
@@ -111,7 +128,7 @@ export default function AboutUser({
           </svg>
 
           <Text color="purple.500" ml="none">
-            Pachimari#5080
+            {links?.discord}
           </Text>
         </HStack>
       </CardFooter>
@@ -120,15 +137,83 @@ export default function AboutUser({
 }
 
 const EditProfile = ({
+  username,
+  about,
+  level,
+  links,
   onOpen,
   onClose,
   isOpen,
 }: {
+  username: string;
+  about: string | undefined;
+  level: number;
+  links: { twitter: string; discord: string } | undefined;
+
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
 }) => {
+  const toast = useToast();
   const initialRef = useRef(null);
+  const userKey = getQueryKey(trpc.user.userById);
+  const updateUserAttributes = trpc.user.updateUserAttributes.useMutation({
+    retry: 3,
+  });
+  const queryClient = useQueryClient();
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [userInfo, setUserInfo] = useState({
+    username: { value: username, updated: false },
+    about: { value: about || "", updated: false },
+    links: {
+      updated: false,
+      twitter: {
+        value: links && links.twitter ? links.twitter : "",
+      },
+      discord: { value: links && links.discord ? links.discord : "" },
+    },
+  });
+  const handleSave = () => {
+    const parameters = {
+      ...(userInfo.username.updated && { username: userInfo.username.value }),
+      ...(userInfo.about.updated && { about: userInfo.about.value }),
+      ...(userInfo.links.updated && {
+        links: {
+          twitter: userInfo.links.twitter.value,
+          discord: userInfo.links.discord.value,
+        },
+      }),
+    };
+    const parseResult = UpdateUserAttributesZod.safeParse(parameters);
+    if (parseResult.success) {
+      return updateUserAttributes.mutate(parameters, {
+        onSuccess: () => {
+          queryClient
+            .invalidateQueries({ queryKey: userKey })
+            .catch((err) => console.log("error invalidating key"));
+          toast({
+            title: "User updated successfully",
+            status: "success",
+            isClosable: true,
+            duration: 5000,
+          });
+          onClose();
+        },
+        onError: () => {
+          toast({
+            title: "Failed to update the user",
+            status: "error",
+            isClosable: true,
+            duration: 5000,
+          });
+        },
+      });
+    }
+    setErrorMessage("Invalid input");
+  };
+
+  console.log("userInfo", userInfo);
   return (
     <Modal
       initialFocusRef={initialRef}
@@ -144,14 +229,37 @@ const EditProfile = ({
           <Divider />
           <FormControl display="flex" alignItems="center" my={4}>
             <FormLabel w="24">Username</FormLabel>
-            <Input ref={initialRef} placeholder="First name" />
+            <Input
+              ref={initialRef}
+              placeholder="First name"
+              value={userInfo.username.value}
+              onChange={(e) =>
+                setUserInfo(
+                  produce((info) => {
+                    info.username.updated = true;
+                    info.username.value = e.target.value;
+                  })
+                )
+              }
+            />
           </FormControl>
 
           <Divider />
 
           <FormControl my={4} display="flex" alignItems="center">
             <FormLabel w="24">About</FormLabel>
-            <Textarea placeholder="Last name" />
+            <Textarea
+              placeholder="Tell us about yourself!"
+              value={userInfo.about.value}
+              onChange={(e) =>
+                setUserInfo(
+                  produce((info) => {
+                    info.about.updated = true;
+                    info.about.value = e.target.value;
+                  })
+                )
+              }
+            />
           </FormControl>
           <Divider />
 
@@ -171,7 +279,18 @@ const EditProfile = ({
                 />
               </svg>
 
-              <Input placeholder="@" />
+              <Input
+                placeholder="@"
+                value={userInfo.links.twitter.value}
+                onChange={(e) =>
+                  setUserInfo(
+                    produce((info) => {
+                      info.links.updated = true;
+                      info.links.twitter.value = e.target.value;
+                    })
+                  )
+                }
+              />
             </HStack>
             <HStack ml="5">
               <svg
@@ -187,14 +306,30 @@ const EditProfile = ({
                 />
               </svg>
 
-              <Input placeholder="username" />
+              <Input
+                placeholder="username"
+                value={userInfo.links.discord.value}
+                onChange={(e) =>
+                  setUserInfo(
+                    produce((info) => {
+                      info.links.updated = true;
+                      info.links.discord.value = e.target.value;
+                    })
+                  )
+                }
+              />
             </HStack>
           </FormControl>
           <Divider />
         </ModalBody>
 
         <ModalFooter>
-          <Button colorScheme="blue" mr={3}>
+          <Button
+            colorScheme="blue"
+            mr={3}
+            onClick={handleSave}
+            isLoading={updateUserAttributes.isLoading}
+          >
             Save
           </Button>
           <Button onClick={onClose}>Cancel</Button>

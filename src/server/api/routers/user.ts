@@ -118,7 +118,8 @@ export const userRouter = router({
   updateUserAttributes: protectedProcedure
     .input(UpdateUserAttributesZod)
     .mutation(async ({ input, ctx }) => {
-      const { about, email, subtopics, topics, username, profile } = input;
+      const { about, email, subtopics, topics, username, profile, links } =
+        input;
       const { auth } = ctx;
 
       const updateAttributes: string[] = [];
@@ -140,6 +141,8 @@ export const userRouter = router({
           ...(topics && { "#topics": "topics" }),
           ...(username && { "#username": "username" }),
           ...(profile && { "#profile": "profile" }),
+
+          ...(links && { "#links": "links" }),
         },
         ExpressionAttributeValues: {
           ...(about && { ":about": about }),
@@ -148,6 +151,8 @@ export const userRouter = router({
           ...(topics && { ":topics": topics }),
           ...(username && { ":username": username }),
           ...(profile && { ":profile": profile }),
+
+          ...(links && { ":links": links }),
         },
       };
       try {

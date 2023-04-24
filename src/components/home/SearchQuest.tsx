@@ -4,6 +4,7 @@ import {
   InputGroup,
   InputRightElement,
 } from "@chakra-ui/react";
+import { inferProcedureOutput } from "@trpc/server";
 import { set } from "idb-keyval";
 import debounce from "lodash.debounce";
 import {
@@ -15,23 +16,37 @@ import {
   useEffect,
   useState,
 } from "react";
+import { AppRouter } from "~/server/api/root";
 import { PublishedQuest } from "~/types/main";
 import { trpc } from "~/utils/api";
 
 export default function SearchQuest({
-  serverQuests,
-  setQuests,
+  initialPages,
+  setPages,
   setSearchLoading,
 }: {
-  serverQuests: PublishedQuest[] | null | undefined;
+  initialPages:
+    | inferProcedureOutput<AppRouter["quest"]["publishedQuests"]>[]
+    | undefined;
   setSearchLoading: Dispatch<SetStateAction<boolean>>;
-  setQuests: Dispatch<SetStateAction<PublishedQuest[] | null | undefined>>;
+  setPages: Dispatch<
+    SetStateAction<
+      inferProcedureOutput<AppRouter["quest"]["publishedQuests"]>[] | undefined
+    >
+  >;
 }) {
   const [text, setText] = useState("");
   const [enableFetch, setEnableFetch] = useState(false);
-  const searchQuest = trpc.quest.searchPublishedQuest.useQuery(
+  const searchQuest = trpc.search.searchPublishedQuest.useInfiniteQuery(
     { text },
-    { enabled: enableFetch }
+    {
+      enabled: enableFetch,
+      getNextPageParam: (lastPage) => {
+        if (lastPage) {
+          return lastPage.next_cursor;
+        }
+      },
+    }
   );
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -45,7 +60,7 @@ export default function SearchQuest({
 
   useEffect(() => {
     if (searchQuest.data) {
-      setQuests(searchQuest.data);
+      setPages(searchQuest.data.pages);
       setSearchLoading(false);
       setEnableFetch(false);
     }
@@ -62,7 +77,7 @@ export default function SearchQuest({
         onChange={(e) => {
           setSearchLoading(true);
           if (!e.target.value) {
-            setQuests(serverQuests);
+            setPages(initialPages);
             setSearchLoading(false);
 
             handleSearch.cancel();

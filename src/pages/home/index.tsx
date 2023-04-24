@@ -10,7 +10,7 @@ import {
   Select,
   Spinner,
 } from "@chakra-ui/react";
-import { ReactElement, useEffect, useState } from "react";
+import { ReactElement, useEffect, useRef, useState } from "react";
 import QuestComponent, {
   QuestComponentSkeleton,
 } from "~/components/QuestComponent";
@@ -23,6 +23,10 @@ import dynamic from "next/dynamic";
 import { LoadingChat } from "../../components/home/GlobalChat/GlobalChat";
 import { PublishedQuest } from "~/types/main";
 import SearchQuest from "~/components/home/SearchQuest";
+import { inferProcedureOutput } from "@trpc/server";
+import { AppRouter } from "~/server/api/root";
+import { useInView } from "framer-motion";
+import { LoadingSpinner } from "~/components/LoadingSpinner";
 
 const GlobalChat = dynamic(
   () => import("../../components/home/GlobalChat/GlobalChat"),
@@ -31,25 +35,32 @@ const GlobalChat = dynamic(
     ssr: false,
   }
 );
-const LoadingSpinner = () => {
+export const LoadingQuests = () => {
   return (
     <Center w="100%" h="50vh">
-      <Spinner
-        thickness="4px"
-        speed="0.65s"
-        emptyColor="gray.200"
-        color="blue.500"
-        size="lg"
-      />
+      <LoadingSpinner />
     </Center>
   );
 };
 
 export default function Home() {
-  const [quests, setQuests] = useState<PublishedQuest[] | null | undefined>(
-    null
+  const [pages, setPages] = useState<
+    inferProcedureOutput<AppRouter["quest"]["publishedQuests"]>[] | undefined
+  >(undefined);
+  const ref = useRef(null);
+
+  const [showChat, setShowChat] = useState(false);
+  const isInView = useInView(ref);
+  const serverQuests = trpc.quest.publishedQuests.useInfiniteQuery(
+    {},
+    {
+      getNextPageParam: (lastPage) => {
+        if (lastPage) {
+          return lastPage.next_cursor;
+        }
+      },
+    }
   );
-  const serverQuests = trpc.quest.publishedQuests.useQuery({});
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectValue, setSelectValue] = useState<"latest" | "high reward">(
     "latest"
@@ -61,16 +72,60 @@ export default function Home() {
     emptyQuests.push({});
   }
   useEffect(() => {
+    if (isInView) {
+      serverQuests.fetchNextPage().catch((err) => console.log(err));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInView]);
+  useEffect(() => {
     if (serverQuests.data) {
-      setQuests(serverQuests.data);
+      setPages(serverQuests.data.pages);
     }
   }, [serverQuests.data]);
+  console.log(serverQuests.data?.pages);
 
   return (
-    <Flex w="100%" justifyContent="center" mt={20} mb={20}>
-      <Flex w="90%" justify="center" position="relative">
+    <Flex
+      w="100%"
+      justifyContent="center"
+      mt={20}
+      mb={20}
+      position="sticky"
+      top="0"
+    >
+      <Flex w="90%" justify="center">
         <Flex w={{ base: "100%", lg: "50%" }} flexDirection="column" gap={3}>
           <Flex w="100%" flexDirection="row-reverse">
+            {showChat ? (
+              <GlobalChat setShowChat={setShowChat} />
+            ) : (
+              <Button
+                aria-label="show chat"
+                colorScheme="blue"
+                size="md"
+                position="fixed"
+                bottom="8"
+                right={{ base: "10", md: "20", lg: "52" }}
+                zIndex={5}
+                onClick={() => setShowChat(true)}
+                rightIcon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    height="24"
+                  >
+                    <path
+                      d="M4.92893 19.0711C3.11929 17.2614 2 14.7614 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22H2L4.92893 19.0711ZM11 6V18H13V6H11ZM7 9V15H9V9H7ZM15 9V15H17V9H15Z"
+                      fill="rgba(255,255,255,1)"
+                    ></path>
+                  </svg>
+                }
+              >
+                Global Chat
+              </Button>
+            )}
+
             <Select
               w="40"
               border="2px"
@@ -85,44 +140,57 @@ export default function Home() {
               {/* <option value="high reward">high reward</option> */}
             </Select>
           </Flex>
+
           <SearchQuest
-            serverQuests={serverQuests.data}
-            setQuests={setQuests}
+            initialPages={
+              serverQuests.data ? serverQuests.data.pages : undefined
+            }
+            setPages={setPages}
             setSearchLoading={setSearchLoading}
           />
           {searchLoading ? (
-            <LoadingSpinner />
+            <LoadingQuests />
           ) : serverQuests.isLoading ? (
             emptyQuests.map((q, i) => (
               <QuestComponentSkeleton key={i} includeContent={true} />
             ))
-          ) : quests && quests.length > 0 ? (
-            quests.map((quest) => (
-              <QuestComponent
-                key={quest.id}
-                quest={quest}
-                includeContent={true}
-                includeDetails={true}
-              />
+          ) : pages && pages.length > 0 ? (
+            pages.map((p, i) => (
+              <Flex flexDir="column" gap={3} key={i}>
+                {p &&
+                  p.publishedQuests &&
+                  p.publishedQuests.length > 0 &&
+                  p.publishedQuests.map((quest) => (
+                    <QuestComponent
+                      key={quest.id}
+                      quest={quest}
+                      includeContent={true}
+                      includeDetails={true}
+                    />
+                  ))}
+              </Flex>
             ))
           ) : (
             <Center w="100%" h="50vh">
               No quests...
             </Center>
           )}
+          <Center>
+            <Box ref={ref}></Box>
+            {serverQuests.isFetchingNextPage && <LoadingSpinner />}
+          </Center>
         </Flex>
         <Flex
-          position="sticky"
-          top="0"
           w="80"
           h="100vh"
+          position="sticky"
+          top="20"
           display={{ base: "none", lg: "flex" }}
           flexDirection="column"
           gap={10}
           pl="10"
         >
           <Leaderboard />
-          <GlobalChat />
         </Flex>
 
         <Box></Box>

@@ -95,6 +95,7 @@ export default function Profile() {
             about={user.data.about}
             level={user.data.level}
             experience={user.data.experience}
+            links={user.data.links}
           />
           <Heading as="h3" size="md" my={5}>
             Topics

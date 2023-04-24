@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { supabaseClient } from "~/constants/supabaseClient";
 import { TopicsType, Topics, Message } from "~/types/main";
 import {
@@ -17,6 +17,7 @@ import {
   IconButton,
   Input,
   Select,
+  Spacer,
   Spinner,
   Text,
   useToast,
@@ -29,7 +30,11 @@ import { MessageInput } from "./MessageInput";
 import { trpc } from "~/utils/api";
 import produce from "immer";
 
-export default function GlobalChat() {
+export default function GlobalChat({
+  setShowChat,
+}: {
+  setShowChat: Dispatch<SetStateAction<boolean>>;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -203,20 +208,38 @@ export default function GlobalChat() {
 
   return (
     <Card
-      w="90%"
+      // w="80"
       bg="none"
-      borderWidth="3px"
+      borderWidth="2px"
       borderColor="blue.100"
       boxShadow="none"
       borderRadius="2xl"
+      position="fixed"
+      bottom="2"
+      right={{ base: "5", lg: "10" }}
+      zIndex={5}
+      h="lg"
+      w={{ base: "90vw", lg: "80" }}
     >
-      <CardHeader display="flex" bg="white" h="12" pt="3" borderTopRadius="xl">
+      <CardHeader
+        display="flex"
+        bg="white"
+        h="12"
+        pt="3"
+        borderTopRadius="xl"
+        position="relative"
+        borderBottomWidth="2px"
+        borderColor="blue.100"
+        alignItems="center"
+        pb="3"
+      >
         <Heading as="h3" fontSize="lg">
           CHAT
         </Heading>
         <Select
           ml={5}
           size="sm"
+          w="40"
           value={channel}
           onChange={(e) => setChannel(e.target.value as TopicsType | "GENERAL")}
         >
@@ -227,14 +250,30 @@ export default function GlobalChat() {
             </option>
           ))}
         </Select>
+        <IconButton
+          position="absolute"
+          right="2"
+          aria-label="close chat"
+          size="sm"
+          bg="blue.50"
+          _hover={{ bg: "blue.100" }}
+          onClick={() => setShowChat(false)}
+          icon={
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+            >
+              <path d="M5 11V13H19V11H5Z" fill="var(--blue)"></path>
+            </svg>
+          }
+        />
       </CardHeader>
       <CardBody
         py="0"
         pb={2}
         px="2"
-        h="sm"
-        minH="sm"
-        maxH="sm"
         overflowY="auto"
         bg="blue.50"
         css={{
@@ -276,7 +315,13 @@ export default function GlobalChat() {
               >
                 <Avatar size="sm" name={m.username} />
                 <Flex flexDir="column" pl={2}>
-                  <Text fontSize="sm" fontWeight="bold">
+                  <Text
+                    fontSize="sm"
+                    fontWeight="bold"
+                    whiteSpace="nowrap"
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                  >
                     {m.username}
                   </Text>
                   <Text fontSize="sm">{m.message}</Text>
@@ -286,7 +331,7 @@ export default function GlobalChat() {
           </Flex>
         )}
 
-        <Box h={0} ref={messagesEndRef}></Box>
+        <Box h={2} ref={messagesEndRef}></Box>
       </CardBody>
       <CardFooter
         display="flex"

@@ -4,6 +4,7 @@ import { solutionRouter } from "./routers/solution";
 import { userRouter } from "./routers/user";
 import { workspaceRouter } from "./routers/workspace";
 import { searchRouter } from "./routers/search";
+import { generalRouter } from "./routers/general";
 
 /**
  * This is the primary router for your server.
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   solution: solutionRouter,
   workspace: workspaceRouter,
   search: searchRouter,
+  general: generalRouter,
 });
 
 // export type definition of API
