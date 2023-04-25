@@ -1,3 +1,5 @@
+import { TopicsType } from "~/types/main";
+
 export const TopicColor = ({ topic }: { topic: string }) => {
   if (topic === "BUSINESS") {
     return "green.200";
@@ -15,4 +17,17 @@ export const TopicColor = ({ topic }: { topic: string }) => {
     return "blue.200";
   }
   return "white";
+};
+export const TopicColorScheme = (topic: TopicsType) => {
+  if (topic === "MARKETING") {
+    return "red";
+  } else if (topic === "BUSINESS") {
+    return "green";
+  } else if (topic === "SCIENCE") {
+    return "blue";
+  } else if (topic === "PROGRAMMING") {
+    return "purple";
+  } else if (topic === "VIDEOGRAPHY") {
+    return "teal";
+  }
 };

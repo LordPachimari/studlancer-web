@@ -11,6 +11,7 @@ import {
   ChangeEvent,
   Dispatch,
   KeyboardEvent,
+  MutableRefObject,
   SetStateAction,
   useCallback,
   useEffect,
@@ -20,12 +21,13 @@ import { AppRouter } from "~/server/api/root";
 import { PublishedQuest } from "~/types/main";
 import { trpc } from "~/utils/api";
 
-export default function SearchQuest({
+export default function SearchQuestInput({
   initialPages,
   setPages,
   setSearchLoading,
+  initialRef,
 }: {
-  initialPages:
+  initialPages?:
     | inferProcedureOutput<AppRouter["quest"]["publishedQuests"]>[]
     | undefined;
   setSearchLoading: Dispatch<SetStateAction<boolean>>;
@@ -34,9 +36,11 @@ export default function SearchQuest({
       inferProcedureOutput<AppRouter["quest"]["publishedQuests"]>[] | undefined
     >
   >;
+  initialRef?: MutableRefObject<null>;
 }) {
   const [text, setText] = useState("");
   const [enableFetch, setEnableFetch] = useState(false);
+
   const searchQuest = trpc.search.searchPublishedQuest.useInfiniteQuery(
     { text },
     {
@@ -71,7 +75,8 @@ export default function SearchQuest({
     <InputGroup size="md" w="100%" mb={5}>
       <Input
         bg="white"
-        borderRadius="2xl"
+        ref={initialRef}
+        borderRadius="xl"
         size="md"
         placeholder="Search for quests..."
         onChange={(e) => {

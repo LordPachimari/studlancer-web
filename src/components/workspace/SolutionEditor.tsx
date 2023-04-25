@@ -1,5 +1,14 @@
 import { get, set } from "idb-keyval";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  Dispatch,
+  MutableRefObject,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { update } from "idb-keyval";
 import {
@@ -31,6 +40,7 @@ import {
   Center,
   Flex,
   FormControl,
+  IconButton,
   Input,
   Modal,
   ModalBody,
@@ -53,6 +63,11 @@ import { WorkspaceStore } from "~/zustand/workspace";
 import QuestComponent, { QuestComponentSkeleton } from "../QuestComponent";
 import { NonEditableContent } from "./Preview";
 import TiptapEditor from "./TiptapEditor";
+import { inferProcedureOutput } from "@trpc/server";
+import { AppRouter } from "~/server/api/root";
+import SearchQuestInput from "../home/SearchQuest";
+import { LoadingSpinner } from "../LoadingSpinner";
+import Toast from "../Toast";
 
 const SolutionEditor = ({ id }: { id: string }) => {
   const [solution, setSolution] = useState<Solution | null | undefined>(
@@ -88,9 +103,12 @@ const SolutionEditor = ({ id }: { id: string }) => {
       enabled: shouldUpdate,
     }
   );
-  const solutionKey = getQueryKey(trpc.solution.publishedSolution);
+  const publishedSolutionKey = getQueryKey(trpc.solution.publishedSolution);
   const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
   const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
+  const removeTargetQuest = trpc.solution.removeTargetQuest.useMutation({
+    retry: 3,
+  });
   const updateSolutionAttributes =
     trpc.solution.updateSolutionAttributes.useMutation({
       retry: 3,
@@ -134,7 +152,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
             queryClient
               .invalidateQueries({
                 queryKey: [
-                  ...solutionKey,
+                  ...publishedSolutionKey,
                   ...publishedQuestKey,
                   ...workspaceSolutionKey,
                 ],
@@ -297,15 +315,68 @@ const SolutionEditor = ({ id }: { id: string }) => {
   return (
     <Center mt={10} flexDirection="column">
       {solution?.questId ? (
-        <Box w="85%" minH="36" mb={10}>
+        <Box w="85%" maxW="2xl" minH="36" mb={10}>
           {quest.isLoading ? (
             <QuestComponentSkeleton includeContent={false} />
           ) : quest.data && quest.data.quest ? (
-            <QuestComponent
-              includeContent={false}
-              includeDetails={false}
-              quest={quest.data.quest}
-            />
+            <Box position="relative">
+              <IconButton
+                aria-label="remove target quest"
+                size="sm"
+                position="absolute"
+                zIndex={5}
+                bottom="2"
+                isLoading={removeTargetQuest.isLoading}
+                onClick={() => {
+                  removeTargetQuest.mutate(
+                    { questId: quest.data.quest!.id, solutionId: id },
+                    {
+                      onSuccess: () => {
+                        update<Solution | undefined>(id, (solution) => {
+                          if (solution) delete solution.questId;
+                          setSolution(solution);
+                          return solution;
+                        }).catch((err) => console.log(err));
+                        toast({
+                          status: "success",
+                          title: "Target quest removed successfully",
+                          duration: 5000,
+                          isClosable: true,
+                        });
+                      },
+                      onError: () => {
+                        toast({
+                          status: "error",
+                          title: "Error in removing target quest",
+                          duration: 5000,
+                          isClosable: true,
+                        });
+                      },
+                    }
+                  );
+                }}
+                right="2"
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    height="24"
+                  >
+                    <path
+                      d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
+                      fill="var(--blue)"
+                    ></path>
+                  </svg>
+                }
+              />
+
+              <QuestComponent
+                includeContent={false}
+                includeDetails={false}
+                quest={quest.data.quest}
+              />
+            </Box>
           ) : (
             <Button
               onClick={onModalOpen}
@@ -325,6 +396,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
         <Button
           onClick={onModalOpen}
           w="85%"
+          maxW="2xl"
           h="36"
           borderWidth="2px"
           borderColor="gray.300"
@@ -341,6 +413,8 @@ const SolutionEditor = ({ id }: { id: string }) => {
         isModalOpen={isModalOpen}
         onModalClose={onModalClose}
         onModalOpen={onModalOpen}
+        solutionId={id}
+        setSolution={setSolution}
       />
       <Card w="85%" bg="white" p={5} maxW="2xl" borderRadius="2xl">
         {solution === undefined ||
@@ -426,16 +500,33 @@ const SolutionEditor = ({ id }: { id: string }) => {
     </Center>
   );
 };
+
 const QuestSearch = ({
   isModalOpen,
   onModalOpen,
   onModalClose,
+  solutionId,
+
+  setSolution,
 }: {
   isModalOpen: boolean;
   onModalOpen: () => void;
   onModalClose: () => void;
+  solutionId: string;
+  setSolution: Dispatch<SetStateAction<Solution | null | undefined>>;
 }) => {
+  const [searchLoading, setSearchLoading] = useState(false);
   const initialRef = useRef(null);
+  const [pages, setPages] = useState<
+    inferProcedureOutput<AppRouter["quest"]["publishedQuests"]>[] | undefined
+  >(undefined);
+
+  const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
+  const setTargetQuest = trpc.solution.setTargetQuest.useMutation();
+  const queryClient = useQueryClient();
+
+  const toast = useToast();
+
   return (
     <Modal
       initialFocusRef={initialRef}
@@ -444,17 +535,99 @@ const QuestSearch = ({
       size="xl"
     >
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="blue.50">
         <ModalHeader>Search for quests</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
-          <FormControl>
-            <Input ref={initialRef} placeholder="Search for quests..." />
-          </FormControl>
+          <SearchQuestInput
+            setPages={setPages}
+            setSearchLoading={setSearchLoading}
+            initialRef={initialRef}
+          />
         </ModalBody>
+        <Center>
+          {searchLoading ? (
+            <Center w="100%" h="50%">
+              <LoadingSpinner />
+            </Center>
+          ) : pages && pages.length > 0 ? (
+            pages.map((p, i) => (
+              <Flex flexDir="column" gap={3} key={i} w="90%">
+                {p &&
+                  p.publishedQuests &&
+                  p.publishedQuests.length > 0 &&
+                  p.publishedQuests.map((quest) => (
+                    <Box
+                      cursor="pointer"
+                      key={quest.id}
+                      onClick={() => {
+                        setTargetQuest.mutate(
+                          {
+                            questId: quest.id,
+                            solutionId,
+                          },
+                          {
+                            onSuccess: () => {
+                              update<Solution | undefined>(
+                                solutionId,
+                                (solution) => {
+                                  if (solution) {
+                                    solution.questId = quest.id;
+                                  }
+                                  setSolution(solution);
+                                  return solution;
+                                }
+                              ).catch((err) => console.log(err));
+                              // setSolution(
+                              //   produce((solution) => {
+                              //     if (solution) solution.questId = quest.id;
+                              //   })
+                              // );
+                              queryClient
+                                .invalidateQueries(workspaceSolutionKey)
+                                .catch((err) => console.log(err));
+
+                              toast({
+                                title: "Successfuly added quest!",
+                                status: "success",
+                                isClosable: true,
+                                duration: 5000,
+                              });
+                              onModalClose();
+                            },
+                            onError: () => {
+                              toast({
+                                title: "Error in adding quest!",
+                                status: "error",
+                                isClosable: true,
+                                duration: 5000,
+                              });
+                              onModalClose();
+                            },
+                          }
+                        );
+                      }}
+                    >
+                      <QuestComponent
+                        quest={quest}
+                        includeContent={false}
+                        includeDetails={false}
+                      />
+                    </Box>
+                  ))}
+              </Flex>
+            ))
+          ) : (
+            <Center w="100%" h="50%">
+              No quests...
+            </Center>
+          )}
+        </Center>
 
         <ModalFooter>
-          <Button onClick={onModalClose}>Cancel</Button>
+          <Button onClick={onModalClose} colorScheme="blue">
+            Cancel
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

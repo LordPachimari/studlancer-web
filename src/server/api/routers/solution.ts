@@ -693,18 +693,72 @@ export const solutionRouter = router({
           ":inTrash": true,
           ":creatorId": auth.userId,
         },
+        ReturnValues: "ALL_NEW",
       };
 
+      try {
+        const result = await dynamoClient.send(new UpdateCommand(updateParams));
+        if (result.Attributes) {
+          return result.Attributes as Solution;
+        }
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not restore the solution",
+        });
+      }
+    }),
+  setTargetQuest: protectedProcedure
+    .input(z.object({ questId: z.string(), solutionId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { questId, solutionId } = input;
+      const { auth } = ctx;
+      const updateParams: UpdateCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Key: {
+          PK: `USER#${auth.userId}`,
+          SK: `SOLUTION#${solutionId}`,
+        },
+        UpdateExpression: "SET questId =:questId",
+        ExpressionAttributeValues: { ":questId": questId },
+      };
       try {
         const result = await dynamoClient.send(new UpdateCommand(updateParams));
         if (result) {
           return true;
         }
-
-        return false;
       } catch (error) {
-        console.log(error);
-        return false;
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not add target quest",
+        });
+      }
+    }),
+
+  removeTargetQuest: protectedProcedure
+    .input(z.object({ questId: z.string(), solutionId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { questId, solutionId } = input;
+      const { auth } = ctx;
+      const updateParams: UpdateCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Key: {
+          PK: `USER#${auth.userId}`,
+          SK: `SOLUTION#${solutionId}`,
+        },
+        UpdateExpression: "REMOVE questId",
+      };
+      try {
+        const result = await dynamoClient.send(new UpdateCommand(updateParams));
+        if (result) {
+          return true;
+        }
+      } catch (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not remove target quest",
+        });
       }
     }),
 });

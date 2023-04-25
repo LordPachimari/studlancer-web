@@ -1,6 +1,6 @@
 import { IconButton, Input, Text, useToast } from "@chakra-ui/react";
 import Link from "next/link";
-import { KeyboardEvent, useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 
 export const MessageInput = ({
   onSubmit,
@@ -32,10 +32,19 @@ export const MessageInput = ({
       }
     }
   };
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
   return (
     <>
       <Input
         w="100%"
+        ref={inputRef}
         size="sm"
         bg="gray.200"
         borderRadius="md"

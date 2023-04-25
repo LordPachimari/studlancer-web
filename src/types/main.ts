@@ -204,6 +204,7 @@ export const PublishedQuestsInputZod = z.object({
   subtopic: z.optional(z.array(z.string())),
   filter: z.optional(z.enum(["more views", "higher reward", "latest"])),
   cursor: z.optional(z.string()),
+  limit: z.optional(z.number()),
 });
 export type PublishedQuestsInput = z.infer<typeof PublishedQuestsInputZod>;
 export const UpdateUserAttributesZod = UserZod.pick({

@@ -22,7 +22,7 @@ import Leaderboard from "../../components/home/Leaderboard";
 import dynamic from "next/dynamic";
 import { LoadingChat } from "../../components/home/GlobalChat/GlobalChat";
 import { PublishedQuest } from "~/types/main";
-import SearchQuest from "~/components/home/SearchQuest";
+import SearchQuestInput from "~/components/home/SearchQuest";
 import { inferProcedureOutput } from "@trpc/server";
 import { AppRouter } from "~/server/api/root";
 import { useInView } from "framer-motion";
@@ -82,7 +82,6 @@ export default function Home() {
       setPages(serverQuests.data.pages);
     }
   }, [serverQuests.data]);
-  console.log(serverQuests.data?.pages);
 
   return (
     <Flex
@@ -141,7 +140,7 @@ export default function Home() {
             </Select>
           </Flex>
 
-          <SearchQuest
+          <SearchQuestInput
             initialPages={
               serverQuests.data ? serverQuests.data.pages : undefined
             }

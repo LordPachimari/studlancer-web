@@ -58,7 +58,6 @@ export type TQuery = keyof AppRouter["quest"]["publishedQuests"];
 export type InferQueryOutput<TRouteKey extends TQuery> = inferProcedureOutput<
   AppRouter["quest"]["publishedQuests"][TRouteKey]
 >;
-const limit = 10;
 export const questRouter = router({
   publishedQuest: publicProcedure
     .input(z.object({ id: z.string() }))
@@ -171,6 +170,7 @@ export const questRouter = router({
         topic,
         subtopic,
         filter = "latest",
+        limit = 10,
         cursor = "9223372036854775807",
       } = input;
       if (!topic && !subtopic && filter === "latest") {
@@ -778,18 +778,20 @@ export const questRouter = router({
           ":inTrash": true,
           ":creatorId": auth.userId,
         },
+        ReturnValues: "ALL_NEW",
       };
 
       try {
         const result = await dynamoClient.send(new UpdateCommand(updateParams));
-        if (result) {
-          return true;
+        if (result.Attributes) {
+          return result.Attributes as Quest;
         }
-
-        return false;
       } catch (error) {
         console.log(error);
-        return false;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not restore the quest",
+        });
       }
     }),
   addSolver: protectedProcedure

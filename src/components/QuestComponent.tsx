@@ -34,6 +34,7 @@ import { PublishedQuest, TopicsType } from "~/types/main";
 import { FromNow } from "~/utils/dayjs";
 import FileExtension from "./Tiptap/FileExtension";
 import ImageExtension from "./Tiptap/ImageExtension";
+import { TopicColorScheme } from "~/utils/topicsColor";
 
 export default function QuestComponent({
   quest,
@@ -44,20 +45,6 @@ export default function QuestComponent({
   includeContent: boolean;
   includeDetails: boolean;
 }) {
-  const TopicColorScheme = (topic: TopicsType) => {
-    if (topic === "MARKETING") {
-      return "red";
-    } else if (topic === "BUSINESS") {
-      return "green";
-    } else if (topic === "SCIENCE") {
-      return "blue";
-    } else if (topic === "PROGRAMMING") {
-      return "purple";
-    } else if (topic === "VIDEOGRAPHY") {
-      return "teal";
-    }
-  };
-
   return (
     <Card w="100%" h="fit-content" borderRadius="2xl">
       <CardHeader p={4}>

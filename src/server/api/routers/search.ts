@@ -4,12 +4,11 @@ import { rocksetClient } from "~/constants/rocksetClient";
 import { publicProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { Post, PublishedQuest, User } from "~/types/main";
-const limit = 10;
 export const searchRouter = router({
   searchPublishedQuest: publicProcedure
-    .input(z.object({ text: z.string(), cursor: z.optional(z.string()) }))
+    .input(z.object({ text: z.string(), cursor: z.optional(z.string()) ,   limit: z.optional(z.number()), }))
     .query(async ({ ctx, input }) => {
-      const { text, cursor = "9223372036854775807" } = input;
+      const { text, cursor = "9223372036854775807", limit=10 } = input;
 
       try {
         const rocksetResult =
@@ -57,9 +56,9 @@ export const searchRouter = router({
       }
     }),
   globalSearch: publicProcedure
-    .input(z.object({ text: z.string() }))
+    .input(z.object({ text: z.string() ,   limit: z.optional(z.number()),}))
     .query(async ({ ctx, input }) => {
-      const { text } = input;
+      const { text, limit=10 } = input;
       try {
         const result = await rocksetClient.queryLambdas.executeQueryLambda(
           "commons",

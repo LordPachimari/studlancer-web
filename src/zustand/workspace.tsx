@@ -35,7 +35,13 @@ interface WorkspaceState {
     id: string;
     type: "QUEST" | "SOLUTION";
   }) => void;
-  setWorkspaceList: ({ quests, solutions }: WorkspaceList) => void;
+  setWorkspaceList: ({
+    quests,
+    solutions,
+  }: {
+    quests?: QuestListComponent[];
+    solutions?: SolutionListComponent[];
+  }) => void;
   updateListState: <
     Attr extends "title" | "topic",
     Value extends QuestListComponent[Attr]
@@ -133,9 +139,19 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
   },
 
-  setWorkspaceList: ({ solutions, quests }) => {
-    set({ workspaceList: { quests, solutions } });
-  },
+  setWorkspaceList: ({ solutions, quests }) =>
+    set(
+      produce((state: WorkspaceState) => {
+        if (quests && solutions) {
+          state.workspaceList.quests = quests;
+          state.workspaceList.solutions = solutions;
+        } else if (quests) {
+          state.workspaceList.quests = quests;
+        } else if (solutions) {
+          state.workspaceList.solutions = solutions;
+        }
+      })
+    ),
 
   updateListState: ({ id, attribute, value, type }) =>
     set(

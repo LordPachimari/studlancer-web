@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/nextjs";
-import { del, get, update, values } from "idb-keyval";
+import { del, get, set, update, values } from "idb-keyval";
 import {
   Quest,
   QuestListComponent,
@@ -64,6 +64,8 @@ import styles from "./workspace.module.css";
 import { WritableDraft } from "immer/dist/internal";
 import { questRouter } from "~/server/api/routers/quest";
 import { TopicColor } from "~/utils/topicsColor";
+import { getQueryKey } from "@trpc/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 const List = ({
   showList,
   toggleShowList,
@@ -77,14 +79,12 @@ const List = ({
   for (let i = 0; i < 3; i++) {
     emptyLists.push({});
   }
-  const { isLoaded } = useAuth();
   const router = useRouter();
   const createQuest = trpc.quest.createQuest.useMutation();
   const createSolution = trpc.solution.createSolution.useMutation();
 
   const serverWorkspaceList = trpc.workspace.workspaceList.useQuery(undefined, {
-    staleTime: 10 * 60 * 1000,
-    enabled: isLoaded,
+    staleTime: 10 * 60 * 3000,
   });
   console.log("list", serverWorkspaceList.data);
   const workspaceListState = WorkspaceStore((state) => state.workspaceList);
@@ -397,6 +397,8 @@ const List = ({
           onClose={onCloseTrashModal}
           trash={trash}
           setTrash={setTrash}
+          workspaceListState={workspaceListState}
+          setWorkspaceListState={setWorkspaceListState}
         />
       </ListSettings>
       <Divider />
@@ -635,11 +637,22 @@ const TrashComponent = ({
   onOpen,
   isOpen,
   setTrash,
+  workspaceListState,
+  setWorkspaceListState,
 }: {
   trash: WorkspaceList;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  workspaceListState: WorkspaceList;
+  setWorkspaceListState: ({
+    quests,
+    solutions,
+  }: {
+    quests?: QuestListComponent[] | undefined;
+    solutions?: SolutionListComponent[] | undefined;
+  }) => void;
+
   setTrash: React.Dispatch<
     React.SetStateAction<{
       quests: QuestListComponent[];
@@ -658,6 +671,11 @@ const TrashComponent = ({
     trpc.quest.deleteQuestPermanently.useMutation();
   const deleteSolutionPermanently =
     trpc.solution.deleteSolutionPermanently.useMutation();
+  const restoreQuest = trpc.quest.restoreQuest.useMutation();
+  const restoreSolution = trpc.solution.restoreSolution.useMutation();
+  const listKey = getQueryKey(trpc.workspace.workspaceList);
+  const queryClient = useQueryClient();
+  const toast = useToast();
   const [QuestOrSolutionList, setQuestOrSolutionList] = useState<WorkspaceList>(
     { quests: [], solutions: [] }
   );
@@ -700,7 +718,7 @@ const TrashComponent = ({
   return (
     <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg="blue.50">
         <ModalHeader>Trash</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
@@ -709,6 +727,7 @@ const TrashComponent = ({
               ref={initialRef}
               placeholder="Search by title..."
               onInput={searchText}
+              bg="white"
             />
           </FormControl>
 
@@ -716,7 +735,6 @@ const TrashComponent = ({
             QuestOrSolutionList.quests.map((q) => (
               <Flex
                 mt={2}
-                _hover={{ bg: "gray.100" }}
                 cursor="pointer"
                 pl="2"
                 borderRadius={4}
@@ -747,28 +765,72 @@ const TrashComponent = ({
                 <IconButton
                   size="sm"
                   aria-label="restore"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      width="18"
-                      height="18"
-                    >
-                      <path fill="none" d="M0 0h24v24H0z" />
-                      <path
-                        d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
-                        fill="var(--gray)"
-                      />
-                    </svg>
-                  }
-                ></IconButton>
-
-                <IconButton
-                  mr={1}
-                  size="sm"
-                  aria-label="restore"
+                  bg="blue.100"
+                  _hover={{ bg: "blue.200" }}
+                  isLoading={restoreQuest.isLoading}
                   onClick={() => {
-                    onAlertOpen();
+                    restoreQuest.mutate(
+                      { id: q.id },
+                      {
+                        onSuccess: (data: Quest | undefined) => {
+                          setTrash(
+                            produce((trash) => {
+                              const filteredQuests = trash.quests.filter(
+                                (v) => v.id !== q.id
+                              );
+                              trash.quests = filteredQuests;
+                            })
+                          );
+                          queryClient
+                            .invalidateQueries(listKey)
+                            .catch((err) => console.log(err));
+
+                          const questList = structuredClone(
+                            workspaceListState.quests
+                          );
+                          if (data) {
+                            set(data.id, data).catch((err) => console.log(err));
+                            questList.push({
+                              id: data.id,
+                              inTrash: data.inTrash,
+                              lastUpdated: data.lastUpdated,
+                              type: "QUEST",
+                              title: data.title,
+                              topic: data.topic,
+                            });
+                            questList.sort((a, b) => {
+                              if (a.id < b.id) {
+                                return -1;
+                              }
+                              if (a.id > b.id) {
+                                return 1;
+                              }
+                              // a must be equal to b
+                              return 0;
+                            });
+                            setWorkspaceListState({ quests: questList });
+                            toast({
+                              status: "success",
+                              title: "Quest successfuly restored!",
+                              duration: 5000,
+                              isClosable: true,
+                            });
+
+                            onClose();
+                          }
+                        },
+                        onError: () => {
+                          toast({
+                            status: "error",
+                            title: "Error in restoring the quest!",
+                            duration: 5000,
+                            isClosable: true,
+                          });
+
+                          onClose();
+                        },
+                      }
+                    );
                   }}
                   icon={
                     <svg
@@ -779,8 +841,33 @@ const TrashComponent = ({
                     >
                       <path fill="none" d="M0 0h24v24H0z" />
                       <path
+                        d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
+                        fill="var(--blue)"
+                      />
+                    </svg>
+                  }
+                ></IconButton>
+
+                <IconButton
+                  mr={1}
+                  size="sm"
+                  aria-label="permanently delete"
+                  onClick={() => {
+                    onAlertOpen();
+                  }}
+                  bg="blue.100"
+                  _hover={{ bg: "blue.200" }}
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                    >
+                      <path fill="none" d="M0 0h24v24H0z" />
+                      <path
                         d="M7 4V2h10v2h5v2h-2v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6H2V4h5zM6 6v14h12V6H6zm3 3h2v8H9V9zm4 0h2v8h-2V9z"
-                        fill="var(--gray)"
+                        fill="var(--blue)"
                       />
                     </svg>
                   }
@@ -868,28 +955,70 @@ const TrashComponent = ({
                 <IconButton
                   size="sm"
                   aria-label="restore"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      width="18"
-                      height="18"
-                    >
-                      <path fill="none" d="M0 0h24v24H0z" />
-                      <path
-                        d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
-                        fill="var(--gray)"
-                      />
-                    </svg>
-                  }
-                ></IconButton>
-
-                <IconButton
-                  mr={1}
-                  size="sm"
-                  aria-label="restore"
+                  bg="blue.100"
+                  _hover={{ bg: "blue.200" }}
                   onClick={() => {
-                    onAlertOpen();
+                    restoreSolution.mutate(
+                      { id: s.id },
+                      {
+                        onSuccess: (data: Solution | undefined) => {
+                          setTrash(
+                            produce((trash) => {
+                              const filteredSolutions = trash.solutions.filter(
+                                (v) => v.id !== s.id
+                              );
+                              trash.solutions = filteredSolutions;
+                            })
+                          );
+                          queryClient
+                            .invalidateQueries(listKey)
+                            .catch((err) => console.log(err));
+
+                          const solutionList = structuredClone(
+                            workspaceListState.solutions
+                          );
+                          if (data) {
+                            set(data.id, data).catch((err) => console.log(err));
+                            solutionList.push({
+                              id: data.id,
+                              inTrash: data.inTrash,
+                              lastUpdated: data.lastUpdated,
+                              type: "SOLUTION",
+                              title: data.title || "",
+                            });
+                            solutionList.sort((a, b) => {
+                              if (a.id < b.id) {
+                                return -1;
+                              }
+                              if (a.id > b.id) {
+                                return 1;
+                              }
+                              // a must be equal to b
+                              return 0;
+                            });
+                            setWorkspaceListState({ solutions: solutionList });
+                            toast({
+                              status: "success",
+                              title: "Solution successfuly restored!",
+                              duration: 5000,
+                              isClosable: true,
+                            });
+
+                            onClose();
+                          }
+                        },
+                        onError: () => {
+                          toast({
+                            status: "error",
+                            title: "Error in restoring the solution!",
+                            duration: 5000,
+                            isClosable: true,
+                          });
+
+                          onClose();
+                        },
+                      }
+                    );
                   }}
                   icon={
                     <svg
@@ -900,8 +1029,33 @@ const TrashComponent = ({
                     >
                       <path fill="none" d="M0 0h24v24H0z" />
                       <path
+                        d="M5.828 7l2.536 2.536L6.95 10.95 2 6l4.95-4.95 1.414 1.414L5.828 5H13a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H5.828z"
+                        fill="var(--blue)"
+                      />
+                    </svg>
+                  }
+                ></IconButton>
+
+                <IconButton
+                  mr={1}
+                  size="sm"
+                  aria-label="delete permanently"
+                  onClick={() => {
+                    onAlertOpen();
+                  }}
+                  bg="blue.100"
+                  _hover={{ bg: "blue.200" }}
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                    >
+                      <path fill="none" d="M0 0h24v24H0z" />
+                      <path
                         d="M7 4V2h10v2h5v2h-2v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6H2V4h5zM6 6v14h12V6H6zm3 3h2v8H9V9zm4 0h2v8h-2V9z"
-                        fill="var(--gray)"
+                        fill="var(--blue)"
                       />
                     </svg>
                   }
@@ -964,10 +1118,9 @@ const TrashComponent = ({
         </ModalBody>
 
         <ModalFooter>
-          <Button colorScheme="blue" mr={3}>
-            Search
+          <Button onClick={onClose} colorScheme="blue">
+            Cancel
           </Button>
-          <Button onClick={onClose}>Cancel</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
