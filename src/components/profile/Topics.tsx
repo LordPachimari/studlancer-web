@@ -5,7 +5,7 @@ export default function UserTopics() {
     <Box
       bg="none"
       border="2px"
-      borderColor="gray.200"
+      borderColor="blue.200"
       w="100%"
       h="24"
       borderRadius="2xl"

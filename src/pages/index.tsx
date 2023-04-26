@@ -20,6 +20,7 @@ import {
 import { trpc } from "~/utils/api";
 import { useRouter } from "next/router";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import Link from "next/link";
 
 const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
@@ -30,17 +31,19 @@ const SignUpPage: NextPageWithLayout = () => {
   const router = useRouter();
   if (isSignedIn && user.data) {
     return (
-      <Card w="80" h="md" borderRadius="2xl">
-        <CardHeader
-          whiteSpace="nowrap"
-          overflow="hidden"
-          textOverflow="ellipsis"
-        >
-          <Heading display="center" justifyContent="center">
-            {user.data.username.toUpperCase()}
-          </Heading>
-        </CardHeader>
-      </Card>
+      <Link href={`/profile/${userId}`}>
+        <Card w="80" h="md" borderRadius="2xl">
+          <CardHeader
+            whiteSpace="nowrap"
+            overflow="hidden"
+            textOverflow="ellipsis"
+          >
+            <Heading display="center" justifyContent="center">
+              {user.data.username.toUpperCase()}
+            </Heading>
+          </CardHeader>
+        </Card>
+      </Link>
     );
   }
   if (isSignedIn && !user.data) {

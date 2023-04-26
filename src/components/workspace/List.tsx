@@ -735,7 +735,7 @@ const TrashComponent = ({
             QuestOrSolutionList.quests.map((q) => (
               <Flex
                 mt={2}
-                cursor="pointer"
+                _hover={{ borderWidth: "2px", borderColor: "blue.100" }}
                 pl="2"
                 borderRadius={4}
                 bg="none"
@@ -783,41 +783,45 @@ const TrashComponent = ({
                           );
                           queryClient
                             .invalidateQueries(listKey)
+                            .then(() => {
+                              if (data) {
+                                set(data.id, data).catch((err) =>
+                                  console.log(err)
+                                );
+                                questList.push({
+                                  id: data.id,
+                                  inTrash: data.inTrash,
+                                  lastUpdated: data.lastUpdated,
+                                  type: "QUEST",
+                                  title: data.title,
+                                  topic: data.topic,
+                                });
+                                questList.sort((a, b) => {
+                                  if (a.id < b.id) {
+                                    return -1;
+                                  }
+                                  if (a.id > b.id) {
+                                    return 1;
+                                  }
+                                  // a must be equal to b
+                                  return 0;
+                                });
+                                setWorkspaceListState({ quests: questList });
+                                toast({
+                                  status: "success",
+                                  title: "Quest successfuly restored!",
+                                  duration: 5000,
+                                  isClosable: true,
+                                });
+
+                                onClose();
+                              }
+                            })
                             .catch((err) => console.log(err));
 
                           const questList = structuredClone(
                             workspaceListState.quests
                           );
-                          if (data) {
-                            set(data.id, data).catch((err) => console.log(err));
-                            questList.push({
-                              id: data.id,
-                              inTrash: data.inTrash,
-                              lastUpdated: data.lastUpdated,
-                              type: "QUEST",
-                              title: data.title,
-                              topic: data.topic,
-                            });
-                            questList.sort((a, b) => {
-                              if (a.id < b.id) {
-                                return -1;
-                              }
-                              if (a.id > b.id) {
-                                return 1;
-                              }
-                              // a must be equal to b
-                              return 0;
-                            });
-                            setWorkspaceListState({ quests: questList });
-                            toast({
-                              status: "success",
-                              title: "Quest successfuly restored!",
-                              duration: 5000,
-                              isClosable: true,
-                            });
-
-                            onClose();
-                          }
                         },
                         onError: () => {
                           toast({
@@ -972,40 +976,46 @@ const TrashComponent = ({
                           );
                           queryClient
                             .invalidateQueries(listKey)
+                            .then(() => {
+                              if (data) {
+                                set(data.id, data).catch((err) =>
+                                  console.log(err)
+                                );
+                                solutionList.push({
+                                  id: data.id,
+                                  inTrash: data.inTrash,
+                                  lastUpdated: data.lastUpdated,
+                                  type: "SOLUTION",
+                                  title: data.title || "",
+                                });
+                                solutionList.sort((a, b) => {
+                                  if (a.id < b.id) {
+                                    return -1;
+                                  }
+                                  if (a.id > b.id) {
+                                    return 1;
+                                  }
+                                  // a must be equal to b
+                                  return 0;
+                                });
+                                setWorkspaceListState({
+                                  solutions: solutionList,
+                                });
+                                toast({
+                                  status: "success",
+                                  title: "Solution successfuly restored!",
+                                  duration: 5000,
+                                  isClosable: true,
+                                });
+
+                                onClose();
+                              }
+                            })
                             .catch((err) => console.log(err));
 
                           const solutionList = structuredClone(
                             workspaceListState.solutions
                           );
-                          if (data) {
-                            set(data.id, data).catch((err) => console.log(err));
-                            solutionList.push({
-                              id: data.id,
-                              inTrash: data.inTrash,
-                              lastUpdated: data.lastUpdated,
-                              type: "SOLUTION",
-                              title: data.title || "",
-                            });
-                            solutionList.sort((a, b) => {
-                              if (a.id < b.id) {
-                                return -1;
-                              }
-                              if (a.id > b.id) {
-                                return 1;
-                              }
-                              // a must be equal to b
-                              return 0;
-                            });
-                            setWorkspaceListState({ solutions: solutionList });
-                            toast({
-                              status: "success",
-                              title: "Solution successfuly restored!",
-                              duration: 5000,
-                              isClosable: true,
-                            });
-
-                            onClose();
-                          }
                         },
                         onError: () => {
                           toast({

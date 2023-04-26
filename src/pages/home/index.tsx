@@ -83,6 +83,7 @@ export default function Home() {
     }
   }, [serverQuests.data]);
 
+  console.log("pages", pages);
   return (
     <Flex
       w="100%"

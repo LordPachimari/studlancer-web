@@ -52,6 +52,7 @@ import { getQueryKey } from "@trpc/react-query";
 import { ulid } from "ulid";
 import Link from "next/link";
 import { buildClerkProps, getAuth } from "@clerk/nextjs/server";
+import Image, { StaticImageData } from "next/image";
 
 export default function PublishedQuestPage() {
   const router = useRouter();
@@ -121,7 +122,7 @@ export default function PublishedQuestPage() {
             >
               Publisher
             </CardHeader>
-            <CardBody>
+            <CardBody p="2">
               <Publisher publisherId={quest.data.quest.creatorId} />
             </CardBody>
           </Card>
@@ -413,6 +414,11 @@ const Publisher = ({ publisherId }: { publisherId: string }) => {
     { id: publisherId },
     { staleTime: 10 * 60 * 1000 }
   );
+  let userImage: StaticImageData | undefined = undefined;
+  if (publisher.data && publisher.data.profile) {
+    userImage = JSON.parse(publisher.data.profile) as StaticImageData;
+  }
+
   if (publisher.isLoading) {
     return (
       <>
@@ -424,8 +430,10 @@ const Publisher = ({ publisherId }: { publisherId: string }) => {
   }
   return (
     <>
-      <Box w="36" height="48"></Box>
-      <Text textAlign="center" fontWeight="bold">
+      <Center w="100%">
+        {userImage && <Image src={userImage} alt="avatar" width={130} />}
+      </Center>
+      <Text textAlign="center" fontWeight="bold" mt="2">
         {publisher.data?.username.toUpperCase()}
       </Text>
     </>

@@ -51,7 +51,6 @@ const QuestEditor = ({ id }: { id: string }) => {
   const router = useRouter();
   const cancelRef = useRef(null);
   const unpublishQuest = trpc.quest.unpublishQuest.useMutation();
-
   const queryClient = useQueryClient();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();

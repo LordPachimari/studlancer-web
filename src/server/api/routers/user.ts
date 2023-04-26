@@ -10,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   CreateUserZod,
+  InventorySlot,
   UpdateUserAttributes,
   UpdateUserAttributesZod,
   User,
@@ -19,7 +20,8 @@ import {
 } from "../../../types/main";
 
 import { dynamoClient } from "../../../constants/dynamoClient";
-
+import Giorno from "../../../assets/Giorno2.png";
+import * as pako from "pako";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 
 export const userRouter = router({
@@ -78,6 +80,11 @@ export const userRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { username } = input;
       const { auth } = ctx;
+      const inventory: InventorySlot[] = [
+        { index: 0, item: Giorno, type: "skin" },
+      ];
+      const inventoryString = JSON.stringify(inventory);
+      const inventoryData = pako.deflate(inventoryString);
 
       const userItem: UserDynamo = {
         PK: `USER#${auth.userId}`,
@@ -88,11 +95,11 @@ export const userRouter = router({
         experience: 0,
         role: "USER",
         level: 0,
-        profile: "default profile",
         email: auth.user!.emailAddresses[0]!.emailAddress,
         username: username,
         verified: false,
         type: "USER",
+        inventory: inventoryData,
       };
       UserDynamoZod.parse(userItem);
       const putParams: PutCommandInput = {
@@ -118,8 +125,17 @@ export const userRouter = router({
   updateUserAttributes: protectedProcedure
     .input(UpdateUserAttributesZod)
     .mutation(async ({ input, ctx }) => {
-      const { about, email, subtopics, topics, username, profile, links } =
-        input;
+      const {
+        about,
+        email,
+        subtopics,
+        topics,
+        username,
+        profile,
+        links,
+        activeSlots,
+        inventory,
+      } = input;
       const { auth } = ctx;
 
       const updateAttributes: string[] = [];
@@ -143,6 +159,10 @@ export const userRouter = router({
           ...(profile && { "#profile": "profile" }),
 
           ...(links && { "#links": "links" }),
+
+          ...(activeSlots && { "#activeSlots": "activeSlots" }),
+
+          ...(inventory && { "#inventory": "inventory" }),
         },
         ExpressionAttributeValues: {
           ...(about && { ":about": about }),
@@ -153,6 +173,9 @@ export const userRouter = router({
           ...(profile && { ":profile": profile }),
 
           ...(links && { ":links": links }),
+          ...(activeSlots && { ":activeSlots": activeSlots }),
+
+          ...(inventory && { ":inventory": inventory }),
         },
       };
       try {

@@ -1,3 +1,4 @@
+import { StaticImageData } from "next/image";
 import { z } from "zod";
 export type ThemeType = "dark" | "light";
 const ObjectTypes = ["USER", "QUEST", "SOLUTION", "COMMENT", "POST"] as const;
@@ -53,7 +54,7 @@ export type TopicsType = z.infer<typeof TopicsZod>;
 export type SubtopicsType = typeof Subtopics;
 
 export const UserZod = z.object({
-  profile: z.string(),
+  profile: z.optional(z.string()),
   verified: z.boolean(),
   id: z.string(),
   username: z.string(),
@@ -71,6 +72,8 @@ export const UserZod = z.object({
   questsSolved: z.optional(z.number()),
   rewarded: z.optional(z.number()),
   links: z.optional(z.object({ twitter: z.string(), discord: z.string() })),
+  activeSlots: z.optional(z.instanceof(Uint8Array)),
+  inventory: z.instanceof(Uint8Array),
 });
 export type User = z.infer<typeof UserZod>;
 export const UserDynamoZod = UserZod.extend({
@@ -131,7 +134,7 @@ export const QuestZod = QuestPartialZod.required({
 export type Quest = z.infer<typeof QuestZod>;
 
 export const PublishedQuestZod = QuestRequiredZod.extend({
-  creatorProfile: z.string(),
+  creatorProfile: z.optional(z.string()),
   creatorUsername: z.string(),
   winnerId: z.optional(z.string()),
   status: z.enum(QuestStatus),
@@ -215,6 +218,8 @@ export const UpdateUserAttributesZod = UserZod.pick({
   topics: true,
   subtopics: true,
   links: true,
+  activeSlots: true,
+  inventory: true,
 }).partial();
 export type UpdateUserAttributes = z.infer<typeof UpdateUserAttributesZod>;
 
@@ -322,12 +327,28 @@ export const Post = z.object({
   type: z.enum(ObjectTypes),
 });
 export type Post = z.infer<typeof Post>;
-export type LeaderboardType = {
-  username: string;
-  level: number;
-  profile: string;
-  questsSolved?: number;
-  rewarded?: number;
+
+export type LeaderboardType = Pick<
+  User,
+  "username" | "level" | "profile" | "questsSolved" | "rewarded" | "profile"
+> & {
   position: number;
+
   filter: "quests" | "reward";
 };
+
+type Slot = string | StaticImageData | null;
+export interface ActiveSlots {
+  hat: Slot;
+  glasses: Slot;
+  hair: Slot;
+  upper: Slot;
+  eyes: Slot;
+  lower: Slot;
+  skin: Slot;
+}
+export interface InventorySlot {
+  item: string | StaticImageData | null;
+  index: number;
+  type?: "hat" | "glasses" | "hair" | "upper" | "eyes" | "lower" | "skin";
+}

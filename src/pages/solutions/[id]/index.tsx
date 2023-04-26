@@ -52,6 +52,7 @@ import { getQueryKey } from "@trpc/react-query";
 import { ulid } from "ulid";
 import Link from "next/link";
 import { buildClerkProps, getAuth } from "@clerk/nextjs/server";
+import Image, { StaticImageData } from "next/image";
 
 export default function PublishedSolutionPage() {
   const router = useRouter();
@@ -138,6 +139,11 @@ const _Solver = ({ solverId }: { solverId: string }) => {
     { id: solverId },
     { staleTime: 10 * 60 * 1000 }
   );
+  let userImage: StaticImageData | undefined = undefined;
+  if (solver.data && solver.data.profile) {
+    userImage = JSON.parse(solver.data.profile) as StaticImageData;
+  }
+
   if (solver.isLoading) {
     return (
       <>
@@ -149,7 +155,9 @@ const _Solver = ({ solverId }: { solverId: string }) => {
   }
   return (
     <>
-      <Box w="36" height="48"></Box>
+      <Center w="100%">
+        {userImage && <Image src={userImage} alt="avatar" width={130} />}
+      </Center>
       <Text textAlign="center" fontWeight="bold">
         {solver.data?.username.toUpperCase()}
       </Text>

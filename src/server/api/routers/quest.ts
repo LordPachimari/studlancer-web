@@ -527,7 +527,9 @@ export const questRouter = router({
               status: "OPEN",
               published: true,
               creatorId: quest.creatorId,
-              creatorProfile: creator.profile,
+              ...(creator.profile && {
+                creatorProfile: creator.profile,
+              }),
               creatorUsername: creator.username,
               publishedAt: new Date().toISOString(),
               type: "QUEST",

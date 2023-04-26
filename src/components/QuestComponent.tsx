@@ -35,6 +35,9 @@ import { FromNow } from "~/utils/dayjs";
 import FileExtension from "./Tiptap/FileExtension";
 import ImageExtension from "./Tiptap/ImageExtension";
 import { TopicColorScheme } from "~/utils/topicsColor";
+import Giorno from "../assets/Giorno2.png";
+import Image, { StaticImageData } from "next/image";
+import * as pako from "pako";
 
 export default function QuestComponent({
   quest,
@@ -45,16 +48,28 @@ export default function QuestComponent({
   includeContent: boolean;
   includeDetails: boolean;
 }) {
+  let creatorImage: StaticImageData | undefined = undefined;
+  if (quest.creatorProfile) {
+    creatorImage = JSON.parse(quest.creatorProfile) as StaticImageData;
+  }
   return (
     <Card w="100%" h="fit-content" borderRadius="2xl">
       <CardHeader p={4}>
         <Flex gap={5} flexWrap="wrap">
           <Flex flex="1" gap="4" alignItems="center">
             {/* <Link href={`/profile/${quest.creatorId}`}> */}
-            <Avatar
-              name={quest.creatorUsername}
-              // src="https://bit.ly/sage-adebayo"
-            />
+            {creatorImage ? (
+              <div className="circular-image-container">
+                <Image
+                  src={creatorImage}
+                  alt="avatar"
+                  className="circular-image"
+                />
+              </div>
+            ) : (
+              <Avatar name={quest.creatorUsername} size="sm" />
+            )}
+
             {/* </Link> */}
 
             <Box>

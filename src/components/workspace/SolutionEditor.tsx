@@ -585,15 +585,16 @@ const QuestSearch = ({
                               // );
                               queryClient
                                 .invalidateQueries(workspaceSolutionKey)
+                                .then(() => {
+                                  toast({
+                                    title: "Successfuly added quest!",
+                                    status: "success",
+                                    isClosable: true,
+                                    duration: 5000,
+                                  });
+                                  onModalClose();
+                                })
                                 .catch((err) => console.log(err));
-
-                              toast({
-                                title: "Successfuly added quest!",
-                                status: "success",
-                                isClosable: true,
-                                duration: 5000,
-                              });
-                              onModalClose();
                             },
                             onError: () => {
                               toast({

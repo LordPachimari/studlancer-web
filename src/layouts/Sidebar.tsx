@@ -1,4 +1,5 @@
 import {
+  Badge,
   Box,
   Button,
   Center,
@@ -17,6 +18,8 @@ import { useRouter } from "next/router";
 import styles from "./sidebar.module.css";
 import { trpc } from "~/utils/api";
 import { useToast } from "@chakra-ui/react";
+import * as pako from "pako";
+import Image, { StaticImageData } from "next/image";
 const Sidebar = ({
   showSidebar,
   toggleShowSidebar,
@@ -27,7 +30,17 @@ const Sidebar = ({
   const toast = useToast();
   const router = useRouter();
   const { userId, isSignedIn, isLoaded } = useAuth();
+  const user = trpc.user.userById.useQuery(
+    { id: userId! },
+    { staleTime: 10 * 60 * 1000, enabled: isLoaded && !!userId }
+  );
+
   const { signOut } = useClerk();
+
+  let profileImage: StaticImageData | undefined = undefined;
+  if (user.data && user.data.profile) {
+    profileImage = JSON.parse(user.data.profile) as StaticImageData;
+  }
 
   const links = [
     { page: "home", finished: true, public: true },
@@ -71,11 +84,27 @@ const Sidebar = ({
         </IconButton>
       </Flex>
 
-      {isSignedIn ? (
+      {isSignedIn && user.data ? (
         <Link href={`/profile/${userId}`}>
           <Center w="100%" h="80">
-            <Box w="90%" h="72" bg="gray.100" borderRadius={"xl"}></Box>
+            {profileImage ? (
+              <Image src={profileImage} alt="Character" width={170} />
+            ) : (
+              <></>
+            )}
           </Center>
+          <Flex flexDir="column" alignItems="center" p="2">
+            <Badge
+              mr="1"
+              variant="solid"
+              colorScheme="blue"
+              fontSize="15"
+              w="12"
+            >
+              {user.data.level} lvl
+            </Badge>
+            <Text fontWeight="bold">{user.data.username}</Text>
+          </Flex>
 
           <Divider />
         </Link>
@@ -214,7 +243,7 @@ const Sidebar = ({
           </Box>
         );
       })}
-      {isSignedIn && (
+      {isSignedIn ? (
         <Center>
           {" "}
           <Button
@@ -226,6 +255,18 @@ const Sidebar = ({
             }}
           >
             <Text fontSize={{ base: "sm" }}>Sign out</Text>
+          </Button>
+        </Center>
+      ) : (
+        <Center>
+          <Button
+            mt={5}
+            colorScheme="blue"
+            onClick={() => {
+              void router.push("/sign-in");
+            }}
+          >
+            <Text fontSize={{ base: "sm" }}>Sign in</Text>
           </Button>
         </Center>
       )}

@@ -298,11 +298,11 @@ const Publish = ({
 
                 <AlertDialogBody>
                   {errorMessage && <Text color="red">{errorMessage}</Text>}
-                  You will pay {(QuestOrSolution as Quest)?.reward || 0} for
-                  publishing the quest.
-                  <Text>
-                    Note: Once the publisher viewed the solution, the quest can
-                    not be unpublished or deleted.
+                  You will pay {(QuestOrSolution as Quest)?.reward || 0}{" "}
+                  diamonds for publishing the quest.
+                  <Text fontWeight="bold">
+                    Note: Once publisher viewed the solution, quest can not be
+                    unpublished or deleted.
                   </Text>
                 </AlertDialogBody>
               </>

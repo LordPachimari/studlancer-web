@@ -18,6 +18,8 @@ import { trpc } from "~/utils/api";
 import { LoadingSpinner } from "../LoadingSpinner";
 import { LeaderboardType } from "~/types/main";
 import Link from "next/link";
+import Image, { StaticImageData } from "next/image";
+import * as pako from "pako";
 const UserComponent = ({
   username,
   level,
@@ -27,6 +29,11 @@ const UserComponent = ({
   position,
   filter,
 }: LeaderboardType) => {
+  let userImage: StaticImageData | undefined = undefined;
+  if (profile) {
+    userImage = JSON.parse(profile) as StaticImageData;
+  }
+
   return (
     <Flex
       flexDir="row"
@@ -38,17 +45,18 @@ const UserComponent = ({
       // bg="blue.100"
       borderWidth="1px"
       borderColor="blue.200"
-      h="12"
+      h="14"
     >
       <Center h="12" w="4" color="blue.700">
         <Text fontWeight="bold">{position}</Text>
       </Center>
-      <Avatar
-        name={username}
-        size="sm"
-
-        // src="https://bit.ly/sage-adebayo"
-      />
+      {userImage ? (
+        <div className="circular-image-container">
+          <Image src={userImage} alt="avatar" className="circular-image" />
+        </div>
+      ) : (
+        <Avatar name={username} size="sm" />
+      )}
       <Box whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis">
         <Badge color="white" bg="blue.500">
           {`${level} lvl`}
@@ -168,16 +176,17 @@ export default function Leaderboard() {
       ) : (
         leaders.data &&
         leaders.data.map((u, i) => (
-          <UserComponent
-            key={u.id}
-            username={u.username}
-            level={u.level}
-            profile={u.profile}
-            questsSolved={u.questsSolved}
-            position={i + 1}
-            filter={filter}
-            rewarded={u.rewarded}
-          />
+          <Link key={u.id} href={`/profile/${u.id}`}>
+            <UserComponent
+              username={u.username}
+              level={u.level}
+              profile={u.profile}
+              questsSolved={u.questsSolved}
+              position={i + 1}
+              filter={filter}
+              rewarded={u.rewarded}
+            />
+          </Link>
         ))
       )}
       <CardFooter justifyContent="center">

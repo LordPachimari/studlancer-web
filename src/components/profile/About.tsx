@@ -37,12 +37,14 @@ export default function AboutUser({
   level,
   experience,
   links,
+  isEditable,
 }: {
   username: string;
   about: string | undefined;
   level: number;
   experience: number;
   links: { twitter: string; discord: string } | undefined;
+  isEditable: boolean;
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   return (
@@ -60,34 +62,38 @@ export default function AboutUser({
             ml={5}
             borderRadius="xl"
           />
-          <IconButton
-            aria-label="edit-profile"
-            bg="none"
-            ml={2}
-            onClick={onOpen}
-            icon={
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="24"
-                height="24"
-              >
-                <path
-                  d="M12.6844 4.02535C12.4588 4.00633 12.2306 3.99658 12 3.99658C7.58172 3.99658 4 7.5783 4 11.9966C4 16.4149 7.58172 19.9966 12 19.9966C16.4183 19.9966 20 16.4149 20 11.9966C20 11.766 19.9902 11.5378 19.9711 11.3122C19.8996 10.4644 19.6953 9.64408 19.368 8.87332L20.8682 7.37102C21.2031 8.01179 21.4706 8.69338 21.6613 9.40637C21.8213 10.0062 21.9258 10.6221 21.9723 11.2479C21.9907 11.4951 22 11.7447 22 11.9966C22 17.5194 17.5228 21.9966 12 21.9966C6.47715 21.9966 2 17.5194 2 11.9966C2 6.47373 6.47715 1.99658 12 1.99658C12.2518 1.99658 12.5015 2.00589 12.7487 2.02419C13.3745 2.07069 13.9904 2.17529 14.5898 2.33568C15.3032 2.52597 15.9848 2.79347 16.6256 3.12837L15.1247 4.62922C14.3525 4.30131 13.5321 4.09695 12.6844 4.02535ZM20.4853 2.09709L21.8995 3.5113L12.7071 12.7037L11.2954 12.7062L11.2929 11.2895L20.4853 2.09709Z"
-                  fill="var(--blue)"
-                ></path>
-              </svg>
-            }
-          />
-          <EditProfile
-            onClose={onClose}
-            isOpen={isOpen}
-            onOpen={onOpen}
-            username={username}
-            about={about}
-            level={level}
-            links={links}
-          />
+          {isEditable && (
+            <>
+              <IconButton
+                aria-label="edit-profile"
+                bg="none"
+                ml={2}
+                onClick={onOpen}
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    height="24"
+                  >
+                    <path
+                      d="M12.6844 4.02535C12.4588 4.00633 12.2306 3.99658 12 3.99658C7.58172 3.99658 4 7.5783 4 11.9966C4 16.4149 7.58172 19.9966 12 19.9966C16.4183 19.9966 20 16.4149 20 11.9966C20 11.766 19.9902 11.5378 19.9711 11.3122C19.8996 10.4644 19.6953 9.64408 19.368 8.87332L20.8682 7.37102C21.2031 8.01179 21.4706 8.69338 21.6613 9.40637C21.8213 10.0062 21.9258 10.6221 21.9723 11.2479C21.9907 11.4951 22 11.7447 22 11.9966C22 17.5194 17.5228 21.9966 12 21.9966C6.47715 21.9966 2 17.5194 2 11.9966C2 6.47373 6.47715 1.99658 12 1.99658C12.2518 1.99658 12.5015 2.00589 12.7487 2.02419C13.3745 2.07069 13.9904 2.17529 14.5898 2.33568C15.3032 2.52597 15.9848 2.79347 16.6256 3.12837L15.1247 4.62922C14.3525 4.30131 13.5321 4.09695 12.6844 4.02535ZM20.4853 2.09709L21.8995 3.5113L12.7071 12.7037L11.2954 12.7062L11.2929 11.2895L20.4853 2.09709Z"
+                      fill="var(--blue)"
+                    ></path>
+                  </svg>
+                }
+              />
+              <EditProfile
+                onClose={onClose}
+                isOpen={isOpen}
+                onOpen={onOpen}
+                username={username}
+                about={about}
+                level={level}
+                links={links}
+              />
+            </>
+          )}
         </Flex>
 
         <Text fontSize={{ base: "xl", lg: "2xl" }} fontWeight="bold">
@@ -95,7 +101,7 @@ export default function AboutUser({
         </Text>
         <Text fontSize={{ base: "md" }}>{about && about}</Text>
       </CardBody>
-      <CardFooter>
+      <CardFooter display="flex" flexWrap="wrap">
         <HStack>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -191,14 +197,16 @@ const EditProfile = ({
         onSuccess: () => {
           queryClient
             .invalidateQueries({ queryKey: userKey })
+            .then(() => {
+              toast({
+                title: "User updated successfully",
+                status: "success",
+                isClosable: true,
+                duration: 5000,
+              });
+              onClose();
+            })
             .catch((err) => console.log("error invalidating key"));
-          toast({
-            title: "User updated successfully",
-            status: "success",
-            isClosable: true,
-            duration: 5000,
-          });
-          onClose();
         },
         onError: () => {
           toast({

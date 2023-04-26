@@ -26,7 +26,7 @@ export const generalRouter = router({
             await rocksetClient.queryLambdas.executeQueryLambda(
               "commons",
               "LeaderByQuests",
-              "700bdc74e55cfca4",
+              "6372e3ee42ca5ede",
               {
                 parameters: [
                   {
@@ -43,7 +43,7 @@ export const generalRouter = router({
             await rocksetClient.queryLambdas.executeQueryLambda(
               "commons",
               "LeaderByReward",
-              "ca81647ad919acdd",
+              "750c9d87b55109b6",
               {
                 parameters: [
                   {
