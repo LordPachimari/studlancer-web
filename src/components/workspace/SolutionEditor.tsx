@@ -281,7 +281,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           }
         );
       },
-      1000
+      500
     ),
     []
   );

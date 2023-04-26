@@ -190,7 +190,7 @@ const QuestEditor = ({ id }: { id: string }) => {
           }
         );
       },
-      1000
+      500
     ),
     []
   );
