@@ -9,6 +9,9 @@ import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import Paragraph from "@tiptap/extension-paragraph";
 import _Text from "@tiptap/extension-text";
+import BulletList from "@tiptap/extension-bullet-list";
+import ListItem from "@tiptap/extension-list-item";
+
 import parse, {
   attributesToProps,
   HTMLReactParserOptions,
@@ -250,6 +253,8 @@ export const NonEditableContent = ({ content }: { content: Uint8Array }) => {
       Bold,
       ImageExtension,
       FileExtension,
+      BulletList,
+      ListItem,
       // other extensions …
     ]);
   }, [contentJSON]);

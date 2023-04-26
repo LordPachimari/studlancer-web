@@ -1238,7 +1238,7 @@ const ListComponent = ({
             </svg>
           </MenuButton>
           <MenuList>
-            <MenuItem>{"Duplicate (in progress)"} </MenuItem>
+            {/* <MenuItem>{"Duplicate (in progress)"} </MenuItem> */}
             <MenuItem
               onClick={() => deleteListComponent({ id: questListComponent.id })}
             >
@@ -1335,7 +1335,7 @@ const ListComponent = ({
             </svg>
           </MenuButton>
           <MenuList transition="none">
-            <MenuItem>{"Duplicate (in progress)"} </MenuItem>
+            {/* <MenuItem>{"Duplicate (in progress)"} </MenuItem> */}
             <MenuItem
               onClick={() =>
                 deleteListComponent({ id: SolutionListComponent.id })

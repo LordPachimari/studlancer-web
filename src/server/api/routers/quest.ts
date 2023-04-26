@@ -501,7 +501,6 @@ export const questRouter = router({
 
           const creator = userItem.Item as User;
 
-          console.log("item", questAndContent);
           for (const item of questAndContent) {
             if (item.SK.startsWith("QUEST#")) {
               quest = item as QuestDynamo;
@@ -510,7 +509,6 @@ export const questRouter = router({
             }
           }
 
-          console.log("heloooooooooooooo", quest, content);
           if (quest && content) {
             const decompressedText = pako.inflate(content.text, {
               to: "string",

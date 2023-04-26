@@ -13,31 +13,14 @@ import {
   Skeleton,
   SkeletonCircle,
   SkeletonText,
-  Spacer,
   Text,
 } from "@chakra-ui/react";
-import { JSONContent } from "@tiptap/core";
-import Bold from "@tiptap/extension-bold";
-import Document from "@tiptap/extension-document";
-import Paragraph from "@tiptap/extension-paragraph";
-import _Text from "@tiptap/extension-text";
-import { generateHTML } from "@tiptap/html";
 import dayjs from "dayjs";
-import parse, {
-  attributesToProps,
-  HTMLReactParserOptions,
-  Element,
-} from "html-react-parser";
-import Link from "next/link";
-import { useMemo } from "react";
-import { PublishedQuest, TopicsType } from "~/types/main";
-import { FromNow } from "~/utils/dayjs";
-import FileExtension from "./Tiptap/FileExtension";
-import ImageExtension from "./Tiptap/ImageExtension";
-import { TopicColorScheme } from "~/utils/topicsColor";
-import Giorno from "../assets/Giorno2.png";
 import Image, { StaticImageData } from "next/image";
-import * as pako from "pako";
+import Link from "next/link";
+import { PublishedQuest } from "~/types/main";
+import { FromNow } from "~/utils/dayjs";
+import { TopicColorScheme } from "~/utils/topicsColor";
 
 export default function QuestComponent({
   quest,
@@ -57,54 +40,59 @@ export default function QuestComponent({
       <CardHeader p={4}>
         <Flex gap={5} flexWrap="wrap">
           <Flex flex="1" gap="4" alignItems="center">
-            {/* <Link href={`/profile/${quest.creatorId}`}> */}
-            {creatorImage ? (
-              <div className="circular-image-container">
-                <Image
-                  src={creatorImage}
-                  alt="avatar"
-                  className="circular-image"
-                />
-              </div>
-            ) : (
-              <Avatar name={quest.creatorUsername} size="sm" />
-            )}
+            <Link href={`/profile/${quest.creatorId}`}>
+              {creatorImage ? (
+                <div className="circular-image-container">
+                  <Image
+                    src={creatorImage}
+                    alt="avatar"
+                    className="circular-image"
+                  />
+                </div>
+              ) : (
+                <Avatar name={quest.creatorUsername} size="sm" />
+              )}
+            </Link>
 
-            {/* </Link> */}
+            <Link href={`/quests/${quest.id}`}>
+              <Box>
+                <Flex gap={2} alignItems="center">
+                  <Heading size="sm">{quest.creatorUsername}</Heading>
+                  <Text fontSize="sm">
+                    {FromNow({ date: quest.publishedAt })}
+                  </Text>
+                </Flex>
 
-            <Box>
-              <Flex gap={2} alignItems="center">
-                <Heading size="sm">{quest.creatorUsername}</Heading>
-                <Text fontSize="sm">
-                  {FromNow({ date: quest.publishedAt })}
-                </Text>
-              </Flex>
-              <Flex flexWrap="wrap" rowGap="1" columnGap="1">
-                <Badge colorScheme="blue">
-                  {`due ${FromNow({ date: quest.deadline })} `}
-                </Badge>
-                <Badge colorScheme="blue">{`${dayjs(quest.deadline).format(
-                  "MMM D, YYYY"
-                )}`}</Badge>
-              </Flex>
+                <Link href={`/quests/${quest.id}`}>
+                  <Flex flexWrap="wrap" rowGap="1" columnGap="1">
+                    <Badge colorScheme="blue">
+                      {`due ${FromNow({ date: quest.deadline })} `}
+                    </Badge>
+                    <Badge colorScheme="blue">{`${dayjs(quest.deadline).format(
+                      "MMM D, YYYY"
+                    )}`}</Badge>
+                  </Flex>
 
-              <Flex mt={2} gap={2} flexWrap="wrap">
-                <Badge colorScheme={TopicColorScheme(quest.topic)}>
-                  {quest.topic}
-                </Badge>
-                {quest.subtopic.map((subtopic, i) => (
-                  <Badge
-                    colorScheme="blue"
-                    key={i}
-                    borderWidth="2px"
-                    borderColor="blue.500"
-                  >
-                    {subtopic}
-                  </Badge>
-                ))}
-              </Flex>
-            </Box>
+                  <Flex mt={2} gap={2} flexWrap="wrap">
+                    <Badge colorScheme={TopicColorScheme(quest.topic)}>
+                      {quest.topic}
+                    </Badge>
+                    {quest.subtopic.map((subtopic, i) => (
+                      <Badge
+                        colorScheme="blue"
+                        key={i}
+                        borderWidth="2px"
+                        borderColor="blue.500"
+                      >
+                        {subtopic}
+                      </Badge>
+                    ))}
+                  </Flex>
+                </Link>
+              </Box>
+            </Link>
           </Flex>
+
           <Badge
             fontSize="md"
             h="8"
