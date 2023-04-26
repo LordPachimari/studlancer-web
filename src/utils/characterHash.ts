@@ -1,4 +1,4 @@
-const generateHash = (
+export const generateHash = (
   pants?: string,
   glasses?: string,
   upper?: string,
