@@ -60,7 +60,10 @@ export const questRouter = router({
     .query(async ({ input, ctx }) => {
       const { id } = input;
       const { auth } = ctx;
+      let quest: PublishedQuest | null = null;
 
+      const solvers: SolverPartial[] = [];
+      const commentsId: string[] = [];
       try {
         const getResponse = await momento.get(
           process.env.MOMENTO_CACHE_NAME || "",
@@ -89,11 +92,6 @@ export const questRouter = router({
 
             Key: { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
           };
-
-          let quest: PublishedQuest | null = null;
-
-          const solvers: SolverPartial[] = [];
-          const commentsId: string[] = [];
 
           const [queryItems, contentItem] = await Promise.all([
             dynamoClient.send(new QueryCommand(params)),
@@ -149,7 +147,8 @@ export const questRouter = router({
         } else if (getResponse instanceof CacheGet.Error) {
           console.log(`Error: ${getResponse.message()}`);
         }
-        return null
+
+        return { quest, solvers, commentsId };
       } catch (error) {
         console.log(error);
         throw new TRPCError({
