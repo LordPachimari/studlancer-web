@@ -57,7 +57,7 @@ export const UserZod = z.object({
   profile: z.optional(z.string()),
   verified: z.boolean(),
   id: z.string(),
-  username: z.string(),
+  username: z.string().min(2, { message: "Username is too short" }),
   email: z.string().email(),
   role: z.enum(UserRole),
   about: z.optional(z.string()),

@@ -249,6 +249,7 @@ const LeaveAlert = ({
 }) => {
   const cancelRef = useRef(null);
 
+  const [isIvalidating, setIsInvalidating] = useState(false);
   const queryClient = useQueryClient();
   const questKey = getQueryKey(trpc.quest.publishedQuest);
   const leave = trpc.quest.removeSolver.useMutation();
@@ -272,12 +273,13 @@ const LeaveAlert = ({
             </Button>
             <Button
               colorScheme="red"
-              isLoading={leave.isLoading}
+              isLoading={leave.isLoading || isIvalidating}
               onClick={() => {
                 leave.mutate(
                   { questId, solverId },
                   {
                     onSuccess: () => {
+                      setIsInvalidating(true);
                       queryClient
                         .invalidateQueries({
                           queryKey: questKey,
@@ -293,7 +295,8 @@ const LeaveAlert = ({
 
                           onClose();
                         })
-                        .catch((err) => console.log(err));
+                        .catch((err) => console.log(err))
+                        .finally(() => setIsInvalidating(false));
                     },
                     onError: () => {
                       toast({
@@ -331,7 +334,7 @@ const JoinAlert = ({
 }) => {
   const join = trpc.quest.addSolver.useMutation();
   const cancelRef = useRef(null);
-
+  const [isIvalidating, setIsInvalidating] = useState(false);
   const queryClient = useQueryClient();
 
   const createSolution = trpc.solution.createSolution.useMutation();
@@ -339,6 +342,7 @@ const JoinAlert = ({
   const questKey = getQueryKey(trpc.quest.publishedQuest);
 
   const toast = useToast();
+  console.log("isIvalidating", isIvalidating, join.isLoading);
   return (
     <AlertDialog
       isOpen={isOpen}
@@ -357,12 +361,13 @@ const JoinAlert = ({
             </Button>
             <Button
               colorScheme="green"
-              isLoading={join.isLoading}
+              isLoading={join.isLoading || isIvalidating}
               onClick={() => {
                 join.mutate(
                   { questId: quest.id },
                   {
                     onSuccess: () => {
+                      setIsInvalidating(true);
                       createSolution.mutate({
                         id: ulid(),
                         questId: quest.id,
@@ -383,7 +388,8 @@ const JoinAlert = ({
 
                           onClose();
                         })
-                        .catch((err) => console.log(err));
+                        .catch((err) => console.log(err))
+                        .finally(() => setIsInvalidating(false));
                     },
                     onError: () => {
                       toast({

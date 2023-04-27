@@ -302,7 +302,9 @@ const EditProfile = ({
       <ModalContent>
         <ModalHeader>Edit Profile</ModalHeader>
         <ModalCloseButton />
-        <Text color="red">{errorMessage}</Text>
+        <Text color="red" ml="6">
+          {errorMessage}
+        </Text>
         <ModalBody pb={6}>
           <Divider />
           <FormControl display="flex" alignItems="center" my={4}>
@@ -407,7 +409,7 @@ const EditProfile = ({
 
         <ModalFooter>
           <Button
-            isDisabled={!valueUpdated}
+            isDisabled={!valueUpdated || userInfo.username.value.length < 2}
             colorScheme="blue"
             mr={3}
             onClick={handleSave}
