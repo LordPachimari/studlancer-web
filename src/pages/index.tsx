@@ -25,7 +25,7 @@ import { LoadingSpinner } from "~/components/LoadingSpinner";
 
 const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
-  const user = trpc.user.userById.useQuery(
+  const user = trpc.user.userComponent.useQuery(
     { id: userId! },
     { enabled: !!userId, staleTime: 1800 }
   );

@@ -23,6 +23,8 @@ import { dynamoClient } from "../../../constants/dynamoClient";
 import Giorno from "../../../assets/Giorno2.png";
 import * as pako from "pako";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
+import { momento } from "~/constants/momentoClient";
+import { CacheGet, CacheSet } from "@gomomento/sdk";
 
 export const userRouter = router({
   userById: publicProcedure
@@ -36,9 +38,35 @@ export const userRouter = router({
       };
 
       try {
-        const result = await dynamoClient.send(new GetCommand(params));
-        if (result.Item) {
-          return result.Item as User;
+        const getResponse = await momento.get(
+          process.env.MOMENTO_CACHE_NAME || "",
+          id
+        );
+        if (getResponse instanceof CacheGet.Hit) {
+          console.log("cache hit!");
+
+          // increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+          const result = JSON.parse(getResponse.valueString()) as User;
+
+          return result;
+        } else if (getResponse instanceof CacheGet.Miss) {
+          const result = await dynamoClient.send(new GetCommand(params));
+          if (result.Item) {
+            const setResponse = await momento.set(
+              process.env.MOMENTO_CACHE_NAME || "",
+              id,
+              JSON.stringify(result.Item || ""),
+              { ttl: 1800 }
+            );
+            if (setResponse instanceof CacheSet.Success) {
+              console.log("Key stored successfully!");
+            } else {
+              console.log(`Error setting key: ${setResponse.toString()}`);
+            }
+            return result.Item as User;
+          }
+        } else if (getResponse instanceof CacheGet.Error) {
+          console.log(`Error: ${getResponse.message()}`);
         }
         return null;
       } catch (error) {
@@ -181,6 +209,7 @@ export const userRouter = router({
       try {
         const updateResult = await dynamoClient.send(new UpdateCommand(params));
         if (updateResult) {
+          await momento.delete("accounts-cache", auth.userId);
           return true;
         }
         return false;

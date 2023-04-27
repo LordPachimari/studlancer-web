@@ -149,6 +149,7 @@ export const questRouter = router({
         } else if (getResponse instanceof CacheGet.Error) {
           console.log(`Error: ${getResponse.message()}`);
         }
+        return null
       } catch (error) {
         console.log(error);
         throw new TRPCError({
@@ -590,9 +591,7 @@ export const questRouter = router({
               console.log("error in cache", error);
             }
 
-            console.log("result", transactResult);
             if (transactResult) {
-              console.log("helooooooooooooooooooooooo");
               return true;
             }
           }
