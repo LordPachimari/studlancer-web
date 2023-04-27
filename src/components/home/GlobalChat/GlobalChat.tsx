@@ -64,7 +64,7 @@ export default function GlobalChat({
   }) => {
     try {
       const supabaseAccessToken = await getToken({ template: "supabase" });
-      if (supabaseAccessToken) {
+      if (supabaseAccessToken && message) {
         const supabase = supabaseClient({ supabaseAccessToken });
         const { data } = await supabase
           .from(TABLE_GLOBAL_CHAT)
