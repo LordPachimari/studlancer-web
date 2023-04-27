@@ -214,7 +214,12 @@ export const questRouter = router({
             const setResponse = await momento.set(
               process.env.MOMENTO_CACHE_NAME || "",
               "LATEST_PUBLISHED_QUESTS",
-              JSON.stringify(publishedQuests || ""),
+              JSON.stringify(
+                {
+                  publishedQuests,
+                  next_cursor,
+                } || ""
+              ),
               { ttl: 1800 }
             );
             if (setResponse instanceof CacheSet.Success) {
