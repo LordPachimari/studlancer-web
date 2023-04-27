@@ -37,7 +37,7 @@ const SignUpPage: NextPageWithLayout = () => {
   }
 
   const router = useRouter();
-  if (user.isLoading) {
+  if (user.isFetching) {
     return (
       <Card w="80" h="md" borderRadius="2xl">
         <Center w="100%" h="100%">

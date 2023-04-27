@@ -69,14 +69,17 @@ export default function Profile() {
         columnGap="16"
         mt={16}
       >
-        <Character
-          isCharacterOpen={isCharacterOpen}
-          onCharacterClose={onCharacterClose}
-          onCharacterOpen={onCharacterOpen}
-          profile={user.data.profile}
-          activeSlots={user.data.activeSlots}
-          inventory={user.data.inventory}
-        />
+        {isSignedIn && user.data.id && userId && (
+          <Character
+            isCharacterOpen={isCharacterOpen}
+            onCharacterClose={onCharacterClose}
+            onCharacterOpen={onCharacterOpen}
+            profile={user.data.profile}
+            activeSlots={user.data.activeSlots}
+            inventory={user.data.inventory}
+          />
+        )}
+
         <Flex
           flexDir="column"
           alignItems="center"
