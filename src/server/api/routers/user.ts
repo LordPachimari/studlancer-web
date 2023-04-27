@@ -239,7 +239,10 @@ export const userRouter = router({
           await momento.delete("accounts-cache", auth.userId);
           return true;
         }
-        return false;
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "could not update the user",
+        });
       } catch (error) {
         console.log(error);
         return false;
