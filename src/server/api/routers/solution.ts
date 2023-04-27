@@ -35,7 +35,8 @@ import * as pako from "pako";
 import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
 import { reviver } from "~/utils/mapReplacer";
-// import { momento } from "~/constants/momentoClient";
+import { momento } from "~/constants/momentoClient";
+import { CacheGet, CacheSet } from "@gomomento/sdk";
 export const solutionRouter = router({
   publishedSolution: protectedProcedure
     .input(z.object({ id: z.string(), questId: z.string() }))
@@ -55,63 +56,93 @@ export const solutionRouter = router({
       };
 
       try {
-        const [solutionItem, contentItem] = await Promise.all([
-          dynamoClient.send(new GetCommand(params)),
-          dynamoClient.send(new GetCommand(contentParams)),
-        ]);
-        if (solutionItem.Item && contentItem.Item) {
-          const solution = solutionItem.Item as PublishedSolution;
-          const content = contentItem.Item as Content;
-          solution.content = content.content;
-          if (
-            solution.creatorId === auth.userId ||
-            solution.questCreatorId === auth.userId ||
-            (solution.contributors && solution.contributors.has(auth.userId)) ||
-            //allow winner solutions to be publicly viewed
-            solution.status === "ACCEPTED"
-          ) {
-            if (auth.userId === solution.creatorId && !solution.viewed) {
-              //send notification to the solver that his solution has been viewed by the quest creator
-              const transactParams: TransactWriteCommandInput = {
-                TransactItems: [
-                  //not allow unpublish the quest after the quest creator has viewed the solution
-                  {
-                    Update: {
-                      TableName: process.env.MAIN_TABLE_NAME,
-                      Key: {
-                        PK: `USER#${solution.questCreatorId}`,
-                        SK: `QUEST#${questId}`,
-                      },
-                      UpdateExpression: "SET #allowUnpublish =:false",
-                      ExpressionAttributeNames: {
-                        "#allowUnpublish": "allowUnpublish",
-                      },
-                      ExpressionAttributeValues: { ":false": false },
-                    },
-                  },
-                  {
-                    Update: {
-                      TableName: process.env.WORKSPACE_TABLE_NAME,
-                      Key: {
-                        PK: `USER#${solution.questCreatorId}`,
-                        SK: `SOLUTION#${questId}`,
-                      },
-                      UpdateExpression: "SET viewed = :viewed",
+        const getResponse = await momento.get(
+          process.env.MOMENTO_CACHE_NAME || "",
+          id
+        );
+        if (getResponse instanceof CacheGet.Hit) {
+          console.log("cache hit!");
 
-                      ExpressionAttributeValues: { ":viewed": true },
+          const result = JSON.parse(
+            getResponse.valueString()
+          ) as PublishedSolution;
+
+          return result;
+        } else if (getResponse instanceof CacheGet.Miss) {
+          const [solutionItem, contentItem] = await Promise.all([
+            dynamoClient.send(new GetCommand(params)),
+            dynamoClient.send(new GetCommand(contentParams)),
+          ]);
+          if (solutionItem.Item && contentItem.Item) {
+            const solution = solutionItem.Item as PublishedSolution;
+            const content = contentItem.Item as Content;
+            solution.content = content.content;
+            if (
+              solution.creatorId === auth.userId ||
+              solution.questCreatorId === auth.userId ||
+              (solution.contributors &&
+                solution.contributors.has(auth.userId)) ||
+              //allow winner solutions to be publicly viewed
+              solution.status === "ACCEPTED"
+            ) {
+              if (auth.userId === solution.creatorId && !solution.viewed) {
+                //send notification to the solver that his solution has been viewed by the quest creator
+                const transactParams: TransactWriteCommandInput = {
+                  TransactItems: [
+                    //not allow unpublish the quest after the quest creator has viewed the solution
+                    {
+                      Update: {
+                        TableName: process.env.MAIN_TABLE_NAME,
+                        Key: {
+                          PK: `USER#${solution.questCreatorId}`,
+                          SK: `QUEST#${questId}`,
+                        },
+                        UpdateExpression: "SET #allowUnpublish =:false",
+                        ExpressionAttributeNames: {
+                          "#allowUnpublish": "allowUnpublish",
+                        },
+                        ExpressionAttributeValues: { ":false": false },
+                      },
                     },
-                  },
-                ],
-              };
-              await dynamoClient.send(new TransactWriteCommand(transactParams));
+                    {
+                      Update: {
+                        TableName: process.env.WORKSPACE_TABLE_NAME,
+                        Key: {
+                          PK: `USER#${solution.questCreatorId}`,
+                          SK: `SOLUTION#${questId}`,
+                        },
+                        UpdateExpression: "SET viewed = :viewed",
+
+                        ExpressionAttributeValues: { ":viewed": true },
+                      },
+                    },
+                  ],
+                };
+                await dynamoClient.send(
+                  new TransactWriteCommand(transactParams)
+                );
+              }
+              const setResponse = await momento.set(
+                process.env.MOMENTO_CACHE_NAME || "",
+                id,
+                JSON.stringify(solution || ""),
+                { ttl: 1800 }
+              );
+              if (setResponse instanceof CacheSet.Success) {
+                console.log("Key stored successfully!");
+              } else {
+                console.log(`Error setting key: ${setResponse.toString()}`);
+              }
+              return solution;
             }
-            return solution;
           } else {
             throw new TRPCError({
               code: "UNAUTHORIZED",
               message: "UNAUTHORIZED TO VIEW THE SOLUTION",
             });
           }
+        } else if (getResponse instanceof CacheGet.Error) {
+          console.log(`Error: ${getResponse.message()}`);
         }
 
         return null;
@@ -476,9 +507,9 @@ export const solutionRouter = router({
             const transactResult = await dynamoClient.send(
               new TransactWriteCommand(params)
             );
-            // momento
-            //   .delete("accounts-cache", questId)
-            //   .catch((err) => console.log(err));
+            momento
+              .delete("accounts-cache", questId)
+              .catch((err) => console.log(err));
 
             if (transactResult) {
               return true;
@@ -567,9 +598,9 @@ export const solutionRouter = router({
         const transactResult = await dynamoClient.send(
           new TransactWriteCommand(params)
         );
-        // momento
-        //   .delete("accounts-cache", questId)
-        //   .catch((err) => console.log(err));
+        momento
+          .delete("accounts-cache", questId)
+          .catch((err) => console.log(err));
         if (transactResult) {
           return true;
         }
