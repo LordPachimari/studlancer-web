@@ -92,10 +92,37 @@ export const userRouter = router({
         },
       };
       try {
-        const result = await dynamoClient.send(new GetCommand(params));
-        if (result.Item) {
-          const userComponent = result.Item as UserComponent;
-          return userComponent;
+        const getResponse = await momento.get(
+          process.env.MOMENTO_CACHE_NAME || "",
+
+          `USER_COMPONENT#${id}`
+        );
+        if (getResponse instanceof CacheGet.Hit) {
+          console.log("cache hit!");
+
+          // increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+          const result = JSON.parse(getResponse.valueString()) as UserComponent;
+
+          return result;
+        } else if (getResponse instanceof CacheGet.Miss) {
+          const result = await dynamoClient.send(new GetCommand(params));
+          if (result.Item) {
+            const userComponent = result.Item as UserComponent;
+            const setResponse = await momento.set(
+              process.env.MOMENTO_CACHE_NAME || "",
+              `USER_COMPONENT#${id}`,
+              JSON.stringify(userComponent || ""),
+              { ttl: 1800 }
+            );
+            if (setResponse instanceof CacheSet.Success) {
+              console.log("Key stored successfully!");
+            } else {
+              console.log(`Error setting key: ${setResponse.toString()}`);
+            }
+            return userComponent;
+          }
+        } else if (getResponse instanceof CacheGet.Error) {
+          console.log(`Error: ${getResponse.message()}`);
         }
         return null;
       } catch (error) {
