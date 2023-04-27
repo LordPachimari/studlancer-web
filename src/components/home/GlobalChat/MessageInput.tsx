@@ -13,7 +13,7 @@ export const MessageInput = ({
   const [messageText, setMessageText] = useState("");
   const submitOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
     // Watch for enter key
-    if (event.key === "Enter" && isSignedIn) {
+    if (event.key === "Enter" && isSignedIn && messageText.trim()) {
       onSubmit(messageText).catch((err) => console.log(err));
       setMessageText("");
     }

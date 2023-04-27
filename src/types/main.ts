@@ -311,7 +311,7 @@ export type Message = {
   message: string;
   user_id: string;
   created_at: Date;
-  profile_url: string;
+  profile: string;
   username: string;
   level: number;
   channel: TopicsType | "GENERAL";

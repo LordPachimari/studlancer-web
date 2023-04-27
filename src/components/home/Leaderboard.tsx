@@ -51,7 +51,12 @@ const UserComponent = ({
       </Center>
       {userImage ? (
         <div className="circular-image-container">
-          <Image src={userImage} alt="avatar" className="circular-image" />
+          <Image
+            src={userImage}
+            alt="avatar"
+            className="circular-image"
+            width={50}
+          />
         </div>
       ) : (
         <Avatar name={username} size="sm" />

@@ -29,6 +29,7 @@ import { FromNow } from "~/utils/dayjs";
 import { MessageInput } from "./MessageInput";
 import { trpc } from "~/utils/api";
 import produce from "immer";
+import Image, { StaticImageData } from "next/image";
 
 export default function GlobalChat({
   setShowChat,
@@ -53,13 +54,13 @@ export default function GlobalChat({
     message,
     channel,
     username,
-    profile_url,
+    profile,
     user_id,
   }: {
     message: string;
     channel: string;
     username: string;
-    profile_url: string;
+    profile?: string;
     user_id?: string;
   }) => {
     try {
@@ -68,7 +69,7 @@ export default function GlobalChat({
         const supabase = supabaseClient({ supabaseAccessToken });
         const { data } = await supabase
           .from(TABLE_GLOBAL_CHAT)
-          .insert([{ message, channel, user_id, username, profile_url }]);
+          .insert([{ message, channel, user_id, username, profile }]);
 
         // .select();
         return data;
@@ -205,13 +206,11 @@ export default function GlobalChat({
       });
     }
   }, [messages]);
-
   return (
     <Card
       // w="80"
-      bg="none"
       borderWidth="2px"
-      borderColor="blue.100"
+      borderColor="blue.300"
       boxShadow="none"
       borderRadius="2xl"
       position="fixed"
@@ -275,7 +274,7 @@ export default function GlobalChat({
         pb={2}
         px="2"
         overflowY="auto"
-        bg="blue.50"
+        bg="blue.100"
         css={{
           // Add css to style the scrollbar
           "&::-webkit-scrollbar": {
@@ -303,30 +302,13 @@ export default function GlobalChat({
         ) : (
           <Flex flexDir="column" w="100%">
             {messages.map((m) => (
-              <Card
-                mt="2"
-                w="100%"
-                h="fit-content"
+              <UserMessage
+                userId={m.user_id}
                 key={m.id}
-                display="flex"
-                flexDir="row"
-                alignItems="center"
-                p="1"
-              >
-                <Avatar size="sm" name={m.username} />
-                <Flex flexDir="column" pl={2}>
-                  <Text
-                    fontSize="sm"
-                    fontWeight="bold"
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                  >
-                    {m.username}
-                  </Text>
-                  <Text fontSize="sm">{m.message}</Text>
-                </Flex>
-              </Card>
+                username={m.username}
+                message={m.message}
+                profile={m.profile}
+              />
             ))}
           </Flex>
         )}
@@ -348,7 +330,10 @@ export default function GlobalChat({
             addMessage({
               channel,
               message: text,
-              profile_url: "default_profile",
+              ...(user.data &&
+                user.data.profile && {
+                  profile: user.data.profile,
+                }),
               username: user.data ? user.data.username : "unknown",
               ...(userId && { user_id: userId }),
             })
@@ -358,6 +343,60 @@ export default function GlobalChat({
     </Card>
   );
 }
+const UserMessage = ({
+  userId,
+  username,
+  profile,
+  message,
+}: {
+  userId: string;
+  username: string;
+  profile?: string;
+  message: string;
+}) => {
+  let userImage: StaticImageData | undefined = undefined;
+  if (profile) {
+    userImage = JSON.parse(profile) as StaticImageData;
+  }
+  return (
+    <Card
+      mt="2"
+      w="100%"
+      h="fit-content"
+      display="flex"
+      flexDir="row"
+      alignItems="center"
+      p="1"
+    >
+      {userImage ? (
+        <Link href={`/profile/${userId}`}>
+          <div className="circular-image-container">
+            <Image
+              src={userImage}
+              alt="avatar"
+              className="circular-image"
+              width={50}
+            />
+          </div>
+        </Link>
+      ) : (
+        <Avatar name={username} size="sm" />
+      )}
+      <Flex flexDir="column" pl={2}>
+        <Text
+          fontSize="sm"
+          fontWeight="bold"
+          whiteSpace="nowrap"
+          overflow="hidden"
+          textOverflow="ellipsis"
+        >
+          {username}
+        </Text>
+        <Text fontSize="sm">{message}</Text>
+      </Flex>
+    </Card>
+  );
+};
 export const LoadingChat = () => {
   return (
     <Card

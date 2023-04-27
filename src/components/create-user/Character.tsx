@@ -58,6 +58,7 @@ const Character = ({
   const inventoryData = JSON.parse(inventoryDataString) as InventorySlot[];
   const inventorySlots: InventorySlot[] = [];
   const userKey = getQueryKey(trpc.user.userById);
+  const userComponentKey = getQueryKey(trpc.user.userComponent);
   let count = inventoryData.length;
   for (let i = 0; i < 18 - inventoryData.length; i++) {
     if (count !== 0) {
@@ -353,7 +354,7 @@ const Character = ({
                   {
                     onSuccess: () => {
                       queryClient
-                        .invalidateQueries(userKey)
+                        .invalidateQueries([...userKey, ...userComponentKey])
                         .then(() => {
                           toast({
                             status: "success",
