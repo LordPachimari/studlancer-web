@@ -10,6 +10,7 @@ import { NextPageWithLayout } from "./_app";
 
 import superjson from "superjson";
 import {
+  Badge,
   Button,
   Card,
   CardBody,
@@ -22,6 +23,7 @@ import { useRouter } from "next/router";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import Link from "next/link";
 import { LoadingSpinner } from "~/components/LoadingSpinner";
+import Image, { StaticImageData } from "next/image";
 
 const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
@@ -29,6 +31,11 @@ const SignUpPage: NextPageWithLayout = () => {
     { id: userId! },
     { enabled: !!userId, staleTime: 1800 }
   );
+  let profileImage: StaticImageData | undefined = undefined;
+  if (user.data && user.data.profile) {
+    profileImage = JSON.parse(user.data.profile) as StaticImageData;
+  }
+
   const router = useRouter();
   if (user.isLoading) {
     return (
@@ -51,6 +58,26 @@ const SignUpPage: NextPageWithLayout = () => {
             <Heading display="center" justifyContent="center">
               {user.data.username.toUpperCase()}
             </Heading>
+            <Center>
+              <Badge
+                mr="1"
+                variant="solid"
+                colorScheme="blue"
+                fontSize="15"
+                w="12"
+              >
+                {user.data.level} lvl
+              </Badge>
+            </Center>
+            <CardBody p="1">
+              <Center w="100%" h="80">
+                {profileImage ? (
+                  <Image src={profileImage} alt="Character" width={170} />
+                ) : (
+                  <></>
+                )}
+              </Center>
+            </CardBody>
           </CardHeader>
         </Card>
       </Link>
