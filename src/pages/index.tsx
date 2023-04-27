@@ -46,7 +46,7 @@ const SignUpPage: NextPageWithLayout = () => {
       </Link>
     );
   }
-  if (isSignedIn && !user.data) {
+  if (isSignedIn && !user.data && user.isFetched) {
     return (
       <Card w="80" h="md" borderRadius="2xl">
         <Center w="100%" h="100%">
