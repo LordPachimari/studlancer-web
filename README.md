@@ -19,17 +19,15 @@
 - [x] **Global chat**. Used supabase realtime, with rate limiting and cron jobs that delete all the messages except last 100.
 - [x] **Image upload  (needs more optimisation)**. Image upload to S3 bucket via NEXT.js api route. The max image size is 10MB. Image loading state is not added yet, multipart upload will be added in the future. 
 - [x] **Global Search (for quests and users)**. Utilizing Rockset real-time data-analytics.
+- [x] **Pagination.**
+- [x] **Leaderboard**. Utilizing Rockset real-time data-analytics.
 
 ## In progress
-- [ ] **Pagination.
 - [ ] **Notifications**. Notifications will be stored in supabase tables,  every new table insertion of a notification will trigger an event that can be captured by supabase Realtime listeners, which will notify the clients that are subscribed to the updates on the table.
 - [ ] **Payment**. Stripe for payment.
 - [ ] **Private chat**. Supabase realtime. 
-- [ ] **Droppable and draggable**. Will use Third party droppable and draggable, for profile creation.
-- [ ] **Leaderboard**. Utilizing Rockset real-time data-analytics.
 - [ ] **Guild**. UI and appropriate CRUD operations needs to be done.
 - [ ] **Settings**. UI and appropriate CRUD operations needs to be done.
-- [ ] **Design (new brand colors)**. Design is hard so that's why it is at the bottom of the list
 
 Looking **optimistically** in the future I may add the following:
 - [ ] **Real-time collaboration in the workspace with CRDT**. 
