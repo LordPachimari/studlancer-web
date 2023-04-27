@@ -38,6 +38,7 @@ import {
 } from "@chakra-ui/react";
 import { FromNow } from "~/utils/dayjs";
 import { JSONContent } from "@tiptap/core";
+import StarterKit from "@tiptap/starter-kit";
 export const HtmlParseOptions: HTMLReactParserOptions = {
   replace: (_domNode) => {
     const domNode = _domNode as Element;
@@ -247,15 +248,10 @@ export const NonEditableContent = ({ content }: { content: Uint8Array }) => {
   const contentJSON = JSON.parse(restoredContent) as JSONContent;
   const output = useMemo(() => {
     return generateHTML(contentJSON, [
-      Document,
-      Paragraph,
-      _Text,
-      Bold,
+      StarterKit,
+
       ImageExtension,
       FileExtension,
-      BulletList,
-      ListItem,
-      // other extensions …
     ]);
   }, [contentJSON]);
 

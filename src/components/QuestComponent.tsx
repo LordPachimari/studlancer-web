@@ -54,43 +54,41 @@ export default function QuestComponent({
               )}
             </Link>
 
-            <Link href={`/quests/${quest.id}`}>
-              <Box>
-                <Flex gap={2} alignItems="center">
-                  <Heading size="sm">{quest.creatorUsername}</Heading>
-                  <Text fontSize="sm">
-                    {FromNow({ date: quest.publishedAt })}
-                  </Text>
+            <Box>
+              <Flex gap={2} alignItems="center">
+                <Heading size="sm">{quest.creatorUsername}</Heading>
+                <Text fontSize="sm">
+                  {FromNow({ date: quest.publishedAt })}
+                </Text>
+              </Flex>
+
+              <Link href={`/quests/${quest.id}`}>
+                <Flex flexWrap="wrap" rowGap="1" columnGap="1">
+                  <Badge colorScheme="blue">
+                    {`due ${FromNow({ date: quest.deadline })} `}
+                  </Badge>
+                  <Badge colorScheme="blue">{`${dayjs(quest.deadline).format(
+                    "MMM D, YYYY"
+                  )}`}</Badge>
                 </Flex>
 
-                <Link href={`/quests/${quest.id}`}>
-                  <Flex flexWrap="wrap" rowGap="1" columnGap="1">
-                    <Badge colorScheme="blue">
-                      {`due ${FromNow({ date: quest.deadline })} `}
+                <Flex mt={2} gap={2} flexWrap="wrap">
+                  <Badge colorScheme={TopicColorScheme(quest.topic)}>
+                    {quest.topic}
+                  </Badge>
+                  {quest.subtopic.map((subtopic, i) => (
+                    <Badge
+                      colorScheme="blue"
+                      key={i}
+                      borderWidth="2px"
+                      borderColor="blue.500"
+                    >
+                      {subtopic}
                     </Badge>
-                    <Badge colorScheme="blue">{`${dayjs(quest.deadline).format(
-                      "MMM D, YYYY"
-                    )}`}</Badge>
-                  </Flex>
-
-                  <Flex mt={2} gap={2} flexWrap="wrap">
-                    <Badge colorScheme={TopicColorScheme(quest.topic)}>
-                      {quest.topic}
-                    </Badge>
-                    {quest.subtopic.map((subtopic, i) => (
-                      <Badge
-                        colorScheme="blue"
-                        key={i}
-                        borderWidth="2px"
-                        borderColor="blue.500"
-                      >
-                        {subtopic}
-                      </Badge>
-                    ))}
-                  </Flex>
-                </Link>
-              </Box>
-            </Link>
+                  ))}
+                </Flex>
+              </Link>
+            </Box>
           </Flex>
 
           <Badge
