@@ -30,7 +30,7 @@ export const generalRouter = router({
 
         if (getResponse instanceof CacheGet.Hit) {
           console.log("cache hit!");
-          return JSON.parse(getResponse.valueString()) as PublishedQuest[];
+          return JSON.parse(getResponse.valueString()) as User[];
         } else if (getResponse instanceof CacheGet.Miss) {
           if (filter === "quests") {
             const rocksetResult =
