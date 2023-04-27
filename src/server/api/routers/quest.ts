@@ -236,9 +236,9 @@ export const questRouter = router({
             message: "FAILED RETRIEVING QUESTS, PLEASE TRY AGAIN",
           });
         }
-      } else if (!topic && !subtopic && filter === "higher reward") {
-      } else if ((topic || subtopic) && filter === "latest") {
-      } else if ((topic || subtopic) && filter === "higher reward") {
+      } else if (!topic && filter === "highest reward") {
+      } else if (topic && filter === "latest") {
+      } else if (topic && filter === "highest reward") {
       }
     }),
 

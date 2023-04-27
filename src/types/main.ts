@@ -205,7 +205,7 @@ export type TransactionQueue = z.infer<typeof TransactionQueueZod>;
 export const PublishedQuestsInputZod = z.object({
   topic: z.optional(z.array(z.string())),
   subtopic: z.optional(z.array(z.string())),
-  filter: z.optional(z.enum(["more views", "higher reward", "latest"])),
+  filter: z.optional(z.enum(["more views", "highest reward", "latest"])),
   cursor: z.optional(z.string()),
   limit: z.optional(z.number()),
 });
