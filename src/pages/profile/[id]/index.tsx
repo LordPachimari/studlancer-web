@@ -147,6 +147,7 @@ export default function Profile() {
             level={user.data.level}
             experience={user.data.experience}
             links={user.data.links}
+            isLoading={user.isLoading}
           />
           <Heading as="h3" size="md" my={5}>
             Topics

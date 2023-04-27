@@ -31,16 +31,10 @@ import Image, { StaticImageData } from "next/image";
 
 import produce from "immer";
 import { trpc } from "~/utils/api";
-import { ActiveSlots, InventorySlot } from "~/types/main";
+import { ActiveSlots, InventorySlot, getEntries } from "~/types/main";
 import * as pako from "pako";
 import { getQueryKey } from "@trpc/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-
-type Entries<T> = {
-  [K in keyof T]: [K, T[K]];
-}[keyof T][];
-const getEntries = <T extends object>(obj: T) =>
-  Object.entries(obj) as Entries<T>;
 
 const Character = ({
   profile,

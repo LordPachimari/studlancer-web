@@ -28,7 +28,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import produce from "immer";
 import { useRef, useState } from "react";
-import { UpdateUserAttributesZod, User } from "~/types/main";
+import { UpdateUserAttributesZod, User, getEntries } from "~/types/main";
 import { trpc } from "~/utils/api";
 
 export default function AboutUser({
@@ -38,6 +38,7 @@ export default function AboutUser({
   experience,
   links,
   isEditable,
+  isLoading,
 }: {
   username: string;
   about: string | undefined;
@@ -45,6 +46,7 @@ export default function AboutUser({
   experience: number;
   links: { twitter: string; discord: string } | undefined;
   isEditable: boolean;
+  isLoading: boolean;
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   return (
@@ -91,6 +93,7 @@ export default function AboutUser({
                 about={about}
                 level={level}
                 links={links}
+                isLoading={isLoading}
               />
             </>
           )}
@@ -141,7 +144,20 @@ export default function AboutUser({
     </Card>
   );
 }
-
+type LinkState = {
+  value: {
+    twitter: {
+      value: string;
+    };
+    discord: { value: string };
+  };
+  updated: boolean;
+};
+type UserInfoState = {
+  username: { value: string; updated: boolean };
+  about: { value: string; updated: boolean };
+  links: LinkState;
+};
 const EditProfile = ({
   username,
   about,
@@ -150,12 +166,15 @@ const EditProfile = ({
   onOpen,
   onClose,
   isOpen,
+
+  isLoading,
 }: {
   username: string;
   about: string | undefined;
   level: number;
   links: { twitter: string; discord: string } | undefined;
 
+  isLoading: boolean;
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
@@ -169,56 +188,106 @@ const EditProfile = ({
   const queryClient = useQueryClient();
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [userInfo, setUserInfo] = useState({
+  const [userInfo, setUserInfo] = useState<UserInfoState>({
     username: { value: username, updated: false },
     about: { value: about || "", updated: false },
     links: {
-      updated: false,
-      twitter: {
-        value: links && links.twitter ? links.twitter : "",
+      value: {
+        twitter: {
+          value: links && links.twitter ? links.twitter : "",
+        },
+        discord: { value: links && links.discord ? links.discord : "" },
       },
-      discord: { value: links && links.discord ? links.discord : "" },
+      updated: false,
     },
   });
-  const handleSave = () => {
-    const parameters = {
-      ...(userInfo.username.updated && { username: userInfo.username.value }),
-      ...(userInfo.about.updated && { about: userInfo.about.value }),
-      ...(userInfo.links.updated && {
-        links: {
-          twitter: userInfo.links.twitter.value,
-          discord: userInfo.links.discord.value,
-        },
-      }),
-    };
-    const parseResult = UpdateUserAttributesZod.safeParse(parameters);
-    if (parseResult.success) {
-      return updateUserAttributes.mutate(parameters, {
-        onSuccess: () => {
-          queryClient
-            .invalidateQueries({ queryKey: userKey })
-            .then(() => {
-              toast({
-                title: "User updated successfully",
-                status: "success",
-                isClosable: true,
-                duration: 5000,
-              });
-              onClose();
-            })
-            .catch((err) => console.log("error invalidating key"));
-        },
-        onError: () => {
-          toast({
-            title: "Failed to update the user",
-            status: "error",
-            isClosable: true,
-            duration: 5000,
-          });
-        },
-      });
+  const checkIfValueIsTheSame = ({
+    key,
+    value,
+  }: {
+    key: "username" | "about" | "links";
+    value: { value: string; updated: boolean } | LinkState;
+  }) => {
+    // if(){}
+    if (key === "username") {
+      if (value.value === username) {
+        return true;
+      }
     }
-    setErrorMessage("Invalid input");
+    if (key === "about") {
+      if ((value.value === "" && !about) || value.value === about) {
+        return true;
+      }
+    }
+    if (key === "links") {
+      const linksValue = value as LinkState;
+      const serverDiscordLink = !links
+        ? ""
+        : links.discord
+        ? links.discord
+        : "";
+
+      const serverTwitterLink = !links
+        ? ""
+        : links.twitter
+        ? links.twitter
+        : "";
+
+      if (
+        linksValue.value.discord.value === serverDiscordLink &&
+        linksValue.value.twitter.value === serverTwitterLink
+      ) {
+        return true;
+      }
+    }
+  };
+  const valueUpdated = getEntries(userInfo).some(
+    ([key, value]) =>
+      value.updated === true && !checkIfValueIsTheSame({ key, value })
+  );
+  const handleSave = () => {
+    if (valueUpdated) {
+      const parameters = {
+        ...(userInfo.username.updated && { username: userInfo.username.value }),
+        ...(userInfo.about.updated && { about: userInfo.about.value }),
+        ...(userInfo.links.updated && {
+          links: {
+            twitter: userInfo.links.value.twitter.value || "",
+            discord: userInfo.links.value.discord.value || "",
+          },
+        }),
+      };
+      const parseResult = UpdateUserAttributesZod.safeParse(parameters);
+      if (parseResult.success) {
+        return updateUserAttributes.mutate(parameters, {
+          onSuccess: () => {
+            queryClient
+              .invalidateQueries({ queryKey: userKey })
+              .then(() => {
+                toast({
+                  title: "User updated successfully",
+                  status: "success",
+                  isClosable: true,
+                  duration: 5000,
+                });
+                onClose();
+              })
+              .catch((err) => console.log("error invalidating key"));
+          },
+          onError: () => {
+            toast({
+              title: "Failed to update the user",
+              status: "error",
+              isClosable: true,
+              duration: 5000,
+            });
+          },
+        });
+      }
+      setErrorMessage("Invalid input");
+    } else {
+      onClose();
+    }
   };
 
   console.log("userInfo", userInfo);
@@ -233,6 +302,7 @@ const EditProfile = ({
       <ModalContent>
         <ModalHeader>Edit Profile</ModalHeader>
         <ModalCloseButton />
+        <Text color="red">{errorMessage}</Text>
         <ModalBody pb={6}>
           <Divider />
           <FormControl display="flex" alignItems="center" my={4}>
@@ -241,6 +311,7 @@ const EditProfile = ({
               ref={initialRef}
               placeholder="First name"
               value={userInfo.username.value}
+              disabled={isLoading}
               onChange={(e) =>
                 setUserInfo(
                   produce((info) => {
@@ -257,6 +328,7 @@ const EditProfile = ({
           <FormControl my={4} display="flex" alignItems="center">
             <FormLabel w="24">About</FormLabel>
             <Textarea
+              disabled={isLoading}
               placeholder="Tell us about yourself!"
               value={userInfo.about.value}
               onChange={(e) =>
@@ -288,13 +360,14 @@ const EditProfile = ({
               </svg>
 
               <Input
+                disabled={isLoading}
                 placeholder="@"
-                value={userInfo.links.twitter.value}
+                value={userInfo.links.value.twitter.value}
                 onChange={(e) =>
                   setUserInfo(
                     produce((info) => {
                       info.links.updated = true;
-                      info.links.twitter.value = e.target.value;
+                      info.links.value.twitter.value = e.target.value;
                     })
                   )
                 }
@@ -316,12 +389,13 @@ const EditProfile = ({
 
               <Input
                 placeholder="username"
-                value={userInfo.links.discord.value}
+                value={userInfo.links.value.discord.value}
+                disabled={isLoading}
                 onChange={(e) =>
                   setUserInfo(
                     produce((info) => {
                       info.links.updated = true;
-                      info.links.discord.value = e.target.value;
+                      info.links.value.discord.value = e.target.value;
                     })
                   )
                 }
@@ -333,6 +407,7 @@ const EditProfile = ({
 
         <ModalFooter>
           <Button
+            isDisabled={!valueUpdated}
             colorScheme="blue"
             mr={3}
             onClick={handleSave}
@@ -340,7 +415,28 @@ const EditProfile = ({
           >
             Save
           </Button>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => {
+              onClose();
+              setUserInfo({
+                about: { updated: false, value: about || "" },
+                links: {
+                  updated: false,
+                  value: {
+                    discord: {
+                      value: links && links.discord ? links.discord : "",
+                    },
+                    twitter: {
+                      value: links && links.twitter ? links.twitter : "",
+                    },
+                  },
+                },
+                username: { value: username, updated: false },
+              });
+            }}
+          >
+            Cancel
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

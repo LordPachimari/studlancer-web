@@ -352,3 +352,9 @@ export interface InventorySlot {
   index: number;
   type?: "hat" | "glasses" | "hair" | "upper" | "eyes" | "lower" | "skin";
 }
+
+type Entries<T> = {
+  [K in keyof T]: [K, T[K]];
+}[keyof T][];
+export const getEntries = <T extends object>(obj: T) =>
+  Object.entries(obj) as Entries<T>;
