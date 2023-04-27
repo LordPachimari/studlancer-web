@@ -86,6 +86,7 @@ const Character = ({
   const [profileState, setProfile] = useState<StaticImageData | null | string>(
     null
   );
+
   useEffect(() => {
     if (activeSlotsState.skin === null) {
       //generate a new character based on active slots and set new profile
@@ -378,7 +379,29 @@ const Character = ({
           >
             Save
           </Button>
-          <Button onClick={onCharacterClose} colorScheme="blue" w="28">
+          <Button
+            onClick={() => {
+              onCharacterClose();
+              setInventorySlots(inventorySlots);
+              if (profile && activeSlots) {
+                const imageData = JSON.parse(profile) as StaticImageData;
+                const activeSlotsString = pako.inflate(activeSlots, {
+                  to: "string",
+                });
+                const activeSlotsData = JSON.parse(
+                  activeSlotsString
+                ) as ActiveSlots;
+
+                setProfile(imageData);
+                setActiveSlots(activeSlotsData);
+              } else {
+                setProfile(null);
+                setActiveSlots(defaultActiveSlots);
+              }
+            }}
+            colorScheme="blue"
+            w="28"
+          >
             Cancel
           </Button>
         </ModalFooter>

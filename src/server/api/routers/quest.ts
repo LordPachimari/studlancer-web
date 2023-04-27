@@ -1093,8 +1093,8 @@ export const questRouter = router({
           try {
             await Promise.all([
               momento.delete("accounts-cache", questId),
-
-              momento.delete("accounts-cache", "LEADERBOARD"),
+              momento.delete("accounts-cache", "LEADER_BY_QUESTS"),
+              momento.delete("accounts-cache", "LEADER_BY_REWARD"),
               momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
             ]);
           } catch (error) {

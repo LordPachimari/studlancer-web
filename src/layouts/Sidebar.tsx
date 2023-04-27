@@ -248,7 +248,7 @@ const Sidebar = ({
           {" "}
           <Button
             mt={5}
-            colorScheme="blue"
+            colorScheme="red"
             onClick={() => {
               signOut().catch((err) => console.log("error logging out", err));
               void router.push("/");

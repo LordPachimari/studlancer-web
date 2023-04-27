@@ -3,7 +3,7 @@ import { z } from "zod";
 import { rocksetClient } from "~/constants/rocksetClient";
 import { publicProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { Post, PublishedQuest, User } from "~/types/main";
+import { Post, PublishedQuest, User, UserComponent } from "~/types/main";
 import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
 const limit = 10;
@@ -23,16 +23,16 @@ export const generalRouter = router({
         filter,
       } = input;
       try {
-        const getResponse = await momento.get(
-          process.env.MOMENTO_CACHE_NAME || "",
-          "LEADERBOARD"
-        );
+        if (filter === "quests") {
+          const getResponse = await momento.get(
+            process.env.MOMENTO_CACHE_NAME || "",
+            "LEADER_BY_QUESTS"
+          );
 
-        if (getResponse instanceof CacheGet.Hit) {
-          console.log("cache hit!");
-          return JSON.parse(getResponse.valueString()) as User[];
-        } else if (getResponse instanceof CacheGet.Miss) {
-          if (filter === "quests") {
+          if (getResponse instanceof CacheGet.Hit) {
+            console.log("cache hit!");
+            return JSON.parse(getResponse.valueString()) as User[];
+          } else if (getResponse instanceof CacheGet.Miss) {
             const rocksetResult =
               await rocksetClient.queryLambdas.executeQueryLambda(
                 "commons",
@@ -50,7 +50,7 @@ export const generalRouter = router({
               );
             const setResponse = await momento.set(
               process.env.MOMENTO_CACHE_NAME || "",
-              "LEADERBOARD",
+              "LEADER_BY_QUESTS",
               JSON.stringify(rocksetResult.results || ""),
               { ttl: 1800 }
             );
@@ -59,26 +59,59 @@ export const generalRouter = router({
             } else {
               console.log(`Error setting key: ${setResponse.toString()}`);
             }
-            return rocksetResult.results as User[];
+            return rocksetResult.results as (UserComponent & {
+              rewarded: number;
+              questsSolved: number;
+            })[];
+          } else if (getResponse instanceof CacheGet.Error) {
+            console.log(`Error: ${getResponse.message()}`);
           }
+          return null;
         } else {
-          const rocksetResult =
-            await rocksetClient.queryLambdas.executeQueryLambda(
-              "commons",
-              "LeaderByReward",
-              "750c9d87b55109b6",
-              {
-                parameters: [
-                  {
-                    name: "limit",
-                    type: "int",
-                    value: limit.toString(),
-                  },
-                ],
-              }
+          const getResponse = await momento.get(
+            process.env.MOMENTO_CACHE_NAME || "",
+            "LEADER_BY_REWARD"
+          );
+
+          if (getResponse instanceof CacheGet.Hit) {
+            console.log("cache hit!");
+            return JSON.parse(getResponse.valueString()) as User[];
+          } else if (getResponse instanceof CacheGet.Miss) {
+            const rocksetResult =
+              await rocksetClient.queryLambdas.executeQueryLambda(
+                "commons",
+                "LeaderByReward",
+                "7c3bb521e27d7f5f",
+                {
+                  parameters: [
+                    {
+                      name: "limit",
+                      type: "int",
+                      value: limit.toString(),
+                    },
+                  ],
+                }
+              );
+            const setResponse = await momento.set(
+              process.env.MOMENTO_CACHE_NAME || "",
+              "LEADER_BY_REWARD",
+              JSON.stringify(rocksetResult.results || ""),
+              { ttl: 1800 }
             );
-          return rocksetResult.results as User[];
+            if (setResponse instanceof CacheSet.Success) {
+              console.log("Key stored successfully!");
+            } else {
+              console.log(`Error setting key: ${setResponse.toString()}`);
+            }
+            return rocksetResult.results as (UserComponent & {
+              rewarded: number;
+              questsSolved: number;
+            })[];
+          } else if (getResponse instanceof CacheGet.Error) {
+            console.log(`Error: ${getResponse.message()}`);
+          }
         }
+        return null;
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",

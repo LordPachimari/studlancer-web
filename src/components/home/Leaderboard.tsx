@@ -33,7 +33,6 @@ const UserComponent = ({
   if (profile) {
     userImage = JSON.parse(profile) as StaticImageData;
   }
-
   return (
     <Flex
       flexDir="row"
@@ -73,7 +72,7 @@ const UserComponent = ({
       </Box>
       <Spacer />
       {filter === "quests" && (
-        <Flex mr="1" alignItems="center" gap="1">
+        <Flex mr="1" alignItems="center" gap="1" w="10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -91,7 +90,7 @@ const UserComponent = ({
         </Flex>
       )}
       {filter === "reward" && (
-        <Flex mr="1" alignItems="center" gap="1">
+        <Flex mr="1" alignItems="center" gap="1" w="10">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -117,6 +116,7 @@ export default function Leaderboard() {
     { filter, limit: 5 },
     { staleTime: 10 * 60 * 1000 }
   );
+  console.log("leaders", leaders.data);
   return (
     <Card w="90%" maxW="xs" minH="sm" borderRadius="2xl">
       <CardHeader p="2" display="flex" justifyContent="center">
