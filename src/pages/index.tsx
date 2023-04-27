@@ -21,6 +21,7 @@ import { trpc } from "~/utils/api";
 import { useRouter } from "next/router";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import Link from "next/link";
+import { LoadingSpinner } from "~/components/LoadingSpinner";
 
 const SignUpPage: NextPageWithLayout = () => {
   const { userId, isSignedIn } = useAuth();
@@ -29,6 +30,15 @@ const SignUpPage: NextPageWithLayout = () => {
     { enabled: !!userId, staleTime: 1800 }
   );
   const router = useRouter();
+  if (user.isLoading) {
+    return (
+      <Card w="80" h="md" borderRadius="2xl">
+        <Center w="100%" h="100%">
+          <LoadingSpinner />
+        </Center>
+      </Card>
+    );
+  }
   if (isSignedIn && user.data) {
     return (
       <Link href={`/profile/${userId}`}>
