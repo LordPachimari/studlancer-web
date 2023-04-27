@@ -30,7 +30,7 @@ const Sidebar = ({
   const toast = useToast();
   const router = useRouter();
   const { userId, isSignedIn, isLoaded } = useAuth();
-  const user = trpc.user.userById.useQuery(
+  const user = trpc.user.userComponent.useQuery(
     { id: userId! },
     { staleTime: 10 * 60 * 1000, enabled: isLoaded && !!userId }
   );
