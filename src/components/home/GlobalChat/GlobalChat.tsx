@@ -217,7 +217,7 @@ export default function GlobalChat({
       position="fixed"
       bottom="2"
       right={{ base: "5", lg: "10" }}
-      zIndex={5}
+      zIndex={6}
       h="lg"
       w={{ base: "90vw", lg: "80" }}
     >
