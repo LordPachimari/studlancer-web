@@ -188,6 +188,8 @@ const EditProfile = ({
   const queryClient = useQueryClient();
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const [userInfo, setUserInfo] = useState<UserInfoState>({
     username: { value: username, updated: false },
     about: { value: about || "", updated: false },
@@ -261,6 +263,7 @@ const EditProfile = ({
       if (parseResult.success) {
         return updateUserAttributes.mutate(parameters, {
           onSuccess: () => {
+            setIsSaving(true);
             queryClient
               .invalidateQueries({ queryKey: userKey })
               .then(() => {
@@ -272,7 +275,8 @@ const EditProfile = ({
                 });
                 onClose();
               })
-              .catch((err) => console.log("error invalidating key"));
+              .catch((err) => console.log("error invalidating key"))
+              .finally(() => setIsSaving(false));
           },
           onError: () => {
             toast({
@@ -290,7 +294,6 @@ const EditProfile = ({
     }
   };
 
-  console.log("userInfo", userInfo);
   return (
     <Modal
       initialFocusRef={initialRef}
@@ -413,7 +416,7 @@ const EditProfile = ({
             colorScheme="blue"
             mr={3}
             onClick={handleSave}
-            isLoading={updateUserAttributes.isLoading}
+            isLoading={updateUserAttributes.isLoading || isSaving}
           >
             Save
           </Button>
