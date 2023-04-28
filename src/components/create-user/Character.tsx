@@ -79,7 +79,7 @@ const Character = ({
   });
 
   const inventory = trpc.user.getInventory.useQuery(undefined, {
-    staleTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 6000,
     enabled: shouldUpdateLocal,
   });
 

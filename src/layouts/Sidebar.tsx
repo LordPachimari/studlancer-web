@@ -32,7 +32,7 @@ const Sidebar = ({
   const { userId, isSignedIn, isLoaded } = useAuth();
   const user = trpc.user.userComponent.useQuery(
     { id: userId! },
-    { staleTime: 10 * 60 * 1000, enabled: isLoaded && !!userId }
+    { staleTime: 10 * 60 * 6000, enabled: isLoaded && !!userId }
   );
 
   const { signOut } = useClerk();

@@ -99,7 +99,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
   const serverSolution = trpc.solution.workspaceSolution.useQuery(
     { id },
     {
-      staleTime: 10 * 60 * 1000,
+      staleTime: 10 * 60 * 6000,
       enabled: shouldUpdate,
     }
   );

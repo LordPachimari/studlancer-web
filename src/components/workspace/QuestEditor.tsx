@@ -72,7 +72,7 @@ const QuestEditor = ({ id }: { id: string }) => {
   const serverQuest = trpc.quest.workspaceQuest.useQuery(
     { id },
     {
-      staleTime: 10 * 60 * 1000,
+      staleTime: 10 * 60 * 6000,
       enabled: shouldUpdate,
     }
   );

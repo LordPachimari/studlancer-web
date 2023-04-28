@@ -39,7 +39,7 @@ export default function Profile() {
   } = useDisclosure();
   const user = trpc.user.userById.useQuery(
     { id },
-    { staleTime: 10 * 60 * 1000 }
+    { staleTime: 10 * 60 * 6000 }
   );
   let profileImage: StaticImageData | undefined = undefined;
   if (user.data && user.data.profile) {
