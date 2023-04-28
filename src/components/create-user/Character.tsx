@@ -25,49 +25,67 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import GiornoSkin from "../../assets/Giorno2.png";
 import Image, { StaticImageData } from "next/image";
 
 import produce from "immer";
 import { trpc } from "~/utils/api";
-import { ActiveSlots, InventorySlot, getEntries } from "~/types/main";
+import {
+  ActiveSlots,
+  Inventory,
+  InventorySlot,
+  getEntries,
+} from "~/types/main";
 import * as pako from "pako";
 import { getQueryKey } from "@trpc/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { get, set } from "idb-keyval";
+import { Elsie_Swash_Caps } from "next/font/google";
+type CharacterState = {
+  activeSlots: ActiveSlots;
+  profile: StaticImageData | null | string;
+  inventorySlots: InventorySlot[];
+};
 
 const Character = ({
+  id,
   profile,
   isCharacterOpen,
   onCharacterOpen,
   onCharacterClose,
-  activeSlots,
-  inventory,
 }: {
+  id: string;
   profile: string | undefined;
-  activeSlots: Uint8Array | undefined;
-  inventory: Uint8Array;
   isCharacterOpen: boolean;
   onCharacterOpen: () => void;
   onCharacterClose: () => void;
 }) => {
-  const updateUserAttributes = trpc.user.updateUserAttributes.useMutation({
+  let characterLocalVersion: { server: string; local: string } | undefined =
+    undefined;
+  const characterLocalVersionString = localStorage.getItem(`CHARACTER#${id}`);
+  if (characterLocalVersionString)
+    characterLocalVersion = JSON.parse(characterLocalVersionString) as {
+      server: string;
+      local: string;
+    };
+  const shouldUpdateLocal =
+    !characterLocalVersion ||
+    (characterLocalVersion &&
+      new Date(characterLocalVersion.server) >
+        new Date(characterLocalVersion.local));
+  const updateInventory = trpc.user.updateInventory.useMutation({
     retry: 3,
   });
-  const inventoryDataString = pako.inflate(inventory, { to: "string" });
-  const inventoryData = JSON.parse(inventoryDataString) as InventorySlot[];
-  const inventorySlots: InventorySlot[] = [];
+
+  const inventory = trpc.user.getInventory.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000,
+    enabled: shouldUpdateLocal,
+  });
+
   const userKey = getQueryKey(trpc.user.userById);
   const userComponentKey = getQueryKey(trpc.user.userComponent);
-  let count = inventoryData.length;
-  for (let i = 0; i < 18 - inventoryData.length; i++) {
-    if (count !== 0) {
-      inventorySlots.push(inventoryData[i]!);
-      count--;
-    } else {
-      inventorySlots.push({ index: i, item: null });
-    }
-  }
+
   const queryClient = useQueryClient();
   const defaultActiveSlots: ActiveSlots = {
     hat: null,
@@ -80,38 +98,117 @@ const Character = ({
   };
   const toast = useToast();
 
-  const [inventorySlotsState, setInventorySlots] =
-    useState<InventorySlot[]>(inventorySlots);
-  const [activeSlotsState, setActiveSlots] =
-    useState<ActiveSlots>(defaultActiveSlots);
-  const [profileState, setProfile] = useState<StaticImageData | null | string>(
-    null
+  const [characterState, setCharacterState] = useState<CharacterState>({
+    activeSlots: defaultActiveSlots,
+    inventorySlots: [],
+    profile: null,
+  });
+
+  const fetchCharacterFromServer = useCallback(
+    ({
+      inventory,
+      activeSlots,
+      profile,
+      lastUpdated,
+    }: {
+      inventory: Uint8Array;
+      activeSlots: Uint8Array;
+      profile: string;
+      lastUpdated: string;
+    }) => {
+      console.log("updating local...");
+      const inventorySlots: InventorySlot[] = [];
+      const inventoryDataString = pako.inflate(inventory, {
+        to: "string",
+      });
+      const inventoryData = JSON.parse(inventoryDataString) as InventorySlot[];
+      let count = inventoryData.length;
+      for (let i = 0; i < 18 - inventoryData.length; i++) {
+        if (count !== 0) {
+          inventorySlots.push(inventoryData[i]!);
+          count--;
+        } else {
+          inventorySlots.push({ index: i, item: null });
+        }
+      }
+      const imageData = JSON.parse(profile) as StaticImageData;
+      const activeSlotsString = pako.inflate(activeSlots, {
+        to: "string",
+      });
+      const activeSlotsData = JSON.parse(activeSlotsString) as ActiveSlots;
+      const state: CharacterState = {
+        activeSlots: activeSlotsData,
+        inventorySlots: inventorySlots,
+        profile: imageData,
+      };
+
+      setCharacterState(state);
+      set(`CHARACTER#${id}`, state).catch((err) => console.log(err));
+      const localVersion = { server: lastUpdated, local: lastUpdated };
+      const localVersionString = JSON.stringify(localVersion);
+
+      localStorage.setItem(`CHARACTER#${id}`, localVersionString);
+    },
+    [id]
   );
+  const fetchCharacterFromLocalStorage = useCallback(() => {
+    console.log("fetching from local");
+    get<CharacterState | undefined>(`CHARACTER#${id}`)
+      .then((state) => {
+        if (state) {
+          setCharacterState(state);
+        }
+      })
+      .catch((err) => {
+        console.log("local fetching error", err);
+      });
+  }, [id]);
 
   useEffect(() => {
-    if (activeSlotsState.skin === null) {
+    if (characterState.activeSlots.skin === null) {
       //generate a new character based on active slots and set new profile
       //if skin persist then just show skin
 
       //if all slots empty then no profile
-      const allSlotsEmpty = Object.values(activeSlotsState).every(
+      const allSlotsEmpty = Object.values(characterState.activeSlots).every(
         (value) => value === null
       );
       if (allSlotsEmpty) {
-        setProfile(null);
+        setCharacterState(
+          produce((state) => {
+            state.profile = null;
+          })
+        );
       }
     }
-  }, [activeSlotsState]);
+  }, [characterState.activeSlots]);
   useEffect(() => {
-    if (profile && activeSlots) {
-      const imageData = JSON.parse(profile) as StaticImageData;
-      const activeSlotsString = pako.inflate(activeSlots, { to: "string" });
-      const activeSlotsData = JSON.parse(activeSlotsString) as ActiveSlots;
-
-      setProfile(imageData);
-      setActiveSlots(activeSlotsData);
+    if (shouldUpdateLocal) {
+      //fetch character from the server if local version is stale
+      if (
+        profile &&
+        inventory.data &&
+        inventory.data.activeSlots &&
+        inventory.data.activeSlots &&
+        inventory.data.inventory
+      ) {
+        fetchCharacterFromServer({
+          activeSlots: inventory.data.activeSlots,
+          inventory: inventory.data.inventory,
+          profile,
+          lastUpdated: inventory.data.lastUpdated,
+        });
+      }
+    } else {
+      fetchCharacterFromLocalStorage();
     }
-  }, [profile, activeSlots, inventory]);
+  }, [
+    profile,
+    inventory.data,
+    fetchCharacterFromLocalStorage,
+    fetchCharacterFromServer,
+    shouldUpdateLocal,
+  ]);
 
   const initialRef = React.useRef(null);
   return (
@@ -145,7 +242,7 @@ const Character = ({
               minW="60"
               justifyContent="center"
             >
-              {getEntries(activeSlotsState).map(([key, value]) => {
+              {getEntries(characterState.activeSlots).map(([key, value]) => {
                 if (value) {
                   return (
                     <Box key={key}>
@@ -174,17 +271,17 @@ const Character = ({
                             p="1"
                             _hover={{ bg: "blue.100" }}
                             onClick={() => {
-                              setActiveSlots(
-                                produce((slots) => {
-                                  slots[key] = null;
-                                })
-                              );
-                              setInventorySlots(
-                                produce((inventory) => {
-                                  for (let i = 0; i < inventory.length; i++) {
-                                    if (!inventory[i]!.item) {
-                                      inventory[i]!.item = value;
-                                      inventory[i]!.type = key;
+                              setCharacterState(
+                                produce((state) => {
+                                  state.activeSlots[key] = null;
+                                  for (
+                                    let i = 0;
+                                    i < state.inventorySlots.length;
+                                    i++
+                                  ) {
+                                    if (!state.inventorySlots[i]!.item) {
+                                      state.inventorySlots[i]!.item = value;
+                                      state.inventorySlots[i]!.type = key;
                                       break;
                                     }
                                   }
@@ -229,9 +326,9 @@ const Character = ({
               borderRadius="2xl"
               boxShadow="inset 0px 0px 4px 3px #63B3ED;"
             >
-              {profileState && (
+              {characterState.profile && (
                 <Image
-                  src={profileState}
+                  src={characterState.profile}
                   alt="Character"
                   width={310}
                   height={560}
@@ -249,7 +346,7 @@ const Character = ({
               </Flex>
 
               <Flex flexWrap="wrap" gap="5" w="100%">
-                {inventorySlotsState.map((slot, i) => {
+                {characterState.inventorySlots.map((slot, i) => {
                   if (slot.item && slot.type) {
                     return (
                       <Box key={slot.index}>
@@ -274,20 +371,16 @@ const Character = ({
                               p="1"
                               _hover={{ bg: "blue.100" }}
                               onClick={() => {
-                                setActiveSlots(
-                                  produce((slots) => {
-                                    slots[slot.type!] = slot.item;
+                                setCharacterState(
+                                  produce((state) => {
+                                    state.activeSlots[slot.type!] = slot.item;
                                     if (slot.type === "skin") {
-                                      setProfile(slot.item);
+                                      state.profile = slot.item;
                                     } else {
                                       //generate a new profile based on items
                                     }
-                                  })
-                                );
-                                setInventorySlots(
-                                  produce((inventory) => {
-                                    inventory[i]!.item = null;
-                                    delete inventory[i]!.type;
+                                    state.inventorySlots[i]!.item = null;
+                                    delete state.inventorySlots[i]!.type;
                                   })
                                 );
                               }}
@@ -325,34 +418,46 @@ const Character = ({
 
         <ModalFooter>
           <Button
-            colorScheme="green"
+            colorScheme="whatsapp"
             mr={3}
             w="28"
-            isLoading={updateUserAttributes.isLoading}
+            isLoading={updateInventory.isLoading}
             onClick={() => {
-              if (profileState) {
-                const profileString = JSON.stringify(profileState);
+              if (characterState.profile) {
+                const profileString = JSON.stringify(characterState.profile);
 
-                const activeSlotsString = JSON.stringify(activeSlotsState);
+                const activeSlotsString = JSON.stringify(
+                  characterState.activeSlots
+                );
                 const activeSlotsData = pako.deflate(activeSlotsString);
 
                 const filledInventory: InventorySlot[] = [];
                 for (let i = 0; i < 18; i++) {
-                  if (inventorySlotsState[i] && inventorySlotsState[i]!.item) {
-                    filledInventory.push(inventorySlotsState[i]!);
+                  if (
+                    characterState.inventorySlots[i] &&
+                    characterState.inventorySlots[i]!.item
+                  ) {
+                    filledInventory.push(characterState.inventorySlots[i]!);
                   }
                 }
                 const filledInventoryString = JSON.stringify(filledInventory);
                 const filledInventoryData = pako.deflate(filledInventoryString);
-
-                updateUserAttributes.mutate(
+                const lastUpdated = new Date().toISOString();
+                updateInventory.mutate(
                   {
                     profile: profileString,
                     activeSlots: activeSlotsData,
                     inventory: filledInventoryData,
+                    lastUpdated: lastUpdated,
                   },
                   {
                     onSuccess: () => {
+                      set(`CHARACTER#${id}`, {
+                        profile: profileString,
+                        activeSlots: activeSlotsData,
+                        inventory: filledInventoryData,
+                      }).catch((err) => console.log(err));
+                      localStorage.setItem(`CHARACTER#${id}`, lastUpdated);
                       queryClient
                         .invalidateQueries([...userKey, ...userComponentKey])
                         .then(() => {
@@ -382,23 +487,34 @@ const Character = ({
           </Button>
           <Button
             onClick={() => {
-              onCharacterClose();
-              setInventorySlots(inventorySlots);
-              if (profile && activeSlots) {
-                const imageData = JSON.parse(profile) as StaticImageData;
-                const activeSlotsString = pako.inflate(activeSlots, {
-                  to: "string",
-                });
-                const activeSlotsData = JSON.parse(
-                  activeSlotsString
-                ) as ActiveSlots;
-
-                setProfile(imageData);
-                setActiveSlots(activeSlotsData);
+              if (shouldUpdateLocal) {
+                //fetch character from the server if local version is stale
+                if (
+                  profile &&
+                  inventory.data &&
+                  inventory.data.activeSlots &&
+                  inventory.data.activeSlots &&
+                  inventory.data.inventory
+                ) {
+                  fetchCharacterFromServer({
+                    activeSlots: inventory.data.activeSlots,
+                    inventory: inventory.data.inventory,
+                    profile,
+                    lastUpdated: inventory.data.lastUpdated,
+                  });
+                } else {
+                  setCharacterState(
+                    produce((state) => {
+                      state.profile = null;
+                      state.activeSlots = defaultActiveSlots;
+                    })
+                  );
+                }
               } else {
-                setProfile(null);
-                setActiveSlots(defaultActiveSlots);
+                fetchCharacterFromLocalStorage();
               }
+
+              onCharacterClose();
             }}
             colorScheme="blue"
             w="28"

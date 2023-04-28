@@ -73,7 +73,7 @@ const QuestEditor = ({ id }: { id: string }) => {
     { id },
     {
       staleTime: 10 * 60 * 1000,
-      enabled: shouldUpdate || false,
+      enabled: shouldUpdate,
     }
   );
   const updateQuestAttributes = trpc.quest.updateQuestAttributes.useMutation({

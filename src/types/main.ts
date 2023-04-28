@@ -72,8 +72,6 @@ export const UserZod = z.object({
   questsSolved: z.optional(z.number()),
   rewarded: z.optional(z.number()),
   links: z.optional(z.object({ twitter: z.string(), discord: z.string() })),
-  activeSlots: z.optional(z.instanceof(Uint8Array)),
-  inventory: z.instanceof(Uint8Array),
 });
 export type User = z.infer<typeof UserZod>;
 export const UserDynamoZod = UserZod.extend({
@@ -211,15 +209,12 @@ export const PublishedQuestsInputZod = z.object({
 });
 export type PublishedQuestsInput = z.infer<typeof PublishedQuestsInputZod>;
 export const UpdateUserAttributesZod = UserZod.pick({
-  profile: true,
   about: true,
   username: true,
   email: true,
   topics: true,
   subtopics: true,
   links: true,
-  activeSlots: true,
-  inventory: true,
 }).partial();
 export type UpdateUserAttributes = z.infer<typeof UpdateUserAttributesZod>;
 
@@ -358,3 +353,10 @@ type Entries<T> = {
 }[keyof T][];
 export const getEntries = <T extends object>(obj: T) =>
   Object.entries(obj) as Entries<T>;
+
+const InventoryZod = z.object({
+  inventory: z.instanceof(Uint8Array),
+  activeSlots: z.optional(z.instanceof(Uint8Array)),
+  lastUpdated: z.string(),
+});
+export type Inventory = z.infer<typeof InventoryZod>;

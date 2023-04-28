@@ -10,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
   CreateUserZod,
+  Inventory,
   InventorySlot,
   UpdateUserAttributes,
   UpdateUserAttributesZod,
@@ -21,10 +22,12 @@ import {
 
 import { dynamoClient } from "../../../constants/dynamoClient";
 import Giorno from "../../../assets/Giorno2.png";
+import Jotaro from "../../../assets/jotaro.png";
 import * as pako from "pako";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
+import { ulid } from "ulid";
 
 export const userRouter = router({
   userById: publicProcedure
@@ -140,6 +143,13 @@ export const userRouter = router({
       ];
       const inventoryString = JSON.stringify(inventory);
       const inventoryData = pako.deflate(inventoryString);
+      const inventoryItem: Inventory & { PK: string; SK: string } = {
+        PK: `USER#${auth.userId}`,
+        SK: `INVENTORY#${auth.userId}`,
+
+        inventory: inventoryData,
+        lastUpdated: new Date().toISOString(),
+      };
 
       const userItem: UserDynamo = {
         PK: `USER#${auth.userId}`,
@@ -154,9 +164,13 @@ export const userRouter = router({
         username: username,
         verified: false,
         type: "USER",
-        inventory: inventoryData,
       };
       UserDynamoZod.parse(userItem);
+
+      const inventoryPutParams: PutCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Item: inventoryItem,
+      };
       const putParams: PutCommandInput = {
         TableName: process.env.MAIN_TABLE_NAME,
         Item: userItem,
@@ -166,9 +180,12 @@ export const userRouter = router({
       };
 
       try {
-        const result = await dynamoClient.send(new PutCommand(putParams));
+        await Promise.all([
+          dynamoClient.send(new PutCommand(putParams)),
+          dynamoClient.send(new PutCommand(inventoryPutParams)),
+        ]);
 
-        return result;
+        return true;
       } catch (error) {
         console.log(error);
         throw new TRPCError({
@@ -180,17 +197,7 @@ export const userRouter = router({
   updateUserAttributes: protectedProcedure
     .input(UpdateUserAttributesZod)
     .mutation(async ({ input, ctx }) => {
-      const {
-        about,
-        email,
-        subtopics,
-        topics,
-        username,
-        profile,
-        links,
-        activeSlots,
-        inventory,
-      } = input;
+      const { about, email, subtopics, topics, username, links } = input;
       const { auth } = ctx;
 
       const updateAttributes: string[] = [];
@@ -211,13 +218,8 @@ export const userRouter = router({
           ...(subtopics && { "#subtopics": "subtopics" }),
           ...(topics && { "#topics": "topics" }),
           ...(username && { "#username": "username" }),
-          ...(profile && { "#profile": "profile" }),
 
           ...(links && { "#links": "links" }),
-
-          ...(activeSlots && { "#activeSlots": "activeSlots" }),
-
-          ...(inventory && { "#inventory": "inventory" }),
         },
         ExpressionAttributeValues: {
           ...(about && { ":about": about }),
@@ -225,12 +227,8 @@ export const userRouter = router({
           ...(subtopics && { ":subtopics": subtopics }),
           ...(topics && { ":topics": topics }),
           ...(username && { ":username": username }),
-          ...(profile && { ":profile": profile }),
 
           ...(links && { ":links": links }),
-          ...(activeSlots && { ":activeSlots": activeSlots }),
-
-          ...(inventory && { ":inventory": inventory }),
         },
       };
       try {
@@ -245,7 +243,121 @@ export const userRouter = router({
         });
       } catch (error) {
         console.log(error);
-        return false;
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "could not update the user",
+        });
       }
     }),
+
+  getInventory: protectedProcedure.query(async ({ ctx }) => {
+    const { auth } = ctx;
+
+    const getParams: GetCommandInput = {
+      TableName: process.env.WORKSPACE_TABLE_NAME,
+      Key: { PK: `USER#${auth.userId}`, SK: `INVENTORY#${auth.userId}` },
+    };
+
+    try {
+      const result = await dynamoClient.send(new GetCommand(getParams));
+      if (result.Item) {
+        return result.Item as Inventory;
+      }
+      throw new TRPCError({
+        message: "failed to get inventory",
+        code: "BAD_REQUEST",
+      });
+    } catch (error) {
+      console.log(error);
+      throw new TRPCError({
+        message: "failed to get inventory",
+        code: "BAD_REQUEST",
+      });
+    }
+  }),
+  updateInventory: protectedProcedure
+    .input(
+      z.object({
+        inventory: z.instanceof(Uint8Array),
+        activeSlots: z.instanceof(Uint8Array),
+        profile: z.string(),
+        lastUpdated: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { auth } = ctx;
+      const { inventory, activeSlots, profile, lastUpdated } = input;
+      const inventoryParams: UpdateCommandInput = {
+        TableName: process.env.WORKSPACE_TABLE_NAME,
+        Key: { PK: `USER#${auth.userId}`, SK: `INVENTORY#${auth.userId}` },
+        ExpressionAttributeNames: {
+          ...(inventory && { "#inventory": "inventory" }),
+
+          ...(activeSlots && { "#activeSlots": "activeSlots" }),
+          "#lastUpdated": "lastUpdated",
+        },
+        ExpressionAttributeValues: {
+          ...(inventory && { ":inventory": inventory }),
+          ...(activeSlots && { ":activeSlots": activeSlots }),
+          ":lastUpdated": lastUpdated,
+        },
+      };
+      const userParams: UpdateCommandInput = {
+        TableName: process.env.MAIN_TABLE_NAME,
+        Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
+        UpdateExpression: "SET profile = :profile",
+        ExpressionAttributeValues: { ":profile": profile },
+      };
+      try {
+        const updateResult = await Promise.all([
+          dynamoClient.send(new UpdateCommand(inventoryParams)),
+          dynamoClient.send(new UpdateCommand(userParams)),
+        ]);
+        if (updateResult) {
+          return true;
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "could not update the inventory",
+        });
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "could not update the inventory",
+        });
+      }
+    }),
+
+  addNewInventoryItem: protectedProcedure.mutation(async ({ ctx }) => {
+    const { auth } = ctx;
+    const inventory: InventorySlot[] = [
+      { index: 0, item: Jotaro, type: "skin" },
+    ];
+    const inventoryString = JSON.stringify(inventory);
+    const inventoryData = pako.deflate(inventoryString);
+    const inventoryId = ulid();
+    const inventoryItem: Inventory & { PK: string; SK: string } = {
+      PK: `SHOP`,
+      SK: `ITEM#${inventoryId}`,
+      inventory: inventoryData,
+      lastUpdated: new Date().toISOString(),
+    };
+    const putParams: PutCommandInput = {
+      TableName: process.env.WORKSPACE_TABLE_NAME,
+      Item: inventoryItem,
+    };
+
+    try {
+      const result = await dynamoClient.send(new PutCommand(putParams));
+
+      return result;
+    } catch (error) {
+      console.log(error);
+      throw new TRPCError({
+        message: "failed to add item",
+        code: "BAD_REQUEST",
+      });
+    }
+  }),
 });

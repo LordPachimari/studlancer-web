@@ -1122,6 +1122,7 @@ export const questRouter = router({
   rejectSolution: protectedProcedure
     .input(
       z.object({
+        
         winnerId: z.string(),
         questId: z.string(),
         solutionId: z.string(),

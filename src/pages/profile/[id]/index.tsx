@@ -24,9 +24,11 @@ import { trpc } from "~/utils/api";
 import { useAuth } from "@clerk/nextjs";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { getAuth } from "@clerk/nextjs/server";
-import Character from "~/components/create-user/Character";
-import * as pako from "pako";
+const Character = dynamic(() => import("~/components/create-user/Character"), {
+  ssr: false,
+});
 import Image, { StaticImageData } from "next/image";
+import dynamic from "next/dynamic";
 export default function Profile() {
   const router = useRouter();
   const id = router.query.id as string;
@@ -69,14 +71,13 @@ export default function Profile() {
         columnGap="16"
         mt={16}
       >
-        {isSignedIn && user.data.id && userId && (
+        {isSignedIn && user.data && userId && (
           <Character
+            id={user.data.id}
             isCharacterOpen={isCharacterOpen}
             onCharacterClose={onCharacterClose}
             onCharacterOpen={onCharacterOpen}
             profile={user.data.profile}
-            activeSlots={user.data.activeSlots}
-            inventory={user.data.inventory}
           />
         )}
 
