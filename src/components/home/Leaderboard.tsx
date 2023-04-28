@@ -181,7 +181,7 @@ export default function Leaderboard() {
       ) : (
         leaders.data &&
         leaders.data.map((u, i) => (
-          <Link key={u.id} href={`/profile/${u.id}`}>
+          <Link key={u.id} href={`/profile/${u.username}`}>
             <UserComponent
               username={u.username}
               level={u.level}

@@ -63,12 +63,17 @@ export default function PublishedQuestPage() {
     { id },
     { staleTime: 10 * 60 * 1000 }
   );
+  const solvers = trpc.quest.solvers.useQuery(
+    { questId: id },
+    { staleTime: 10 * 60 * 1000 }
+  );
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isLeaveAlertOpen,
     onOpen: onLeaveAlertOpen,
     onClose: onLeaveAlertClose,
   } = useDisclosure();
+  const isSolver = !!solvers.data && solvers.data.some((s) => s.id === userId);
 
   const solutionStatuses = [
     "POSTED SOLUTION",
@@ -77,17 +82,13 @@ export default function PublishedQuestPage() {
     "ACCEPTED",
   ] as const;
 
-  if (!quest.data || !quest.data.quest) {
+  if (!quest.data) {
     return <div>No data</div>;
   }
 
-  const isCreator = quest.data.quest.creatorId === userId;
+  const isCreator = quest.data.creatorId === userId;
   const emptySlots: {}[] = [];
-  for (
-    let i = 0;
-    i < quest.data.quest.slots - quest.data.quest.solverCount;
-    i++
-  ) {
+  for (let i = 0; i < quest.data.slots - quest.data.solverCount; i++) {
     emptySlots.push({});
   }
 
@@ -123,14 +124,14 @@ export default function PublishedQuestPage() {
               Publisher
             </CardHeader>
             <CardBody p="2">
-              <Publisher publisherId={quest.data.quest.creatorId} />
+              <Publisher publisherId={quest.data.creatorId} />
             </CardBody>
           </Card>
           <Center>
             <Button colorScheme="blue">MESSAGE</Button>
           </Center>
 
-          {quest.data.quest.winnerId && (
+          {quest.data.winnerId && (
             <Card w="100%" height={{ base: "xs" }} maxW="72" borderRadius="2xl">
               <CardHeader
                 display="flex"
@@ -141,18 +142,18 @@ export default function PublishedQuestPage() {
               >
                 Winner
               </CardHeader>
-              <Winner winnerId={quest.data.quest.winnerId} />
+              <Winner winnerId={quest.data.winnerId} />
             </Card>
           )}
         </Center>
 
         <Box w={{ base: "100%", md: "70%" }}>
-          <QuestComponent quest={quest.data.quest} />
+          <QuestComponent quest={quest.data} />
           {isCreator ? (
             <></>
           ) : (
             <Center my={5}>
-              {quest.data.solvers.some((s) => s.id === userId) && userId && (
+              {isSolver && userId && (
                 <>
                   <Button
                     colorScheme="red"
@@ -165,7 +166,7 @@ export default function PublishedQuestPage() {
                   <LeaveAlert
                     isOpen={isLeaveAlertOpen}
                     onClose={onLeaveAlertClose}
-                    questId={quest.data.quest.id}
+                    questId={id}
                     solverId={userId}
                   />
                 </>
@@ -176,18 +177,21 @@ export default function PublishedQuestPage() {
                 w={20}
                 isDisabled={
                   !isSignedIn ||
-                  quest.data.solvers.some((s) => s.id === userId) ||
-                  quest.data.quest.slots === quest.data.quest.solverCount
+                  isSolver ||
+                  quest.data.slots === quest.data.solverCount
                 }
               >
                 JOIN
               </Button>
-              <JoinAlert
-                isOpen={isOpen}
-                isSolver={quest.data.solvers.some((s) => s.id === userId)}
-                onClose={onClose}
-                quest={quest.data.quest}
-              />
+              {userId && (
+                <JoinAlert
+                  isOpen={isOpen}
+                  isSolver={isSolver}
+                  onClose={onClose}
+                  quest={quest.data}
+                  userId={userId}
+                />
+              )}
             </Center>
           )}
           <Heading textAlign="center" size="sm" my="5">
@@ -225,11 +229,14 @@ export default function PublishedQuestPage() {
               </Flex>
             ))}
           </Flex>
+
           <SolverComponent
             emptySlots={emptySlots}
-            solversPartial={quest.data.solvers}
-            creatorId={quest.data.quest.creatorId}
-            questId={quest.data.quest.id}
+            creatorId={quest.data.creatorId}
+            questId={id}
+            userId={userId}
+            solvers={solvers.data}
+            solversLoading={solvers.isLoading}
           />
         </Box>
       </Box>
@@ -252,6 +259,8 @@ const LeaveAlert = ({
   const [isIvalidating, setIsInvalidating] = useState(false);
   const queryClient = useQueryClient();
   const questKey = getQueryKey(trpc.quest.publishedQuest);
+
+  const solversKey = getQueryKey(trpc.quest.solvers);
   const leave = trpc.quest.removeSolver.useMutation();
 
   const toast = useToast();
@@ -282,7 +291,7 @@ const LeaveAlert = ({
                       setIsInvalidating(true);
                       queryClient
                         .invalidateQueries({
-                          queryKey: questKey,
+                          queryKey: [...questKey, ...solversKey],
                         })
                         .then(() => {
                           toast({
@@ -326,12 +335,15 @@ const JoinAlert = ({
   onClose,
   quest,
   isSolver,
+  userId,
 }: {
   isOpen: boolean;
+  userId: string;
   onClose: () => void;
   quest: PublishedQuest;
   isSolver: boolean;
 }) => {
+  const userComponent = trpc.user.userComponent.useQuery({ id: userId });
   const join = trpc.quest.addSolver.useMutation();
   const cancelRef = useRef(null);
   const [isIvalidating, setIsInvalidating] = useState(false);
@@ -340,6 +352,7 @@ const JoinAlert = ({
   const createSolution = trpc.solution.createSolution.useMutation();
 
   const questKey = getQueryKey(trpc.quest.publishedQuest);
+  const solversKey = getQueryKey(trpc.quest.solvers);
 
   const toast = useToast();
   console.log("isIvalidating", isIvalidating, join.isLoading);
@@ -364,7 +377,8 @@ const JoinAlert = ({
               isLoading={join.isLoading || isIvalidating}
               onClick={() => {
                 join.mutate(
-                  { questId: quest.id },
+                  { questId: quest.id, username: userId },
+
                   {
                     onSuccess: () => {
                       setIsInvalidating(true);
@@ -375,7 +389,7 @@ const JoinAlert = ({
                       });
                       queryClient
                         .invalidateQueries({
-                          queryKey: questKey,
+                          queryKey: [...questKey, ...solversKey],
                         })
                         .then(() => {
                           toast({
@@ -416,9 +430,9 @@ const JoinAlert = ({
   );
 };
 const Publisher = ({ publisherId }: { publisherId: string }) => {
-  const publisher = trpc.user.userById.useQuery(
+  const publisher = trpc.user.userComponent.useQuery(
     { id: publisherId },
-    { staleTime: 10 * 60 * 1000 }
+    { staleTime: 10 * 60 * 6000 }
   );
   let userImage: StaticImageData | undefined = undefined;
   if (publisher.data && publisher.data.profile) {
@@ -434,19 +448,29 @@ const Publisher = ({ publisherId }: { publisherId: string }) => {
       </>
     );
   }
+  if (publisher.data)
+    return (
+      <Link href={`/profile/${publisher.data.username}`}>
+        <Center w="100%">
+          {userImage && <Image src={userImage} alt="avatar" width={130} />}
+        </Center>
+        <Text textAlign="center" fontWeight="bold" mt="2">
+          {publisher.data.username.toUpperCase()}
+        </Text>
+      </Link>
+    );
   return (
     <>
-      <Center w="100%">
-        {userImage && <Image src={userImage} alt="avatar" width={130} />}
-      </Center>
-      <Text textAlign="center" fontWeight="bold" mt="2">
-        {publisher.data?.username.toUpperCase()}
-      </Text>
+      <Center w="100%"></Center>
+      <Text textAlign="center" fontWeight="bold" mt="2"></Text>
     </>
   );
 };
 const Winner = ({ winnerId }: { winnerId: string }) => {
-  const winner = trpc.user.userById.useQuery({ id: winnerId });
+  const winner = trpc.user.userComponent.useQuery(
+    { id: winnerId },
+    { staleTime: 10 * 60 * 6000 }
+  );
   if (winner.isLoading) {
     return (
       <>
@@ -476,33 +500,32 @@ const QuestComponent = ({ quest }: { quest: PublishedQuest }) => {
   );
 };
 const SolverComponent = ({
-  solversPartial,
+  solvers,
   emptySlots,
   creatorId,
   questId,
+  solversLoading,
+  userId,
 }: {
-  solversPartial: SolverPartial[];
+  solvers: Solver[] | undefined;
+  solversLoading: boolean;
   emptySlots: {}[];
   creatorId: string;
   questId: string;
+  userId: string | null | undefined;
 }) => {
   const emptySkeletonSlots: {}[] = [];
+
   for (let i = 0; i < 5; i++) {
     emptySkeletonSlots.push({});
   }
-  const { userId } = useAuth();
-
-  const solvers = trpc.quest.solvers.useQuery(
-    { solversPartial },
-    { staleTime: 10 * 60 * 1000 }
-  );
 
   return (
     <Flex wrap="wrap" gap={5}>
-      {solvers.isLoading
+      {solversLoading
         ? emptySkeletonSlots.map((s, i) => <SolverSkeleton key={i} />)
-        : solvers.data &&
-          solvers.data.map((s) => (
+        : solvers &&
+          solvers.map((s) => (
             <Flex key={s.id}>
               <_Solver
                 solver={s}
@@ -512,7 +535,7 @@ const SolverComponent = ({
             </Flex>
           ))}
 
-      {!solvers.isLoading && emptySlots.map((s, i) => <EmptySlot key={i} />)}
+      {!solversLoading && emptySlots.map((s, i) => <EmptySlot key={i} />)}
     </Flex>
   );
 };

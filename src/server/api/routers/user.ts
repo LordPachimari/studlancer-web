@@ -3,6 +3,8 @@ import {
   GetCommandInput,
   PutCommand,
   PutCommandInput,
+  QueryCommand,
+  QueryCommandInput,
   UpdateCommand,
   UpdateCommandInput,
 } from "@aws-sdk/lib-dynamodb";
@@ -75,6 +77,57 @@ export const userRouter = router({
       } catch (error) {
         console.log(error);
         return null;
+      }
+    }),
+  userByUsername: publicProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ input }) => {
+      const { username } = input;
+      const params: QueryCommandInput = {
+        TableName: process.env.MAIN_TABLE_NAME,
+        IndexName: process.env.USERNAME_INDEX,
+        KeyConditionExpression: "username = :username AND begins_with(SK, :SK)",
+        ExpressionAttributeValues: { ":username": username, ":SK": "USER#" },
+      };
+      try {
+        const getResponse = await momento.get(
+          process.env.MOMENTO_CACHE_NAME || "",
+          username
+        );
+        if (getResponse instanceof CacheGet.Hit) {
+          console.log("cache hit!");
+
+          // increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+          const result = JSON.parse(getResponse.valueString()) as User;
+
+          return result;
+        } else if (getResponse instanceof CacheGet.Miss) {
+          const result = await dynamoClient.send(new QueryCommand(params));
+
+          if (result.Items && result.Items.length > 0) {
+            const setResponse = await momento.set(
+              process.env.MOMENTO_CACHE_NAME || "",
+              username,
+              JSON.stringify(result.Items[0] || ""),
+              { ttl: 1800 }
+            );
+            if (setResponse instanceof CacheSet.Success) {
+              console.log("Key stored successfully!");
+            } else {
+              console.log(`Error setting key: ${setResponse.toString()}`);
+            }
+            return result.Items[0] as User;
+          }
+        } else if (getResponse instanceof CacheGet.Error) {
+          console.log(`Error: ${getResponse.message()}`);
+        }
+        return null;
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "could not retrieve user",
+        });
       }
     }),
   userComponent: publicProcedure
@@ -234,7 +287,8 @@ export const userRouter = router({
       try {
         const updateResult = await dynamoClient.send(new UpdateCommand(params));
         if (updateResult) {
-          await momento.delete("accounts-cache", auth.userId);
+          await momento.delete("accounts-cache", username);
+
           return true;
         }
         throw new TRPCError({
@@ -282,11 +336,12 @@ export const userRouter = router({
         activeSlots: z.instanceof(Uint8Array),
         profile: z.string(),
         lastUpdated: z.string(),
+        username: z.string(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { inventory, activeSlots, profile, lastUpdated } = input;
+      const { inventory, activeSlots, profile, lastUpdated, username } = input;
       const inventoryParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `INVENTORY#${auth.userId}` },
@@ -314,7 +369,7 @@ export const userRouter = router({
           dynamoClient.send(new UpdateCommand(userParams)),
         ]);
         if (updateResult) {
-          await momento.delete("accounts-cache", auth.userId);
+          await momento.delete("accounts-cache", username);
           return true;
         }
         throw new TRPCError({

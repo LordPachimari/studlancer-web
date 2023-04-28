@@ -31,14 +31,14 @@ import Image, { StaticImageData } from "next/image";
 import dynamic from "next/dynamic";
 export default function Profile() {
   const router = useRouter();
-  const id = router.query.id as string;
+  const { username } = router.query as { username: string };
   const {
     isOpen: isCharacterOpen,
     onOpen: onCharacterOpen,
     onClose: onCharacterClose,
   } = useDisclosure();
-  const user = trpc.user.userById.useQuery(
-    { id },
+  const user = trpc.user.userByUsername.useQuery(
+    { username },
     { staleTime: 10 * 60 * 6000 }
   );
   let profileImage: StaticImageData | undefined = undefined;
@@ -50,18 +50,7 @@ export default function Profile() {
   if (!user.data) {
     return <Box>No user found</Box>;
   }
-  if (!user.data && id === userId) {
-    return (
-      <Center w="100%" h="100vh">
-        <Button
-          colorScheme="blue"
-          onClick={() => void router.push("../create-user")}
-        >
-          Finish account creation
-        </Button>
-      </Center>
-    );
-  }
+
   return (
     <Flex w="100%" justify="center" mb={20}>
       <Box
@@ -175,7 +164,7 @@ Profile.getLayout = function getLayout(page: ReactElement) {
   );
 };
 export async function getServerSideProps(
-  context: GetServerSidePropsContext<{ id: string }>
+  context: GetServerSidePropsContext<{ username: string }>
 ) {
   const auth = getAuth(context.req);
   const ssg = createServerSideHelpers({
@@ -183,17 +172,17 @@ export async function getServerSideProps(
     ctx: createContextInner({ auth }),
     transformer: superjson,
   });
-  const id = context.params?.id as string;
+  const username = context.params?.username as string;
   /*
    * Prefetching the `post.byId` query here.
    * `prefetch` does not return the result and never throws - if you need that behavior, use `fetch` instead.
    */
-  await ssg.user.userById.prefetch({ id });
+  await ssg.user.userByUsername.prefetch({ username });
 
   return {
     props: {
       trpcState: ssg.dehydrate(),
-      id,
+      username,
     },
   };
 }

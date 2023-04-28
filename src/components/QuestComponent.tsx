@@ -40,7 +40,7 @@ export default function QuestComponent({
       <CardHeader p={4}>
         <Flex gap={5} flexWrap="wrap">
           <Flex flex="1" gap="4" alignItems="center">
-            <Link href={`/profile/${quest.creatorId}`}>
+            <Link href={`/profile/${quest.creatorUsername}`}>
               {creatorImage ? (
                 <div className="circular-image-container">
                   <Image

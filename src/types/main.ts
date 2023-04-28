@@ -215,7 +215,9 @@ export const UpdateUserAttributesZod = UserZod.pick({
   topics: true,
   subtopics: true,
   links: true,
-}).partial();
+})
+  .partial()
+  .required({ username: true });
 export type UpdateUserAttributes = z.infer<typeof UpdateUserAttributesZod>;
 
 const SolutionPartialZod = z

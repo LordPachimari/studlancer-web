@@ -2,6 +2,7 @@ import {
   Badge,
   Box,
   Button,
+  Card,
   Center,
   Divider,
   Flex,
@@ -85,7 +86,7 @@ const Sidebar = ({
       </Flex>
 
       {isSignedIn && user.data ? (
-        <Link href={`/profile/${userId}`}>
+        <Link href={`/profile/${user.data.username}`}>
           <Center w="100%" h="80">
             {profileImage ? (
               <Image src={profileImage} alt="Character" width={170} />
@@ -108,6 +109,17 @@ const Sidebar = ({
 
           <Divider />
         </Link>
+      ) : isSignedIn && !user.data ? (
+        <Card w="80" h="90" borderRadius="2xl">
+          <Center w="100%" h="100%">
+            <Button
+              colorScheme="blue"
+              onClick={() => void router.push("/create-user")}
+            >
+              Finish account creation
+            </Button>
+          </Center>
+        </Card>
       ) : (
         <>
           <Center w="100%" h="80"></Center>

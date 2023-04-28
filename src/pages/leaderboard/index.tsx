@@ -178,7 +178,7 @@ export default function Leaderboard() {
             <Link
               as={NextLink}
               key={u.id}
-              href={`/profile/${u.id}`}
+              href={`/profile/${u.username}`}
               w="100%"
               _hover={{ textDecor: "none" }}
             >

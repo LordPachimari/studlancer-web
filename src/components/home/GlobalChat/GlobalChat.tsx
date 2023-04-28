@@ -369,7 +369,7 @@ const UserMessage = ({
       p="1"
     >
       {userImage ? (
-        <Link href={`/profile/${userId}`}>
+        <Link href={`/profile/${username}`}>
           <div className="circular-image-container">
             <Image
               src={userImage}

@@ -250,7 +250,9 @@ const EditProfile = ({
   const handleSave = () => {
     if (valueUpdated) {
       const parameters = {
-        ...(userInfo.username.updated && { username: userInfo.username.value }),
+        username: userInfo.username.updated
+          ? userInfo.username.value
+          : username,
         ...(userInfo.about.updated && { about: userInfo.about.value }),
         ...(userInfo.links.updated && {
           links: {

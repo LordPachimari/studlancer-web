@@ -60,10 +60,7 @@ export const questRouter = router({
     .query(async ({ input, ctx }) => {
       const { id } = input;
       const { auth } = ctx;
-      let quest: PublishedQuest | null = null;
 
-      const solvers: SolverPartial[] = [];
-      const commentsId: string[] = [];
       try {
         const getResponse = await momento.get(
           process.env.MOMENTO_CACHE_NAME || "",
@@ -73,19 +70,15 @@ export const questRouter = router({
           console.log("cache hit!");
 
           // increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
-          const result = JSON.parse(getResponse.valueString()) as {
-            quest: PublishedQuest;
-            solvers: SolverPartial[];
-            commentsId: string[];
-          };
+          const result = JSON.parse(
+            getResponse.valueString()
+          ) as PublishedQuest;
 
           return result;
         } else if (getResponse instanceof CacheGet.Miss) {
-          const params: QueryCommandInput = {
+          const params: GetCommandInput = {
             TableName: process.env.MAIN_TABLE_NAME,
-            KeyConditionExpression: "#PK = :value",
-            ExpressionAttributeNames: { "#PK": "PK" },
-            ExpressionAttributeValues: { ":value": `QUEST#${id}` },
+            Key: { PK: `QUEST#${id}`, SK: `QUEST#${id}` },
           };
           const contentParams: GetCommandInput = {
             TableName: process.env.WORKSPACE_TABLE_NAME,
@@ -93,34 +86,14 @@ export const questRouter = router({
             Key: { PK: `QUEST#${id}`, SK: `CONTENT#${id}` },
           };
 
-          const [queryItems, contentItem] = await Promise.all([
-            dynamoClient.send(new QueryCommand(params)),
+          const [questItem, contentItem] = await Promise.all([
+            dynamoClient.send(new GetCommand(params)),
             dynamoClient.send(new GetCommand(contentParams)),
           ]);
-          if (queryItems.Items && contentItem) {
+          if (questItem.Item && contentItem) {
             const content = contentItem.Item as Content;
-            const questOrSolver = queryItems.Items as (
-              | PublishedQuestDynamo
-              | SolverDynamo
-            )[];
+            const quest = questItem.Item as PublishedQuest;
 
-            for (const item of questOrSolver) {
-              if (item.SK.startsWith("QUEST#")) {
-                quest = item as PublishedQuest;
-              } else if (item.SK.startsWith("SOLVER")) {
-                const solver = item as Solver;
-                solvers.push({
-                  id: solver.id,
-                  solutionId: solver.solutionId,
-                  status: solver.status,
-                });
-              } else if (item.SK.startsWith("COMMENT")) {
-                commentsId.push(item.id);
-              }
-            }
-            if (!quest) {
-              return { quest: null, solvers: [], commentsId: [] };
-            }
             if (!quest.published) {
               throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -128,27 +101,26 @@ export const questRouter = router({
               });
             }
             quest.content = content.content;
+            const setResponse = await momento.set(
+              process.env.MOMENTO_CACHE_NAME || "",
+              id,
+              JSON.stringify(quest || ""),
+              { ttl: 1800 }
+            );
+            if (setResponse instanceof CacheSet.Success) {
+              console.log("Key stored successfully!");
+            } else {
+              console.log(`Error setting key: ${setResponse.toString()}`);
+            }
+            return quest;
           }
 
-          const setResponse = await momento.set(
-            process.env.MOMENTO_CACHE_NAME || "",
-            id,
-            JSON.stringify({ quest, solvers, commentsId } || ""),
-            { ttl: 1800 }
-          );
-          if (setResponse instanceof CacheSet.Success) {
-            console.log("Key stored successfully!");
-          } else {
-            console.log(`Error setting key: ${setResponse.toString()}`);
-          }
           //increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
-
-          return { quest, solvers, commentsId };
         } else if (getResponse instanceof CacheGet.Error) {
           console.log(`Error: ${getResponse.message()}`);
         }
 
-        return { quest, solvers, commentsId };
+        return null;
       } catch (error) {
         console.log(error);
         throw new TRPCError({
@@ -797,10 +769,10 @@ export const questRouter = router({
       }
     }),
   addSolver: protectedProcedure
-    .input(z.object({ questId: z.string() }))
+    .input(z.object({ questId: z.string(), username: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { questId } = input;
+      const { questId, username } = input;
       const transactParams: TransactWriteCommandInput = {
         TransactItems: [
           {
@@ -834,6 +806,7 @@ export const questRouter = router({
                 SK: `SOLVER#${auth.userId}`,
                 id: auth.userId,
                 questId,
+                username: username,
               },
               ExpressionAttributeNames: { "#SK": "SK" },
             },
@@ -848,6 +821,7 @@ export const questRouter = router({
         try {
           await Promise.all([
             momento.delete("accounts-cache", questId),
+            momento.delete("accounts-cache", `SOLVERS#${questId}`),
             momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
           ]);
         } catch (error) {
@@ -921,6 +895,7 @@ export const questRouter = router({
           await Promise.all([
             momento.delete("accounts-cache", questId),
             momento.delete("accounts-cache", "LATEST_PUBLISHED_QUESTS"),
+            momento.delete("accounts-cache", `SOLVERS#${questId}`),
           ]);
         } catch (error) {
           console.log("error in cache", error);
@@ -939,55 +914,107 @@ export const questRouter = router({
       }
     }),
   solvers: publicProcedure
-    .input(z.object({ solversPartial: z.array(SolverPartialZod) }))
+    .input(z.object({ questId: z.string() }))
     .query(async ({ input }) => {
-      const solversPartial = input.solversPartial;
+      const { questId } = input;
       const solvers: Solver[] = [];
 
-      if (solversPartial.length > 0) {
-        const tableName = process.env.MAIN_TABLE_NAME || "";
-        const Keys: Record<string, any>[] = [];
-        for (const item of solversPartial) {
-          Keys.push({ PK: `USER#${item.id}`, SK: `USER#${item.id}` });
-        }
-
-        const RequestItems: Record<
-          string,
-          Omit<KeysAndAttributes, "Keys"> & {
-            Keys: Record<string, any>[] | undefined;
-          }
-        > = {};
-        RequestItems[tableName] = {
-          Keys,
-        };
-        const params: BatchGetCommandInput = {
-          RequestItems,
-        };
-        const { Responses } = await dynamoClient.send(
-          new BatchGetCommand(params)
+      let solversPartial: SolverPartial[] | undefined = undefined;
+      try {
+        const getResponse = await momento.get(
+          process.env.MOMENTO_CACHE_NAME || "",
+          `SOLVERS#${questId}`
         );
+        if (getResponse instanceof CacheGet.Hit) {
+          console.log("cache hit!");
 
-        if (Responses) {
-          const users = Responses[tableName] as Solver[];
-          if (!users) {
-            return solvers;
-          }
-          for (let i = 0; i < users.length; i++) {
-            if (users[i]) {
-              solvers.push({
-                id: users[i]!.id,
-                level: users[i]!.level,
-                experience: users[i]!.experience,
-                profile: users[i]!.profile,
-                username: users[i]!.username,
-                solutionId: solversPartial[i]?.solutionId,
-                status: solversPartial[i]?.status,
-              });
+          // increasing view count on the quest logic. If user exists and haven't seen the quest by checking whether user has this quest id as a sort key in VIEWS_TABLE.
+          const result = JSON.parse(getResponse.valueString()) as Solver[];
+
+          return result;
+        } else if (getResponse instanceof CacheGet.Miss) {
+          const queryParams: QueryCommandInput = {
+            TableName: process.env.MAIN_TABLE_NAME,
+            KeyConditionExpression: "PK = :PK AND begins_with(SK, :SOLVER)",
+            ExpressionAttributeValues: {
+              ":PK": `QUEST#${questId}`,
+              ":SOLVER": "SOLVER#",
+            },
+          };
+          const queryResult = await dynamoClient.send(
+            new QueryCommand(queryParams)
+          );
+          if (queryResult.Items) {
+            solversPartial = queryResult.Items as SolverPartial[];
+            if (solversPartial.length > 0) {
+              const tableName = process.env.MAIN_TABLE_NAME || "";
+              const Keys: Record<string, any>[] = [];
+              for (const item of solversPartial) {
+                Keys.push({ PK: `USER#${item.id}`, SK: `USER#${item.id}` });
+              }
+
+              const RequestItems: Record<
+                string,
+                Omit<KeysAndAttributes, "Keys"> & {
+                  Keys: Record<string, any>[] | undefined;
+                }
+              > = {};
+              RequestItems[tableName] = {
+                Keys,
+                ProjectionExpression:
+                  "id, level, experience, profile, username",
+              };
+              const params: BatchGetCommandInput = {
+                RequestItems,
+              };
+              const { Responses } = await dynamoClient.send(
+                new BatchGetCommand(params)
+              );
+
+              if (Responses) {
+                const users = Responses[tableName] as Solver[];
+                if (!users) {
+                  return solvers;
+                }
+                for (let i = 0; i < users.length; i++) {
+                  if (users[i]) {
+                    solvers.push({
+                      id: users[i]!.id,
+                      level: users[i]!.level,
+                      experience: users[i]!.experience,
+                      profile: users[i]!.profile,
+                      username: users[i]!.username,
+                      solutionId: solversPartial[i]!.solutionId,
+                      status: solversPartial[i]!.status,
+                    });
+                  }
+                }
+                const setResponse = await momento.set(
+                  process.env.MOMENTO_CACHE_NAME || "",
+                  `SOLVERS#${questId}`,
+                  JSON.stringify(solvers),
+                  { ttl: 1800 }
+                );
+                if (setResponse instanceof CacheSet.Success) {
+                  console.log("Key stored successfully!");
+                } else {
+                  console.log(`Error setting key: ${setResponse.toString()}`);
+                }
+              }
             }
           }
+        } else if (getResponse instanceof CacheGet.Error) {
+          console.log(`Error: ${getResponse.message()}`);
         }
+
+        return solvers;
+      } catch (error) {
+        console.log(error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "could not rertrieve solvers",
+        });
       }
-      return solvers;
     }),
   acceptSolution: protectedProcedure
     .input(
@@ -1122,7 +1149,6 @@ export const questRouter = router({
   rejectSolution: protectedProcedure
     .input(
       z.object({
-        
         winnerId: z.string(),
         questId: z.string(),
         solutionId: z.string(),

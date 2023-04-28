@@ -1,7 +1,7 @@
 import { SignUp, useAuth } from "@clerk/nextjs";
 import { buildClerkProps, clerkClient, getAuth } from "@clerk/nextjs/server";
 import { GetServerSidePropsContext } from "next";
-import { ReactElement } from "react";
+import { ReactElement, useEffect } from "react";
 import { appRouter } from "~/server/api/root";
 import { createContextInner } from "~/server/api/trpc";
 import GlobalLayout from "../layouts/GlobalLayout";
@@ -26,18 +26,15 @@ import { LoadingSpinner } from "~/components/LoadingSpinner";
 import Image, { StaticImageData } from "next/image";
 
 const SignUpPage: NextPageWithLayout = () => {
-  const { userId, isSignedIn } = useAuth();
-  const user = trpc.user.userComponent.useQuery(
-    { id: userId! },
-    { enabled: !!userId, staleTime: 1800 }
-  );
-  let profileImage: StaticImageData | undefined = undefined;
-  if (user.data && user.data.profile) {
-    profileImage = JSON.parse(user.data.profile) as StaticImageData;
-  }
+  const { userId, isSignedIn, isLoaded } = useAuth();
 
   const router = useRouter();
-  if (user.isFetching) {
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push("/").catch((err) => console.log(err));
+    }
+  }, [isSignedIn, router]);
+  if (!isLoaded) {
     return (
       <Card w="80" h="md" borderRadius="2xl">
         <Center w="100%" h="100%">
@@ -46,57 +43,44 @@ const SignUpPage: NextPageWithLayout = () => {
       </Card>
     );
   }
-  if (isSignedIn && user.data) {
-    return (
-      <Link href={`/profile/${userId}`}>
-        <Card w="80" h="md" borderRadius="2xl">
-          <CardHeader
-            whiteSpace="nowrap"
-            overflow="hidden"
-            textOverflow="ellipsis"
-          >
-            <Heading display="center" justifyContent="center">
-              {user.data.username.toUpperCase()}
-            </Heading>
-            <Center>
-              <Badge
-                mr="1"
-                variant="solid"
-                colorScheme="blue"
-                fontSize="15"
-                w="12"
-              >
-                {user.data.level} lvl
-              </Badge>
-            </Center>
-            <CardBody p="1">
-              <Center w="100%" h="80">
-                {profileImage ? (
-                  <Image src={profileImage} alt="Character" width={170} />
-                ) : (
-                  <></>
-                )}
-              </Center>
-            </CardBody>
-          </CardHeader>
-        </Card>
-      </Link>
-    );
-  }
-  if (isSignedIn && !user.data && user.isFetched) {
-    return (
-      <Card w="80" h="md" borderRadius="2xl">
-        <Center w="100%" h="100%">
-          <Button
-            colorScheme="blue"
-            onClick={() => void router.push("/create-user")}
-          >
-            Finish account creation
-          </Button>
-        </Center>
-      </Card>
-    );
-  }
+  // if (isSignedIn) {
+  //   return (
+  //     <Link href={`/profile/${userId}`}>
+  //       <Card w="80" h="md" borderRadius="2xl">
+  //         <CardHeader
+  //           whiteSpace="nowrap"
+  //           overflow="hidden"
+  //           textOverflow="ellipsis"
+  //         >
+  //           <Heading display="center" justifyContent="center">
+  //             {user.data.username.toUpperCase()}
+  //           </Heading>
+  //           <Center>
+  //             <Badge
+  //               mr="1"
+  //               variant="solid"
+  //               colorScheme="blue"
+  //               fontSize="15"
+  //               w="12"
+  //             >
+  //               {user.data.level} lvl
+  //             </Badge>
+  //           </Center>
+  //           <CardBody p="1">
+  //             <Center w="100%" h="80">
+  //               {profileImage ? (
+  //                 <Image src={profileImage} alt="Character" width={170} />
+  //               ) : (
+  //                 <></>
+  //               )}
+  //             </Center>
+  //           </CardBody>
+  //         </CardHeader>
+  //       </Card>
+  //     </Link>
+  //   );
+  // }
+
   return <SignUp signInUrl="/sign-in" />;
 };
 SignUpPage.getLayout = function getLayout(page: ReactElement) {

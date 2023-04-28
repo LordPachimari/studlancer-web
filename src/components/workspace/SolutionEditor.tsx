@@ -118,7 +118,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
     {
       enabled: !!solution && !!solution.questId,
 
-      staleTime: 10 * 60 * 1000,
+      staleTime: 10 * 60 * 6000,
     }
   );
 
@@ -318,7 +318,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
         <Box w="85%" maxW="2xl" minH="36" mb={10}>
           {quest.isLoading ? (
             <QuestComponentSkeleton includeContent={false} />
-          ) : quest.data && quest.data.quest ? (
+          ) : quest.data ? (
             <Box position="relative">
               <IconButton
                 aria-label="remove target quest"
@@ -329,7 +329,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
                 isLoading={removeTargetQuest.isLoading}
                 onClick={() => {
                   removeTargetQuest.mutate(
-                    { questId: quest.data.quest!.id, solutionId: id },
+                    { questId: quest.data!.id, solutionId: id },
                     {
                       onSuccess: () => {
                         update<Solution | undefined>(id, (solution) => {
@@ -374,7 +374,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
               <QuestComponent
                 includeContent={false}
                 includeDetails={false}
-                quest={quest.data.quest}
+                quest={quest.data}
               />
             </Box>
           ) : (
