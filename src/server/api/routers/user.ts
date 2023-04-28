@@ -314,6 +314,7 @@ export const userRouter = router({
           dynamoClient.send(new UpdateCommand(userParams)),
         ]);
         if (updateResult) {
+          await momento.delete("accounts-cache", auth.userId);
           return true;
         }
         throw new TRPCError({
