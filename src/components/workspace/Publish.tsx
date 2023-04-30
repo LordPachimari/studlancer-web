@@ -48,6 +48,7 @@ const Publish = ({
   onClose,
   setQuest,
   setSolution,
+  isSaving,
 }: {
   solutionId?: string;
 
@@ -56,6 +57,7 @@ const Publish = ({
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
+  isSaving: boolean;
   setQuest?: Dispatch<
     SetStateAction<(Quest & { status?: "OPEN" | "CLOSED" }) | null | undefined>
   >;
@@ -66,15 +68,16 @@ const Publish = ({
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
     undefined
   );
+  const [isInvalidating, setIsInvalidating] = useState(false);
 
   const queryClient = useQueryClient();
   const toast = useToast();
   const QuestAttributesZod = z.object({
     id: z.string(),
     title: z.string(),
-    subtopic: z.array(z.string()),
+    subtopic: z.array(z.string()).min(1, { message: "Missing subtopic" }),
     topic: z.string(),
-    content: z.instanceof(Uint8Array),
+    content: z.instanceof(Uint8Array, { message: "Missing content" }),
     reward: z
       .number()
       .min(1, { message: "Number of diamonds must be greater than 1" }),
@@ -119,6 +122,7 @@ const Publish = ({
           const result = QuestAttributesZod.safeParse(quest);
 
           if (!result.success) {
+            console.log("error", result.error);
             setErrorMessage(
               result.error.issues[0]?.message.startsWith("Required")
                 ? `${result.error.issues[0]?.message} ${result.error.issues[0].path}`
@@ -176,6 +180,7 @@ const Publish = ({
         { id: questId },
         {
           onSuccess: () => {
+            setIsInvalidating(true);
             update<(Quest & { status: "OPEN" | "CLOSED" }) | undefined>(
               questId,
               (value) => {
@@ -207,7 +212,8 @@ const Publish = ({
               })
               .catch((err) => {
                 console.log("error invalidating");
-              });
+              })
+              .finally(() => setIsInvalidating(false));
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);
@@ -229,6 +235,7 @@ const Publish = ({
         },
         {
           onSuccess: () => {
+            setIsInvalidating(true);
             update<Solution | undefined>(solutionId, (value) => {
               if (value) {
                 value.published = true;
@@ -253,7 +260,8 @@ const Publish = ({
               })
               .catch((err) => {
                 console.log("error invalidating");
-              });
+              })
+              .finally(() => setIsInvalidating(false));
           },
           onError(error, variables, context) {
             setErrorMessage(error.message);
@@ -267,6 +275,7 @@ const Publish = ({
       );
     }
   };
+  console.log("isSaving", isSaving);
 
   return (
     <Center>
@@ -274,6 +283,7 @@ const Publish = ({
         w="100%"
         colorScheme="blue"
         mt={3}
+        isLoading={isSaving}
         onClick={() => {
           onOpen();
 
@@ -283,6 +293,7 @@ const Publish = ({
       >
         Publish
       </Button>
+
       <AlertDialog
         isOpen={isOpen}
         leastDestructiveRef={cancelRef}
@@ -319,7 +330,12 @@ const Publish = ({
             )}
 
             <AlertDialogFooter gap={2}>
-              <Button ref={cancelRef} onClick={onClose} colorScheme="red">
+              <Button
+                ref={cancelRef}
+                onClick={onClose}
+                isDisabled={publishQuest.isLoading || isInvalidating}
+                colorScheme="red"
+              >
                 Close
               </Button>
 
@@ -366,7 +382,11 @@ const Publish = ({
                   handlePublish({ questId, solutionId });
                 }}
                 isDisabled={!!errorMessage}
-                isLoading={publishQuest.isLoading || publishSolution.isLoading}
+                isLoading={
+                  publishQuest.isLoading ||
+                  publishSolution.isLoading ||
+                  isInvalidating
+                }
               >
                 Publish
               </Button>

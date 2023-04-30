@@ -12,7 +12,15 @@ import StarterKit from "@tiptap/starter-kit";
 import { set, update } from "idb-keyval";
 import debounce from "lodash.debounce";
 import * as pako from "pako";
-import { ChangeEvent, useCallback, useEffect, useRef } from "react";
+import {
+  ChangeEvent,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { trpc } from "~/utils/api";
 import { Quest, Solution, Versions } from "../../types/main";
 import FileExtension from "../Tiptap/FileExtension";
@@ -23,9 +31,10 @@ const TiptapEditor = (props: {
   id: string;
   content: Uint8Array | undefined;
   type: "QUEST" | "SOLUTION";
+  setIsSaving: Dispatch<SetStateAction<boolean>>;
 }) => {
   let contentRestored: string | undefined;
-  const { id, content, type } = props;
+  const { id, content, type, setIsSaving } = props;
 
   const updateQuestContent = trpc.quest.updateQuestContent.useMutation({
     retry: 3,
@@ -146,6 +155,7 @@ const TiptapEditor = (props: {
             }
           );
         }
+        setIsSaving(false);
       },
       1000
     ),
@@ -190,6 +200,8 @@ const TiptapEditor = (props: {
       onUpdate: ({ editor }) => {
         const json = editor.getJSON();
         const jsonString = JSON.stringify(json);
+
+        setIsSaving(true);
         updateContent({
           content: jsonString,
           type,

@@ -217,6 +217,13 @@ export const UpdateUserAttributesZod = UserZod.pick({
   links: true,
 }).partial();
 export type UpdateUserAttributes = z.infer<typeof UpdateUserAttributesZod>;
+export const UpdateInventoryZod = z.object({
+  inventory: z.instanceof(Uint8Array),
+  activeSlots: z.instanceof(Uint8Array),
+  profile: z.string(),
+  lastUpdated: z.string(),
+});
+export type UpdateInventory = z.infer<typeof UpdateInventoryZod>;
 
 const SolutionPartialZod = z
   .object({

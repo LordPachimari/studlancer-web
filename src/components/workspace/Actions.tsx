@@ -8,27 +8,30 @@ import { Quest, Solution } from "../../types/main";
 import { Button, Center } from "@chakra-ui/react";
 import { trpc } from "~/utils/api";
 import { WorkspaceStore } from "../../zustand/workspace";
+import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 export const storeQuestOrSolution = ({
   id,
   type,
   userId,
+  createdAt,
 }: {
   id: string;
   type: "QUEST" | "SOLUTION";
   userId: string;
+  createdAt: string;
 }) => {
-  const newDate = new Date().toISOString();
   if (type === "QUEST") {
-    const versions = { server: 1, local: 1 };
+    const versions = { server: createdAt, local: createdAt };
     localStorage.setItem(id, JSON.stringify(versions));
 
     const newQuest: Quest = {
       id,
       published: false,
-      createdAt: newDate,
+      createdAt: createdAt,
       creatorId: userId,
       inTrash: false,
-      lastUpdated: newDate,
+      lastUpdated: createdAt,
       type: "QUEST",
     };
     set(id, newQuest).catch((err) => console.log(err));
@@ -36,11 +39,11 @@ export const storeQuestOrSolution = ({
     const newSolution: Solution = {
       id,
       published: false,
-      createdAt: newDate,
+      createdAt: createdAt,
       creatorId: userId,
       inTrash: false,
 
-      lastUpdated: newDate,
+      lastUpdated: createdAt,
       type: "SOLUTION",
     };
 
@@ -51,6 +54,8 @@ export const storeQuestOrSolution = ({
 };
 //hello world
 const Actions = ({ userId }: { userId: string }) => {
+  const queryClient = useQueryClient();
+  const listKey = getQueryKey(trpc.workspace.workspaceList);
   const router = useRouter();
   const createQuestOrSolutionState = WorkspaceStore(
     (state) => state.createQuestOrSolution
@@ -65,14 +70,19 @@ const Actions = ({ userId }: { userId: string }) => {
         w={{ base: "90%", md: "60" }}
         isLoading={createQuest.isLoading}
         onClick={() => {
+          const createdAt = new Date().toISOString();
           const id = ulid();
 
           createQuest.mutate(
-            { id },
+            { id, createdAt },
             {
               onSuccess: () => {
                 createQuestOrSolutionState({ id, type: "QUEST", userId });
-                storeQuestOrSolution({ id, type: "QUEST", userId });
+                storeQuestOrSolution({ id, type: "QUEST", userId, createdAt });
+
+                queryClient
+                  .invalidateQueries(listKey)
+                  .catch((err) => console.log(err));
                 void router.push(`/workspace/quests/${id}`);
               },
             }
@@ -89,12 +99,23 @@ const Actions = ({ userId }: { userId: string }) => {
         onClick={() => {
           const id = ulid();
 
+          const createdAt = new Date().toISOString();
+
           createSolution.mutate(
-            { id },
+            { id, createdAt },
             {
               onSuccess: () => {
                 createQuestOrSolutionState({ id, type: "SOLUTION", userId });
-                storeQuestOrSolution({ id, type: "SOLUTION", userId });
+                storeQuestOrSolution({
+                  id,
+                  type: "SOLUTION",
+                  userId,
+                  createdAt,
+                });
+
+                queryClient
+                  .invalidateQueries(listKey)
+                  .catch((err) => console.log(err));
                 void router.push(`/workspace/solutions/${id}`);
               },
             }

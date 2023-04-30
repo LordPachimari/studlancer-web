@@ -1,7 +1,9 @@
 import {
   ChangeEvent,
+  Dispatch,
   FormEvent,
   KeyboardEvent,
+  SetStateAction,
   useEffect,
   useRef,
   useState,
@@ -247,7 +249,9 @@ const Reward = ({
         value={stateReward || ""}
         type="number"
         onChange={(e) => {
-          handleRewardChange(e), setStateReward(e.target.valueAsNumber || 0);
+          if (e.target.valueAsNumber > 0) {
+            handleRewardChange(e), setStateReward(e.target.valueAsNumber || 0);
+          }
         }}
         min={1}
       />
@@ -294,7 +298,9 @@ const Slots = ({
         value={stateSlots || ""}
         type="number"
         onChange={(e) => {
-          handleSlotsChange(e), setStateSlots(e.target.valueAsNumber || 0);
+          if (e.target.valueAsNumber > 0) {
+            handleSlotsChange(e), setStateSlots(e.target.valueAsNumber || 0);
+          }
         }}
         min={1}
       />
@@ -320,7 +326,7 @@ const DatePicker = ({
   }) => void;
   addTransaction: (props: UpdateTransaction) => void;
 }) => {
-  const [dateState, setDateState] = useState("");
+  const [dateState, setDateState] = useState(questDate);
 
   const onChange = (event: ChangeEvent<HTMLInputElement>) => {
     addTransaction({
@@ -358,8 +364,10 @@ const DatePicker = ({
 const QuestAttributes = ({
   quest,
   updateQuestAttributesHandler,
+  setIsSaving,
 }: {
   quest: Quest;
+  setIsSaving: Dispatch<SetStateAction<boolean>>;
   updateQuestAttributesHandler: ({
     transactionQueue,
     lastTransaction,
@@ -375,6 +383,7 @@ const QuestAttributes = ({
   const transactionQueue = WorkspaceStore((state) => state.transactionQueue);
 
   const handleTitleChange = (e: FormEvent<HTMLDivElement>) => {
+    setIsSaving(true);
     addTransaction({
       id: quest.id,
       attribute: "title",
@@ -399,10 +408,12 @@ const QuestAttributes = ({
 
   const handleTopicChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as TopicsType;
+
+    setIsSaving(true);
     addTransaction({
       id: quest.id,
       attribute: "topic",
-      value: e.target.value,
+      value: value,
     });
     updateQuestAttributesListAttribute({
       id: quest.id,
@@ -415,13 +426,15 @@ const QuestAttributes = ({
       lastTransaction: {
         id: quest.id,
         attribute: "topic",
-        value: e.target.value,
+        value: value,
       },
     });
   };
 
   const handleSubtopicChange = () => {
     const content = document.getElementById("subtopic");
+
+    setIsSaving(true);
 
     const subtopicValues: string[] = [];
     content?.childNodes.forEach((c) => {
@@ -443,9 +456,24 @@ const QuestAttributes = ({
           value: subtopicValues,
         },
       });
+    } else {
+      addTransaction({
+        id: quest.id,
+        attribute: "subtopic",
+        value: [],
+      });
+      updateQuestAttributesHandler({
+        transactionQueue,
+        lastTransaction: {
+          id: quest.id,
+          attribute: "subtopic",
+          value: [],
+        },
+      });
     }
   };
   const handleRewardChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setIsSaving(true);
     addTransaction({
       id: quest.id,
       attribute: "reward",
@@ -461,6 +489,7 @@ const QuestAttributes = ({
     });
   };
   const handleSlotsChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setIsSaving(true);
     addTransaction({
       id: quest.id,
       attribute: "slots",

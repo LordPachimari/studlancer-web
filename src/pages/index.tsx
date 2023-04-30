@@ -30,10 +30,10 @@ const SignUpPage: NextPageWithLayout = () => {
 
   const router = useRouter();
   useEffect(() => {
-    if (isSignedIn) {
-      router.push("/").catch((err) => console.log(err));
+    if (isSignedIn && userId) {
+      router.push("/home").catch((err) => console.log(err));
     }
-  }, [isSignedIn, router]);
+  }, [isSignedIn, router, userId]);
   if (!isLoaded) {
     return (
       <Card w="80" h="md" borderRadius="2xl">

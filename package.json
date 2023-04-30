@@ -15,7 +15,7 @@
         "@aws-sdk/lib-dynamodb": "^3.298.0",
         "@aws-sdk/s3-presigned-post": "^3.298.0",
         "@aws-sdk/util-dynamodb": "^3.298.0",
-        "@chakra-ui/react": "^2.5.5",
+        "@chakra-ui/react": "^2.6.0",
         "@clerk/nextjs": "^4.11.13",
         "@emotion/react": "^11.10.6",
         "@emotion/styled": "^11.10.6",

@@ -75,6 +75,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
   );
   const router = useRouter();
   const toast = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const {
     isOpen: isModalOpen,
     onOpen: onModalOpen,
@@ -275,13 +276,13 @@ const SolutionEditor = ({ id }: { id: string }) => {
                   localStorage.setItem(key, JSON.stringify(newVersions));
                 }
               }
-
-              clearTransactionQueue();
             },
           }
         );
+
+        clearTransactionQueue();
       },
-      500
+      1000
     ),
     []
   );
@@ -436,6 +437,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
             id={solution.id}
             content={solution.content}
             type="SOLUTION"
+            setIsSaving={setIsSaving}
           />
         )}
       </Card>
@@ -450,6 +452,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           questId={solution.questId}
           questCreatorId={solution.questCreatorId}
           setSolution={setSolution}
+          isSaving={isSaving}
         />
       )}
       {solution && solution.published && (

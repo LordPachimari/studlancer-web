@@ -98,6 +98,7 @@ const Character = ({
     skin: null,
   };
   const toast = useToast();
+  const [updated, setUpdated] = useState(false);
 
   const [characterState, setCharacterState] = useState<CharacterState>({
     activeSlots: defaultActiveSlots,
@@ -272,6 +273,7 @@ const Character = ({
                             p="1"
                             _hover={{ bg: "blue.100" }}
                             onClick={() => {
+                              setUpdated(true);
                               setCharacterState(
                                 produce((state) => {
                                   state.activeSlots[key] = null;
@@ -372,6 +374,7 @@ const Character = ({
                               p="1"
                               _hover={{ bg: "blue.100" }}
                               onClick={() => {
+                                setUpdated(true);
                                 setCharacterState(
                                   produce((state) => {
                                     state.activeSlots[slot.type!] = slot.item;
@@ -422,9 +425,10 @@ const Character = ({
             colorScheme="whatsapp"
             mr={3}
             w="28"
+            isDisabled={!updated}
             isLoading={updateInventory.isLoading || isSaving}
             onClick={() => {
-              if (characterState.profile) {
+              if (characterState.profile && updated) {
                 const profileString = JSON.stringify(characterState.profile);
 
                 const activeSlotsString = JSON.stringify(

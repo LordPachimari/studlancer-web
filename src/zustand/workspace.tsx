@@ -59,20 +59,24 @@ export const WorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   addTransaction: (props) => {
     const { id, attribute, value } = props;
+    console.log("transaction", attribute);
     set(
       produce((state: WorkspaceState) => {
         const transactions = state.transactionQueue.get(id);
         if (!transactions) {
+          console.log("first transaction", attribute);
           state.transactionQueue.set(id, { transactions: [props] });
         } else {
           const transactionIndex = transactions.transactions.findIndex(
             (t) => t.attribute === attribute
           );
           if (transactionIndex < 0) {
+            console.log("new unique transaction", attribute);
             const newTransaction = props;
             transactions.transactions.push(newTransaction);
             state.transactionQueue.set(id, transactions);
           } else {
+            console.log("update old transaction", attribute);
             const transaction = transactions.transactions[transactionIndex];
             if (transaction) {
               transaction.value = value;

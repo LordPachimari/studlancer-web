@@ -14,6 +14,8 @@ import {
   CreateUserZod,
   Inventory,
   InventorySlot,
+  UpdateInventory,
+  UpdateInventoryZod,
   UpdateUserAttributes,
   UpdateUserAttributesZod,
   User,
@@ -189,6 +191,8 @@ export const userRouter = router({
       const { auth } = ctx;
       const inventory: InventorySlot[] = [
         { index: 0, item: Giorno, type: "skin" },
+
+        { index: 1, item: Jotaro, type: "skin" },
       ];
       const inventoryString = JSON.stringify(inventory);
       const inventoryData = pako.deflate(inventoryString);
@@ -330,17 +334,17 @@ export const userRouter = router({
     }
   }),
   updateInventory: protectedProcedure
-    .input(
-      z.object({
-        inventory: z.instanceof(Uint8Array),
-        activeSlots: z.instanceof(Uint8Array),
-        profile: z.string(),
-        lastUpdated: z.string(),
-      })
-    )
+    .input(UpdateInventoryZod)
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
       const { inventory, activeSlots, profile, lastUpdated } = input;
+      const updateAttributes: string[] = [];
+      for (const property in input) {
+        if (input[property as keyof UpdateInventory]) {
+          updateAttributes.push(`#${property}=:${property}`);
+        }
+      }
+      const UpdateExpression = `SET ${updateAttributes.join(", ")}`;
       const inventoryParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `INVENTORY#${auth.userId}` },
@@ -350,6 +354,7 @@ export const userRouter = router({
           ...(activeSlots && { "#activeSlots": "activeSlots" }),
           "#lastUpdated": "lastUpdated",
         },
+        UpdateExpression,
         ExpressionAttributeValues: {
           ...(inventory && { ":inventory": inventory }),
           ...(activeSlots && { ":activeSlots": activeSlots }),

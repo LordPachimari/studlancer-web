@@ -1,5 +1,4 @@
-import { useAuth } from "@clerk/nextjs";
-import { del, get, set, update, values } from "idb-keyval";
+import { del, get, set, update } from "idb-keyval";
 import {
   Quest,
   QuestListComponent,
@@ -15,13 +14,6 @@ import {
   AccordionIcon,
   AccordionItem,
   AccordionPanel,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  Box,
   Button,
   Circle,
   Divider,
@@ -46,11 +38,11 @@ import {
   Spacer,
   Spinner,
   Text,
-  Toast,
-  filter,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 import produce from "immer";
 import debounce from "lodash.debounce";
 import NextLink from "next/link";
@@ -58,14 +50,10 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { ulid } from "ulid";
 import { trpc } from "~/utils/api";
+import { TopicColor } from "~/utils/topicsColor";
 import { WorkspaceStore } from "../../zustand/workspace";
 import { storeQuestOrSolution } from "./Actions";
 import styles from "./workspace.module.css";
-import { WritableDraft } from "immer/dist/internal";
-import { questRouter } from "~/server/api/routers/quest";
-import { TopicColor } from "~/utils/topicsColor";
-import { getQueryKey } from "@trpc/react-query";
-import { useQueryClient } from "@tanstack/react-query";
 const List = ({
   showList,
   toggleShowList,
@@ -83,6 +71,8 @@ const List = ({
   const createQuest = trpc.quest.createQuest.useMutation();
   const createSolution = trpc.solution.createSolution.useMutation();
 
+  const queryClient = useQueryClient();
+  const listKey = getQueryKey(trpc.workspace.workspaceList);
   const serverWorkspaceList = trpc.workspace.workspaceList.useQuery(undefined, {
     staleTime: 10 * 60 * 3000,
   });
@@ -121,6 +111,7 @@ const List = ({
   const toast = useToast();
   //deleteQuest deletes quest in local storage and the server (not actually deletes but marks as inTrash)
   const deleteListComponent = ({ id }: { id: string }) => {
+    const lastUpdated = new Date().toISOString();
     get(id)
       .then((component: Quest | Solution) => {
         if (component.published) {
@@ -138,18 +129,24 @@ const List = ({
           if (quest && (quest.title || quest.content)) {
             //saving quest if content exist
             deleteQuest.mutate(
-              { id: quest.id },
+              { id: quest.id, lastUpdated },
               {
                 onSuccess: () => {
                   deleteQuestOrSolution({ id, type: "QUEST" });
                   setTrash(
                     produce((trash) => {
-                      trash.quests.push(component);
+                      const _component = structuredClone(component);
+                      _component.lastUpdated = lastUpdated;
+                      trash.quests.push(_component);
                     })
                   );
 
                   del(id).catch((err) => console.log(err));
                   localStorage.removeItem(id);
+
+                  queryClient
+                    .invalidateQueries(listKey)
+                    .catch((err) => console.log(err));
                 },
               }
             );
@@ -167,6 +164,10 @@ const List = ({
 
                   del(id).catch((err) => console.log(err));
                   localStorage.removeItem(id);
+
+                  queryClient
+                    .invalidateQueries(listKey)
+                    .catch((err) => console.log(err));
                 },
               }
             );
@@ -176,18 +177,24 @@ const List = ({
           if (solution && (solution.title || solution.content)) {
             //saving solution if content exist
             deleteSolution.mutate(
-              { id: solution.id },
+              { id: solution.id, lastUpdated },
               {
                 onSuccess: () => {
                   deleteQuestOrSolution({ id, type: "SOLUTION" });
                   setTrash(
                     produce((trash) => {
-                      trash.quests.push(component);
+                      const _component = structuredClone(component);
+                      _component.lastUpdated = lastUpdated;
+                      trash.quests.push(_component);
                     })
                   );
 
                   del(id).catch((err) => console.log(err));
                   localStorage.removeItem(id);
+
+                  queryClient
+                    .invalidateQueries(listKey)
+                    .catch((err) => console.log(err));
                 },
               }
             );
@@ -207,6 +214,10 @@ const List = ({
                   del(id).catch((err) => console.log(err));
 
                   localStorage.removeItem(id);
+
+                  queryClient
+                    .invalidateQueries(listKey)
+                    .catch((err) => console.log(err));
                 },
               }
             );
@@ -234,15 +245,20 @@ const List = ({
   }: {
     type: "QUEST" | "SOLUTION";
   }) => {
+    const createdAt = new Date().toISOString();
     if (type === "QUEST") {
       const id = ulid();
 
       createQuest.mutate(
-        { id },
+        { id, createdAt },
         {
           onSuccess: () => {
             createQuestOrSolutionState({ id, type: "QUEST", userId });
-            storeQuestOrSolution({ id, type: "QUEST", userId });
+            storeQuestOrSolution({ id, type: "QUEST", userId, createdAt });
+
+            queryClient
+              .invalidateQueries(listKey)
+              .catch((err) => console.log(err));
             if (!router.query.id) {
               void router.push(`/workspace/quests/${id}`);
             }
@@ -259,12 +275,16 @@ const List = ({
       const id = ulid();
 
       createSolution.mutate(
-        { id },
+        { id, createdAt },
         {
           onSuccess: () => {
             createQuestOrSolutionState({ id, type: "SOLUTION", userId });
 
-            storeQuestOrSolution({ id, type: "SOLUTION", userId });
+            storeQuestOrSolution({ id, type: "SOLUTION", userId, createdAt });
+
+            queryClient
+              .invalidateQueries(listKey)
+              .catch((err) => console.log(err));
             if (!router.query.id) {
               void router.push(`/workspace/solutions/${id}`);
             }
@@ -661,12 +681,7 @@ const TrashComponent = ({
   >;
 }) => {
   const initialRef = React.useRef(null);
-  const {
-    isOpen: isAlertOpen,
-    onOpen: onAlertOpen,
-    onClose: onAlertClose,
-  } = useDisclosure();
-  const cancelRef = React.useRef(null);
+
   const deleteQuestPermanently =
     trpc.quest.deleteQuestPermanently.useMutation();
   const deleteSolutionPermanently =
@@ -680,7 +695,29 @@ const TrashComponent = ({
     { quests: [], solutions: [] }
   );
   useEffect(() => {
-    setQuestOrSolutionList(trash);
+    const _trash = structuredClone(trash);
+    _trash.quests.sort((a, b) => {
+      if (new Date(a.lastUpdated) > new Date(b.lastUpdated)) {
+        return -1;
+      }
+      if (new Date(a.lastUpdated) < new Date(b.lastUpdated)) {
+        return 1;
+      }
+      // a must be equal to b
+      return 0;
+    });
+    _trash.solutions.sort((a, b) => {
+      if (new Date(a.lastUpdated) > new Date(b.lastUpdated)) {
+        return -1;
+      }
+
+      if (new Date(a.lastUpdated) < new Date(b.lastUpdated)) {
+        return 1;
+      }
+      // a must be equal to b
+      return 0;
+    });
+    setQuestOrSolutionList(_trash);
   }, [trash]);
 
   const searchText = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -745,6 +782,7 @@ const TrashComponent = ({
                 key={q.id}
                 gap={2}
                 alignItems="center"
+                onClick={() => console.log(q.id)}
               >
                 <Circle
                   size="24px"
@@ -767,7 +805,11 @@ const TrashComponent = ({
                   aria-label="restore"
                   bg="blue.100"
                   _hover={{ bg: "blue.200" }}
-                  isLoading={restoreQuest.isLoading}
+                  isLoading={
+                    restoreQuest.isLoading &&
+                    !!restoreQuest.variables &&
+                    restoreQuest.variables.id === q.id
+                  }
                   onClick={() => {
                     restoreQuest.mutate(
                       { id: q.id },
@@ -856,8 +898,32 @@ const TrashComponent = ({
                   mr={1}
                   size="sm"
                   aria-label="permanently delete"
+                  isLoading={
+                    deleteQuestPermanently.isLoading &&
+                    !!deleteQuestPermanently.variables &&
+                    deleteQuestPermanently.variables.id === q.id
+                  }
                   onClick={() => {
-                    onAlertOpen();
+                    deleteQuestPermanently.mutate(
+                      { id: q.id },
+                      {
+                        onSuccess: () => {
+                          const filteredQuests = trash.quests.filter(
+                            (item) => item.id !== q.id
+                          );
+
+                          setTrash((trash) => {
+                            return {
+                              solutions: trash.solutions,
+                              quests: filteredQuests,
+                            };
+                          });
+                          queryClient
+                            .invalidateQueries(listKey)
+                            .catch((err) => console.log(err));
+                        },
+                      }
+                    );
                   }}
                   bg="blue.100"
                   _hover={{ bg: "blue.200" }}
@@ -876,58 +942,6 @@ const TrashComponent = ({
                     </svg>
                   }
                 ></IconButton>
-
-                <AlertDialog
-                  isOpen={isAlertOpen}
-                  leastDestructiveRef={cancelRef}
-                  onClose={onAlertClose}
-                >
-                  <AlertDialogOverlay>
-                    <AlertDialogContent>
-                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                        Permanently Delete Quest
-                      </AlertDialogHeader>
-
-                      <AlertDialogBody>
-                        {"Are you sure? You can't undo this action afterwards."}
-                      </AlertDialogBody>
-
-                      <AlertDialogFooter>
-                        <Button ref={cancelRef} onClick={onAlertClose}>
-                          Cancel
-                        </Button>
-                        <Button
-                          colorScheme="red"
-                          isLoading={deleteQuestPermanently.isLoading}
-                          onClick={() => {
-                            deleteQuestPermanently.mutate(
-                              { id: q.id },
-                              {
-                                onSuccess: () => {
-                                  const filteredQuests = trash.quests.filter(
-                                    (item) => item.id !== q.id
-                                  );
-
-                                  setTrash((trash) => {
-                                    return {
-                                      solutions: trash.solutions,
-                                      quests: filteredQuests,
-                                    };
-                                  });
-                                  del(q.id).catch((err) => console.log(err));
-                                  onAlertClose();
-                                },
-                              }
-                            );
-                          }}
-                          ml={3}
-                        >
-                          Delete
-                        </Button>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialogOverlay>
-                </AlertDialog>
               </Flex>
             ))}
 
@@ -961,6 +975,11 @@ const TrashComponent = ({
                   aria-label="restore"
                   bg="blue.100"
                   _hover={{ bg: "blue.200" }}
+                  isLoading={
+                    restoreSolution.isLoading &&
+                    !!restoreSolution.variables &&
+                    restoreSolution.variables.id === s.id
+                  }
                   onClick={() => {
                     restoreSolution.mutate(
                       { id: s.id },
@@ -1050,8 +1069,33 @@ const TrashComponent = ({
                   mr={1}
                   size="sm"
                   aria-label="delete permanently"
+                  isLoading={
+                    deleteSolutionPermanently.isLoading &&
+                    !!deleteSolutionPermanently.variables &&
+                    deleteSolutionPermanently.variables.id === s.id
+                  }
                   onClick={() => {
-                    onAlertOpen();
+                    deleteSolutionPermanently.mutate(
+                      { id: s.id },
+                      {
+                        onSuccess: () => {
+                          const filteredSolutions =
+                            QuestOrSolutionList.solutions.filter(
+                              (item) => item.id !== s.id
+                            );
+
+                          setTrash((trash) => {
+                            return {
+                              quests: trash.quests,
+                              solutions: filteredSolutions,
+                            };
+                          });
+                          queryClient
+                            .invalidateQueries(listKey)
+                            .catch((err) => console.log(err));
+                        },
+                      }
+                    );
                   }}
                   bg="blue.100"
                   _hover={{ bg: "blue.200" }}
@@ -1070,59 +1114,6 @@ const TrashComponent = ({
                     </svg>
                   }
                 ></IconButton>
-                <AlertDialog
-                  isOpen={isAlertOpen}
-                  leastDestructiveRef={cancelRef}
-                  onClose={onAlertClose}
-                >
-                  <AlertDialogOverlay>
-                    <AlertDialogContent>
-                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                        Permanently Delete Solution
-                      </AlertDialogHeader>
-
-                      <AlertDialogBody>
-                        {"Are you sure? You can't undo this action afterwards."}
-                      </AlertDialogBody>
-
-                      <AlertDialogFooter>
-                        <Button ref={cancelRef} onClick={onAlertClose}>
-                          Cancel
-                        </Button>
-                        <Button
-                          colorScheme="red"
-                          isLoading={deleteSolutionPermanently.isLoading}
-                          onClick={() => {
-                            deleteSolutionPermanently.mutate(
-                              { id: s.id },
-                              {
-                                onSuccess: () => {
-                                  const filteredSolutions =
-                                    QuestOrSolutionList.solutions.filter(
-                                      (item) => item.id !== s.id
-                                    );
-
-                                  setTrash((trash) => {
-                                    return {
-                                      quests: trash.quests,
-                                      solutions: filteredSolutions,
-                                    };
-                                  });
-
-                                  del(s.id).catch((err) => console.log(err));
-                                  onAlertClose();
-                                },
-                              }
-                            );
-                          }}
-                          ml={3}
-                        >
-                          Delete
-                        </Button>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialogOverlay>
-                </AlertDialog>
               </Flex>
             ))}
         </ModalBody>

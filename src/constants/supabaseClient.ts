@@ -14,7 +14,7 @@ export const supabaseClient = ({
         global: { headers: { Authorization: `Bearer ${supabaseAccessToken}` } },
         realtime: {
           params: {
-            eventsPerSecond: 5,
+            eventsPerSecond: 1,
           },
         },
       }
@@ -30,7 +30,7 @@ export const supabaseClient = ({
     {
       realtime: {
         params: {
-          eventsPerSecond: 1,
+          eventsPerSecond: 0.5,
         },
       },
     }

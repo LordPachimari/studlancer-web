@@ -1,4 +1,10 @@
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Badge,
   Box,
   Button,
@@ -21,6 +27,7 @@ import { trpc } from "~/utils/api";
 import { useToast } from "@chakra-ui/react";
 import * as pako from "pako";
 import Image, { StaticImageData } from "next/image";
+import { useRef, useState } from "react";
 const Sidebar = ({
   showSidebar,
   toggleShowSidebar,
@@ -30,7 +37,10 @@ const Sidebar = ({
 }) => {
   const toast = useToast();
   const router = useRouter();
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const { userId, isSignedIn, isLoaded } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const cancelRef = useRef(null);
   const user = trpc.user.userComponent.useQuery(
     { id: userId! },
     { staleTime: 10 * 60 * 6000, enabled: isLoaded && !!userId }
@@ -256,18 +266,48 @@ const Sidebar = ({
         );
       })}
       {isSignedIn ? (
-        <Center>
+        <Center mb="2">
           {" "}
-          <Button
-            mt={5}
-            colorScheme="red"
-            onClick={() => {
-              signOut().catch((err) => console.log("error logging out", err));
-              void router.push("/");
-            }}
-          >
+          <Button mt={5} colorScheme="red" onClick={onOpen}>
             <Text fontSize={{ base: "sm" }}>Sign out</Text>
           </Button>
+          <AlertDialog
+            isOpen={isOpen}
+            leastDestructiveRef={cancelRef}
+            onClose={onClose}
+          >
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  {"Are you sure you want to leave? :("}
+                </AlertDialogHeader>
+
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    isLoading={isSigningOut}
+                    colorScheme="red"
+                    onClick={() => {
+                      setIsSigningOut(true);
+
+                      signOut()
+                        .then(() => {
+                          void router.push("/");
+                          onClose();
+                        })
+                        .catch((err) => console.log("error logging out", err))
+                        .finally(() => setIsSigningOut(false));
+                    }}
+                    ml={3}
+                  >
+                    Sign out
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
         </Center>
       ) : (
         <Center>

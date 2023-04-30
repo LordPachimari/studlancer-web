@@ -48,6 +48,7 @@ const QuestEditor = ({ id }: { id: string }) => {
   const [quest, setQuest] = useState<
     (Quest & { status?: "OPEN" | "CLOSED" }) | null | undefined
   >(undefined);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
   const cancelRef = useRef(null);
   const unpublishQuest = trpc.quest.unpublishQuest.useMutation();
@@ -98,6 +99,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         lastTransaction: UpdateTransaction;
       }) => {
         //transactionQueue is immutable, but I'll allow myself to mutate the copy of it
+        console.log("update...");
         const _transactionQueue = structuredClone(transactionQueue);
         const updateTime = new Date().toISOString();
 
@@ -132,6 +134,7 @@ const QuestEditor = ({ id }: { id: string }) => {
 
           _transactionQueue.set(lastTransaction.id, questTransactions);
         }
+        console.log("transactions", _transactionQueue);
 
         const transactionString = JSON.stringify(
           _transactionQueue,
@@ -184,13 +187,15 @@ const QuestEditor = ({ id }: { id: string }) => {
                   localStorage.setItem(key, JSON.stringify(newVersions));
                 }
               }
-
-              clearTransactionQueue();
             },
           }
         );
+
+        clearTransactionQueue();
+
+        setIsSaving(false);
       },
-      500
+      1000
     ),
     []
   );
@@ -279,6 +284,7 @@ const QuestEditor = ({ id }: { id: string }) => {
         ) : (
           <QuestAttributes
             quest={quest}
+            setIsSaving={setIsSaving}
             // isLoading={shouldUpdate && serverQuest.isLoading}
             updateQuestAttributesHandler={updateQuestAttributesHandler}
           />
@@ -288,7 +294,12 @@ const QuestEditor = ({ id }: { id: string }) => {
         ) : quest.published && quest.content ? (
           <NonEditableContent content={quest.content} />
         ) : (
-          <TiptapEditor id={quest.id} content={quest.content} type="QUEST" />
+          <TiptapEditor
+            id={quest.id}
+            content={quest.content}
+            type="QUEST"
+            setIsSaving={setIsSaving}
+          />
         )}
       </Card>
       {quest && !quest.published && (
@@ -299,6 +310,7 @@ const QuestEditor = ({ id }: { id: string }) => {
           onClose={onClose}
           onOpen={onOpen}
           setQuest={setQuest}
+          isSaving={isSaving}
         />
       )}
       {quest && quest.published && (
@@ -322,7 +334,11 @@ const QuestEditor = ({ id }: { id: string }) => {
                 </AlertDialogBody>
 
                 <AlertDialogFooter>
-                  <Button ref={cancelRef} onClick={onAlertClose}>
+                  <Button
+                    ref={cancelRef}
+                    onClick={onAlertClose}
+                    isDisabled={unpublishQuest.isLoading}
+                  >
                     Cancel
                   </Button>
                   <Button

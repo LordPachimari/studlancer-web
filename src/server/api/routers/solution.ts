@@ -232,10 +232,11 @@ export const solutionRouter = router({
         id: z.string(),
         questId: z.optional(z.string()),
         questCreatorId: z.optional(z.string()),
+        createdAt: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { id, questId, questCreatorId } = input;
+      const { id, questId, questCreatorId, createdAt } = input;
       const { auth } = ctx;
       const solutionItem: SolutionDynamo = {
         PK: `USER#${auth.userId}`,
@@ -244,8 +245,8 @@ export const solutionRouter = router({
         creatorId: auth.userId,
         inTrash: false,
         published: false,
-        lastUpdated: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
+        lastUpdated: createdAt,
+        createdAt: createdAt,
         type: "SOLUTION",
 
         ...(questId && { questId }),
@@ -610,26 +611,28 @@ export const solutionRouter = router({
     }),
 
   deleteSolution: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), lastUpdated: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { id } = input;
+      const { id, lastUpdated } = input;
       const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
         TableName: env.WORKSPACE_TABLE_NAME,
         ConditionExpression:
           "#inTrash =:inTrash AND #creatorId =:creatorId AND #published = :false",
-        UpdateExpression: "SET #inTrash = :value",
+        UpdateExpression: "SET #inTrash = :value, #lastUpdated = :lastUpdated",
         ExpressionAttributeNames: {
           "#published": "published",
           "#inTrash": "inTrash",
           "#creatorId": "creatorId",
+          "#lastUpdated": "lastUpdated",
         },
         ExpressionAttributeValues: {
           ":false": false,
           ":value": true,
           ":inTrash": false,
           ":creatorId": auth.userId,
+          ":lastUpdated": lastUpdated,
         },
       };
 

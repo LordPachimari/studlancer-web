@@ -59,6 +59,7 @@ export default function Home() {
           return lastPage.next_cursor;
         }
       },
+      staleTime: 10 * 60 * 1000,
     }
   );
   const [searchLoading, setSearchLoading] = useState(false);
