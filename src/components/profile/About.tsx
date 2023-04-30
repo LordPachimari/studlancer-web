@@ -250,9 +250,7 @@ const EditProfile = ({
   const handleSave = () => {
     if (valueUpdated) {
       const parameters = {
-        username: userInfo.username.updated
-          ? userInfo.username.value
-          : username,
+        ...(userInfo.username.updated && { username: userInfo.username.value }),
         ...(userInfo.about.updated && { about: userInfo.about.value }),
         ...(userInfo.links.updated && {
           links: {
@@ -290,7 +288,9 @@ const EditProfile = ({
           },
         });
       }
-      setErrorMessage("Invalid input");
+      if (parseResult.error.errors[0]) {
+        setErrorMessage(parseResult.error.errors[0].message);
+      }
     } else {
       onClose();
     }
@@ -423,6 +423,7 @@ const EditProfile = ({
             Save
           </Button>
           <Button
+            isDisabled={updateUserAttributes.isLoading || isSaving}
             onClick={() => {
               onClose();
               setUserInfo({

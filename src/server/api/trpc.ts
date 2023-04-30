@@ -114,11 +114,17 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-const authedOnly = t.middleware(({ next, ctx }) => {
+const authedOnly = t.middleware(async ({ next, ctx }) => {
   if (!ctx.auth.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
   }
+
   console.log("request...");
+  if (!ctx.auth.user) {
+    const user = await clerkClient.users.getUser(ctx.auth.userId);
+
+    ctx.auth.user = user;
+  }
   return next({
     ctx: {
       auth: ctx.auth,

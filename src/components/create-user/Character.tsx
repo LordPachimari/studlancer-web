@@ -61,6 +61,7 @@ const Character = ({
   onCharacterOpen: () => void;
   onCharacterClose: () => void;
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
   let characterLocalVersion: { server: string; local: string } | undefined =
     undefined;
   const characterLocalVersionString = localStorage.getItem(`CHARACTER#${id}`);
@@ -421,7 +422,7 @@ const Character = ({
             colorScheme="whatsapp"
             mr={3}
             w="28"
-            isLoading={updateInventory.isLoading}
+            isLoading={updateInventory.isLoading || isSaving}
             onClick={() => {
               if (characterState.profile) {
                 const profileString = JSON.stringify(characterState.profile);
@@ -452,6 +453,7 @@ const Character = ({
                   },
                   {
                     onSuccess: () => {
+                      setIsSaving(true);
                       set(`CHARACTER#${id}`, {
                         profile: profileString,
                         activeSlots: activeSlotsData,
@@ -469,7 +471,8 @@ const Character = ({
                           });
                           onCharacterClose();
                         })
-                        .catch((err) => console.log(err));
+                        .catch((err) => console.log(err))
+                        .finally(() => setIsSaving(false));
                     },
                   }
                 );
@@ -486,6 +489,7 @@ const Character = ({
             Save
           </Button>
           <Button
+            isDisabled={updateInventory.isLoading || isSaving}
             onClick={() => {
               if (shouldUpdateLocal) {
                 //fetch character from the server if local version is stale

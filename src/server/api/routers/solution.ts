@@ -37,6 +37,7 @@ import { protectedProcedure, router } from "../trpc";
 import { reviver } from "~/utils/mapReplacer";
 import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
+import { env } from "~/env.mjs";
 export const solutionRouter = router({
   publishedSolution: protectedProcedure
     .input(z.object({ id: z.string(), questId: z.string() }))
@@ -45,21 +46,18 @@ export const solutionRouter = router({
       const { auth } = ctx;
 
       const params: GetCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
 
         Key: { PK: `SOLUTION#${id}`, SK: `SOLUTION#${id}` },
       };
       const contentParams: GetCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
 
         Key: { PK: `SOLUTION#${id}`, SK: `CONTENT#${id}` },
       };
 
       try {
-        const getResponse = await momento.get(
-          process.env.MOMENTO_CACHE_NAME || "",
-          id
-        );
+        const getResponse = await momento.get(env.MOMENTO_CACHE_NAME, id);
         if (getResponse instanceof CacheGet.Hit) {
           console.log("cache hit!");
 
@@ -92,7 +90,7 @@ export const solutionRouter = router({
                     //not allow unpublish the quest after the quest creator has viewed the solution
                     {
                       Update: {
-                        TableName: process.env.MAIN_TABLE_NAME,
+                        TableName: env.MAIN_TABLE_NAME,
                         Key: {
                           PK: `USER#${solution.questCreatorId}`,
                           SK: `QUEST#${questId}`,
@@ -106,7 +104,7 @@ export const solutionRouter = router({
                     },
                     {
                       Update: {
-                        TableName: process.env.WORKSPACE_TABLE_NAME,
+                        TableName: env.WORKSPACE_TABLE_NAME,
                         Key: {
                           PK: `USER#${solution.questCreatorId}`,
                           SK: `SOLUTION#${questId}`,
@@ -123,7 +121,7 @@ export const solutionRouter = router({
                 );
               }
               const setResponse = await momento.set(
-                process.env.MOMENTO_CACHE_NAME || "",
+                env.MOMENTO_CACHE_NAME,
                 id,
                 JSON.stringify(solution || ""),
                 { ttl: 1800 }
@@ -163,7 +161,7 @@ export const solutionRouter = router({
     .query(async ({ ctx, input }) => {
       const { auth } = ctx;
       const { id } = input;
-      const tableName = process.env.WORKSPACE_TABLE_NAME || "";
+      const tableName = env.WORKSPACE_TABLE_NAME || "";
       const RequestItems: Record<
         string,
         Omit<KeysAndAttributes, "Keys"> & {
@@ -254,7 +252,7 @@ export const solutionRouter = router({
         ...(questCreatorId && { questCreatorId }),
       };
       const putParams: PutCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         Item: solutionItem,
       };
       try {
@@ -298,7 +296,7 @@ export const solutionRouter = router({
           ExpressionAttributeValues[`:${t.attribute}`] = t.value;
         });
         updateParams = {
-          TableName: process.env.WORKSPACE_TABLE_NAME,
+          TableName: env.WORKSPACE_TABLE_NAME,
           Key: {
             PK: `USER#${auth.userId}`,
             SK: `SOLUTION#${key}`,
@@ -345,7 +343,7 @@ export const solutionRouter = router({
       const { auth } = ctx;
       const { solutionId, content, textContent } = input;
       const updateParams: UpdateCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         Key: {
           PK: `SOLUTION#${solutionId}`,
           SK: `CONTENT#${solutionId}`,
@@ -391,7 +389,7 @@ export const solutionRouter = router({
       const { id, questId, questCreatorId } = input;
       const { auth } = ctx;
 
-      const tableName = process.env.WORKSPACE_TABLE_NAME || "";
+      const tableName = env.WORKSPACE_TABLE_NAME || "";
       const RequestItems: Record<
         string,
         Omit<KeysAndAttributes, "Keys"> & {
@@ -449,7 +447,7 @@ export const solutionRouter = router({
                 {
                   Update: {
                     Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-                    TableName: process.env.WORKSPACE_TABLE_NAME,
+                    TableName: env.WORKSPACE_TABLE_NAME,
                     ConditionExpression:
                       "#published =:published AND #creatorId =:creatorId",
 
@@ -473,7 +471,7 @@ export const solutionRouter = router({
                 },
                 {
                   Update: {
-                    TableName: process.env.MAIN_TABLE_NAME,
+                    TableName: env.MAIN_TABLE_NAME,
                     Key: {
                       PK: `QUEST#${questId}`,
                       SK: `SOLVER#${auth.userId}`,
@@ -494,7 +492,7 @@ export const solutionRouter = router({
 
                 {
                   Put: {
-                    TableName: process.env.MAIN_TABLE_NAME,
+                    TableName: env.MAIN_TABLE_NAME,
                     Item: {
                       ...publishedSolution,
                       PK: `SOLUTION#${id}`,
@@ -549,7 +547,7 @@ export const solutionRouter = router({
           {
             Update: {
               Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-              TableName: process.env.WORKSPACE_TABLE_NAME,
+              TableName: env.WORKSPACE_TABLE_NAME,
               ConditionExpression: "#creatorId =:creatorId",
 
               UpdateExpression:
@@ -570,7 +568,7 @@ export const solutionRouter = router({
           },
           {
             Delete: {
-              TableName: process.env.MAIN_TABLE_NAME,
+              TableName: env.MAIN_TABLE_NAME,
               Key: {
                 PK: `SOLUTION#${id}`,
                 SK: `SOLUTION#${id}`,
@@ -579,7 +577,7 @@ export const solutionRouter = router({
           },
           {
             Update: {
-              TableName: process.env.MAIN_TABLE_NAME,
+              TableName: env.MAIN_TABLE_NAME,
               Key: {
                 PK: `QUEST#${questId}`,
                 SK: `SOLVER#${auth.userId}`,
@@ -618,7 +616,7 @@ export const solutionRouter = router({
       const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         ConditionExpression:
           "#inTrash =:inTrash AND #creatorId =:creatorId AND #published = :false",
         UpdateExpression: "SET #inTrash = :value",
@@ -654,7 +652,7 @@ export const solutionRouter = router({
       const { id } = input;
       const deleteParams: DeleteCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         ConditionExpression: "#creatorId =:creatorId AND #published =:false",
         ExpressionAttributeNames: {
           "#creatorId": "creatorId",
@@ -670,7 +668,7 @@ export const solutionRouter = router({
           {
             Delete: {
               Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-              TableName: process.env.WORKSPACE_TABLE_NAME,
+              TableName: env.WORKSPACE_TABLE_NAME,
               ConditionExpression:
                 "#creatorId =:creatorId AND #published =:false",
               ExpressionAttributeNames: {
@@ -686,7 +684,7 @@ export const solutionRouter = router({
           {
             Delete: {
               Key: { PK: `SOLUTION#${id}`, SK: `CONTENT#${id}` },
-              TableName: process.env.WORKSPACE_TABLE_NAME,
+              TableName: env.WORKSPACE_TABLE_NAME,
             },
           },
         ],
@@ -712,7 +710,7 @@ export const solutionRouter = router({
       const { id } = input;
       const updateParams: UpdateCommandInput = {
         Key: { PK: `USER#${auth.userId}`, SK: `SOLUTION#${id}` },
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         ConditionExpression: "#inTrash =:inTrash AND #creatorId =:creatorId",
         UpdateExpression: "SET #inTrash = :value",
         ExpressionAttributeNames: {
@@ -746,7 +744,7 @@ export const solutionRouter = router({
       const { questId, solutionId } = input;
       const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         Key: {
           PK: `USER#${auth.userId}`,
           SK: `SOLUTION#${solutionId}`,
@@ -773,7 +771,7 @@ export const solutionRouter = router({
       const { questId, solutionId } = input;
       const { auth } = ctx;
       const updateParams: UpdateCommandInput = {
-        TableName: process.env.WORKSPACE_TABLE_NAME,
+        TableName: env.WORKSPACE_TABLE_NAME,
         Key: {
           PK: `USER#${auth.userId}`,
           SK: `SOLUTION#${solutionId}`,

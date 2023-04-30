@@ -9,6 +9,8 @@ import {
   Heading,
   Input,
 } from "@chakra-ui/react";
+import { useClerk } from "@clerk/nextjs";
+import { User } from "@clerk/nextjs/api";
 import { Field, Form, Formik, FormikProps } from "formik";
 import { useRouter } from "next/router";
 import { Dispatch, SetStateAction } from "react";
@@ -28,6 +30,7 @@ export default function Username({
   userId: string;
 }) {
   const router = useRouter();
+  const clerk = useClerk();
   function validateUsername(value: string) {
     let error;
     const usernameParseResult = UsernameFormValues.safeParse({
@@ -41,8 +44,13 @@ export default function Username({
     return error;
   }
   const createUser = trpc.user.createUser.useMutation({
-    onSuccess: () => {
-      void router.push(`/profile/${userId}`);
+    onSuccess: (data) => {
+      if (data) {
+        router.push(`/profile/${data}`).catch((err) => console.log(err));
+        clerk.user
+          ?.update({ username: data })
+          .catch((err) => console.log("username not updated"));
+      }
     },
   });
 
@@ -50,7 +58,6 @@ export default function Username({
     <Formik
       initialValues={{ username: "" }}
       onSubmit={(values, actions) => {
-        console.log("usernmae", values);
         createUser.mutate({ username: values.username });
       }}
     >

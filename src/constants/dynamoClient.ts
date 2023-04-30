@@ -1,10 +1,11 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, TranslateConfig } from "@aws-sdk/lib-dynamodb";
+import { env } from "~/env.mjs";
 const client = new DynamoDBClient({
-  region: process.env.REGION,
+  region: env.REGION,
   credentials: {
-    accessKeyId: process.env.ACCESS_KEY!,
-    secretAccessKey: process.env.SECRET_KEY!,
+    accessKeyId: env.ACCESS_KEY,
+    secretAccessKey: env.SECRET_KEY,
   },
 });
 

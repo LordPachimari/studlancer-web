@@ -9,12 +9,13 @@ import {
 
 import { dynamoClient } from "../../../constants/dynamoClient";
 import { protectedProcedure, router } from "../trpc";
+import { env } from "~/env.mjs";
 
 export const workspaceRouter = router({
   workspaceList: protectedProcedure.query(async ({ ctx }) => {
     const { auth } = ctx;
     const queryParams: QueryCommandInput = {
-      TableName: process.env.WORKSPACE_TABLE_NAME,
+      TableName: env.WORKSPACE_TABLE_NAME,
 
       KeyConditionExpression: "#PK = :PK",
       ExpressionAttributeNames: { "#PK": "PK" },

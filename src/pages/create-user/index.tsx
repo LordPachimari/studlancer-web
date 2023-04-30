@@ -1,5 +1,5 @@
 import { Card, CardHeader, Center, ScaleFade } from "@chakra-ui/react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { ReactElement, useState } from "react";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import Username from "../../components/create-user/Username";

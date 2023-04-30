@@ -66,7 +66,6 @@ export default function Home() {
     "latest"
   );
 
-  console.log(searchLoading);
   const emptyQuests: {}[] = [];
   for (let i = 0; i < 3; i++) {
     emptyQuests.push({});
@@ -83,7 +82,6 @@ export default function Home() {
     }
   }, [serverQuests.data]);
 
-  console.log("pages", pages);
   return (
     <Flex
       w="100%"

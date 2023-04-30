@@ -10,11 +10,12 @@ const server = z.object({
   REGION: z.enum(["ap-southeast-2"]),
   PUBLIC_BUCKET_NAME: z.string(),
   MAIN_TABLE_NAME: z.string(),
-  WORKSPACE_TABLE_NAME:z.string(),
+  WORKSPACE_TABLE_NAME: z.string(),
   ACCESS_KEY: z.string(),
   SECRET_KEY: z.string(),
   MOMENTO_AUTH_TOKEN: z.string(),
   MOMENTO_CACHE_NAME: z.string(),
+  ROCKSET_API_KEY: z.string(),
 });
 
 /**
@@ -25,8 +26,8 @@ const client = z.object({
   // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_SENDBIRD_APP_ID: z.string(),
-  NEXT_PUBLIC_SUPABASE_URL:z.string(),
-  NEXT_PUBLIC_SUPABASE_KEY:z.string()
+  NEXT_PUBLIC_SUPABASE_URL: z.string(),
+  NEXT_PUBLIC_SUPABASE_KEY: z.string(),
 });
 
 /**
@@ -42,18 +43,17 @@ const processEnv = {
 
   MAIN_TABLE_NAME: process.env.MAIN_TABLE_NAME,
   CLERK_SECRET_KEY: process.env.NEXT_ENV_CLERK_SECRET_KEY,
-  WORKSPACE_TABLE_NAME:process.env.WORKSPACE_TABLE_NAME,
+  WORKSPACE_TABLE_NAME: process.env.WORKSPACE_TABLE_NAME,
   REGION: process.env.REGION,
   PUBLIC_BUCKET_NAME: process.env.PUBLIC_BUCKET_NAME,
+  ROCKSET_API_KEY: process.env.ROCKSET_API_KEY,
   MOMENTO_CACHE_NAME: process.env.MOMENTO_CACHE_NAME,
   MOMENTO_AUTH_TOKEN: process.env.MOMENTO_AUTH_TOKEN,
- NEXT_PUBLIC_SENDBIRD_APP_ID: process.env.NEXT_PUBLIC_SENDBIRD_APP_ID,
+  NEXT_PUBLIC_SENDBIRD_APP_ID: process.env.NEXT_PUBLIC_SENDBIRD_APP_ID,
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-  NEXT_PUBLIC_SUPABASE_KEY:process.env.NEXT_PUBLIC_SUPABASE_KEY,
-  NEXT_PUBLIC_SUPABASE_URL:process.env.NEXT_PUBLIC_SUPABASE_URL
-
-
+  NEXT_PUBLIC_SUPABASE_KEY: process.env.NEXT_PUBLIC_SUPABASE_KEY,
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
 };
 
 // Don't touch the part below

@@ -109,7 +109,7 @@ const Sidebar = ({
 
           <Divider />
         </Link>
-      ) : isSignedIn && !user.data ? (
+      ) : isSignedIn && !user.data && user.isFetched ? (
         <Card w="80" h="90" borderRadius="2xl">
           <Center w="100%" h="100%">
             <Button

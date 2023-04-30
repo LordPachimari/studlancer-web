@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { env } from "~/env.mjs";
 
 export const supabaseClient = ({
   supabaseAccessToken,
@@ -7,8 +8,8 @@ export const supabaseClient = ({
 }) => {
   if (supabaseAccessToken) {
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.NEXT_PUBLIC_SUPABASE_KEY || "",
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_KEY,
       {
         global: { headers: { Authorization: `Bearer ${supabaseAccessToken}` } },
         realtime: {
@@ -24,8 +25,8 @@ export const supabaseClient = ({
     return supabase;
   }
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    process.env.NEXT_PUBLIC_SUPABASE_KEY || "",
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_KEY,
     {
       realtime: {
         params: {

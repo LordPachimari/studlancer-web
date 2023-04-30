@@ -1,4 +1,5 @@
 import {
+  Avatar,
   Box,
   Card,
   CardHeader,
@@ -14,6 +15,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import debounce from "lodash.debounce";
+import Image, { StaticImageData } from "next/image";
 import {
   ChangeEvent,
   Dispatch,
@@ -28,9 +30,11 @@ import {
   PublishedQuest,
   TopicsType,
   User,
+  UserComponent,
 } from "~/types/main";
 import { trpc } from "~/utils/api";
 import { TopicColor } from "~/utils/topicsColor";
+import { LoadingSpinner } from "./LoadingSpinner";
 const SearchInput = ({
   setSearchLoading,
   setSearchComponents,
@@ -124,6 +128,7 @@ const SearchInput = ({
   );
 };
 const SearchComponent = ({
+  profile,
   title,
   id,
   topic,
@@ -137,7 +142,12 @@ const SearchComponent = ({
   text?: string;
   type: "QUEST" | "USER" | "POST";
   username?: string;
+  profile?: string;
 }) => {
+  let userImage: StaticImageData | undefined = undefined;
+  if (profile) {
+    userImage = JSON.parse(profile) as StaticImageData;
+  }
   return (
     <Flex
       h="14"
@@ -191,6 +201,20 @@ const SearchComponent = ({
           {topic[0]}
         </Circle>
       )}
+      {userImage && type === "USER" ? (
+        <div className="circular-image-container">
+          <Image
+            src={userImage}
+            alt="avatar"
+            className="circular-image"
+            width={50}
+          />
+        </div>
+      ) : type === "USER" ? (
+        <Avatar name={username} size="sm" />
+      ) : (
+        <></>
+      )}
       <Box p="2" overflow="hidden" whiteSpace="nowrap" textOverflow="ellipsis">
         <Heading
           size="sm"
@@ -214,13 +238,7 @@ const SearchComponent = ({
     </Flex>
   );
 };
-const LoadingSpinner = () => {
-  return (
-    <Center w="100%" h="14">
-      <LoadingSpinner />
-    </Center>
-  );
-};
+
 export function GlobalSearch() {
   const [searchLoading, setSearchLoading] = useState(false);
 
@@ -255,7 +273,9 @@ export function GlobalSearch() {
         {isFocused && (
           <>
             {searchLoading ? (
-              <LoadingSpinner />
+              <Center w="100%" h="14">
+                <LoadingSpinner />
+              </Center>
             ) : searchComponents && searchComponents.length > 0 ? (
               searchComponents.map((item) => {
                 if (item.type === "QUEST") {
@@ -283,13 +303,14 @@ export function GlobalSearch() {
                     />
                   );
                 } else {
-                  const user = item as User;
+                  const user = item as UserComponent;
                   return (
                     <SearchComponent
                       key={user.id}
                       id={user.id}
                       type="USER"
                       username={user.username}
+                      profile={user.profile}
                     />
                   );
                 }

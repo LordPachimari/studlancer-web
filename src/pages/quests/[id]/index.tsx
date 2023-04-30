@@ -256,7 +256,7 @@ const LeaveAlert = ({
 }) => {
   const cancelRef = useRef(null);
 
-  const [isIvalidating, setIsInvalidating] = useState(false);
+  const [isInvalidating, setIsInvalidating] = useState(false);
   const queryClient = useQueryClient();
   const questKey = getQueryKey(trpc.quest.publishedQuest);
 
@@ -277,12 +277,16 @@ const LeaveAlert = ({
           </AlertDialogHeader>
 
           <AlertDialogFooter>
-            <Button ref={cancelRef} onClick={onClose}>
+            <Button
+              ref={cancelRef}
+              onClick={onClose}
+              disabled={leave.isLoading || isInvalidating}
+            >
               Cancel
             </Button>
             <Button
               colorScheme="red"
-              isLoading={leave.isLoading || isIvalidating}
+              isLoading={leave.isLoading || isInvalidating}
               onClick={() => {
                 leave.mutate(
                   { questId, solverId },
@@ -346,7 +350,7 @@ const JoinAlert = ({
   const userComponent = trpc.user.userComponent.useQuery({ id: userId });
   const join = trpc.quest.addSolver.useMutation();
   const cancelRef = useRef(null);
-  const [isIvalidating, setIsInvalidating] = useState(false);
+  const [isInvalidating, setIsInvalidating] = useState(false);
   const queryClient = useQueryClient();
 
   const createSolution = trpc.solution.createSolution.useMutation();
@@ -355,7 +359,6 @@ const JoinAlert = ({
   const solversKey = getQueryKey(trpc.quest.solvers);
 
   const toast = useToast();
-  console.log("isIvalidating", isIvalidating, join.isLoading);
   return (
     <AlertDialog
       isOpen={isOpen}
@@ -369,12 +372,16 @@ const JoinAlert = ({
           </AlertDialogHeader>
 
           <AlertDialogFooter>
-            <Button ref={cancelRef} onClick={onClose}>
+            <Button
+              ref={cancelRef}
+              onClick={onClose}
+              isDisabled={join.isLoading || isInvalidating}
+            >
               Cancel
             </Button>
             <Button
               colorScheme="green"
-              isLoading={join.isLoading || isIvalidating}
+              isLoading={join.isLoading || isInvalidating}
               onClick={() => {
                 join.mutate(
                   { questId: quest.id, username: userId },

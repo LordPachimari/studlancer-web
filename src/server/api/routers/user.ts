@@ -30,6 +30,8 @@ import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
 import { ulid } from "ulid";
+import { env } from "~/env.mjs";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export const userRouter = router({
   userById: publicProcedure
@@ -37,16 +39,13 @@ export const userRouter = router({
     .query(async ({ input, ctx }) => {
       const { id } = input;
       const params: GetCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
 
         Key: { PK: `USER#${id}`, SK: `USER#${id}` },
       };
 
       try {
-        const getResponse = await momento.get(
-          process.env.MOMENTO_CACHE_NAME || "",
-          id
-        );
+        const getResponse = await momento.get(env.MOMENTO_CACHE_NAME, id);
         if (getResponse instanceof CacheGet.Hit) {
           console.log("cache hit!");
 
@@ -58,7 +57,7 @@ export const userRouter = router({
           const result = await dynamoClient.send(new GetCommand(params));
           if (result.Item) {
             const setResponse = await momento.set(
-              process.env.MOMENTO_CACHE_NAME || "",
+              env.MOMENTO_CACHE_NAME,
               id,
               JSON.stringify(result.Item || ""),
               { ttl: 1800 }
@@ -84,16 +83,13 @@ export const userRouter = router({
     .query(async ({ input }) => {
       const { username } = input;
       const params: QueryCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
         IndexName: process.env.USERNAME_INDEX,
         KeyConditionExpression: "username = :username AND begins_with(SK, :SK)",
         ExpressionAttributeValues: { ":username": username, ":SK": "USER#" },
       };
       try {
-        const getResponse = await momento.get(
-          process.env.MOMENTO_CACHE_NAME || "",
-          username
-        );
+        const getResponse = await momento.get(env.MOMENTO_CACHE_NAME, username);
         if (getResponse instanceof CacheGet.Hit) {
           console.log("cache hit!");
 
@@ -106,7 +102,7 @@ export const userRouter = router({
 
           if (result.Items && result.Items.length > 0) {
             const setResponse = await momento.set(
-              process.env.MOMENTO_CACHE_NAME || "",
+              env.MOMENTO_CACHE_NAME,
               username,
               JSON.stringify(result.Items[0] || ""),
               { ttl: 1800 }
@@ -135,7 +131,7 @@ export const userRouter = router({
     .query(async ({ input }) => {
       const { id } = input;
       const params: GetCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
 
         Key: { PK: `USER#${id}`, SK: `USER#${id}` },
         ProjectionExpression: "#id, #username, #level, #profile, #verified",
@@ -149,7 +145,7 @@ export const userRouter = router({
       };
       try {
         const getResponse = await momento.get(
-          process.env.MOMENTO_CACHE_NAME || "",
+          env.MOMENTO_CACHE_NAME,
 
           `USER_COMPONENT#${id}`
         );
@@ -165,7 +161,7 @@ export const userRouter = router({
           if (result.Item) {
             const userComponent = result.Item as UserComponent;
             const setResponse = await momento.set(
-              process.env.MOMENTO_CACHE_NAME || "",
+              env.MOMENTO_CACHE_NAME,
               `USER_COMPONENT#${id}`,
               JSON.stringify(userComponent || ""),
               { ttl: 1800 }
@@ -225,7 +221,7 @@ export const userRouter = router({
         Item: inventoryItem,
       };
       const putParams: PutCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
         Item: userItem,
         ConditionExpression:
           "attribute_not_exists(#sk) AND attribute_not_exists(username)",
@@ -233,12 +229,13 @@ export const userRouter = router({
       };
 
       try {
-        await Promise.all([
+        const result = await Promise.all([
           dynamoClient.send(new PutCommand(putParams)),
           dynamoClient.send(new PutCommand(inventoryPutParams)),
         ]);
-
-        return true;
+        if (result) {
+          return username;
+        }
       } catch (error) {
         console.log(error);
         throw new TRPCError({
@@ -262,7 +259,7 @@ export const userRouter = router({
       const UpdateExpression = `SET ${updateAttributes.join(", ")}`;
 
       const params: UpdateCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
         UpdateExpression: UpdateExpression,
         ExpressionAttributeNames: {
@@ -287,7 +284,10 @@ export const userRouter = router({
       try {
         const updateResult = await dynamoClient.send(new UpdateCommand(params));
         if (updateResult) {
-          await momento.delete("accounts-cache", username);
+          if (auth.user)
+            momento
+              .delete("accounts-cache", auth.user.username!)
+              .catch((err) => console.log(err));
 
           return true;
         }
@@ -336,12 +336,11 @@ export const userRouter = router({
         activeSlots: z.instanceof(Uint8Array),
         profile: z.string(),
         lastUpdated: z.string(),
-        username: z.string(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { inventory, activeSlots, profile, lastUpdated, username } = input;
+      const { inventory, activeSlots, profile, lastUpdated } = input;
       const inventoryParams: UpdateCommandInput = {
         TableName: process.env.WORKSPACE_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `INVENTORY#${auth.userId}` },
@@ -358,7 +357,7 @@ export const userRouter = router({
         },
       };
       const userParams: UpdateCommandInput = {
-        TableName: process.env.MAIN_TABLE_NAME,
+        TableName: env.MAIN_TABLE_NAME,
         Key: { PK: `USER#${auth.userId}`, SK: `USER#${auth.userId}` },
         UpdateExpression: "SET profile = :profile",
         ExpressionAttributeValues: { ":profile": profile },
@@ -369,7 +368,9 @@ export const userRouter = router({
           dynamoClient.send(new UpdateCommand(userParams)),
         ]);
         if (updateResult) {
-          await momento.delete("accounts-cache", username);
+          momento
+            .delete("accounts-cache", auth.user!.username!)
+            .catch((err) => console.log(err));
           return true;
         }
         throw new TRPCError({
