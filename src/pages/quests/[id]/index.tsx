@@ -53,6 +53,8 @@ import { ulid } from "ulid";
 import Link from "next/link";
 import { buildClerkProps, getAuth } from "@clerk/nextjs/server";
 import Image, { StaticImageData } from "next/image";
+import { WorkspaceStore } from "~/zustand/workspace";
+import { storeQuestOrSolution } from "~/components/workspace/Actions";
 
 export default function PublishedQuestPage() {
   const router = useRouter();
@@ -352,11 +354,15 @@ const JoinAlert = ({
   const cancelRef = useRef(null);
   const [isInvalidating, setIsInvalidating] = useState(false);
   const queryClient = useQueryClient();
+  const createQuestOrSolutionState = WorkspaceStore(
+    (state) => state.createQuestOrSolution
+  );
 
   const createSolution = trpc.solution.createSolution.useMutation();
 
   const questKey = getQueryKey(trpc.quest.publishedQuest);
   const solversKey = getQueryKey(trpc.quest.solvers);
+  const listKey = getQueryKey(trpc.workspace.workspaceList);
 
   const toast = useToast();
   return (
@@ -383,6 +389,8 @@ const JoinAlert = ({
               colorScheme="green"
               isLoading={join.isLoading || isInvalidating}
               onClick={() => {
+                const createdAt = new Date().toISOString();
+                const id = ulid();
                 join.mutate(
                   { questId: quest.id, username: userId },
 
@@ -390,13 +398,27 @@ const JoinAlert = ({
                     onSuccess: () => {
                       setIsInvalidating(true);
                       createSolution.mutate({
-                        id: ulid(),
+                        id,
                         questId: quest.id,
                         questCreatorId: quest.creatorId,
+                        createdAt,
                       });
+
+                      createQuestOrSolutionState({
+                        id,
+                        type: "SOLUTION",
+                        userId,
+                      });
+                      storeQuestOrSolution({
+                        id,
+                        type: "SOLUTION",
+                        userId,
+                        createdAt,
+                      });
+
                       queryClient
                         .invalidateQueries({
-                          queryKey: [...questKey, ...solversKey],
+                          queryKey: [...questKey, ...solversKey, ...listKey],
                         })
                         .then(() => {
                           toast({
