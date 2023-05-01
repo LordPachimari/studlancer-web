@@ -33,8 +33,22 @@ import { momento } from "~/constants/momentoClient";
 import { CacheGet, CacheSet } from "@gomomento/sdk";
 import { ulid } from "ulid";
 import { env } from "~/env.mjs";
-import { clerkClient } from "@clerk/nextjs/server";
+async function usernameExists({ username }: { username: string }) {
+  const queryParams: QueryCommandInput = {
+    TableName: env.MAIN_TABLE_NAME,
+    IndexName: env.USERNAME_INDEX,
+    KeyConditionExpression: "#username = :username ",
+    ExpressionAttributeNames: { "#username": "username" },
 
+    ExpressionAttributeValues: { ":username": username },
+  };
+
+  const response = await dynamoClient.send(new QueryCommand(queryParams));
+  if (response.Items) {
+    return response.Items.length > 0;
+  }
+  return false;
+}
 export const userRouter = router({
   userById: publicProcedure
     .input(z.object({ id: z.string() }))
@@ -189,6 +203,12 @@ export const userRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { username } = input;
       const { auth } = ctx;
+      if (await usernameExists({ username })) {
+        throw new TRPCError({
+          message: "User already exist",
+          code: "BAD_REQUEST",
+        });
+      }
       const inventory: InventorySlot[] = [
         { index: 0, item: Giorno, type: "skin" },
 
@@ -227,8 +247,7 @@ export const userRouter = router({
       const putParams: PutCommandInput = {
         TableName: env.MAIN_TABLE_NAME,
         Item: userItem,
-        ConditionExpression:
-          "attribute_not_exists(#sk) AND attribute_not_exists(username)",
+        ConditionExpression: "attribute_not_exists(#sk)",
         ExpressionAttributeNames: { "#sk": "SK" },
       };
 
@@ -243,7 +262,7 @@ export const userRouter = router({
       } catch (error) {
         console.log(error);
         throw new TRPCError({
-          message: "User already exist",
+          message: "Could not update the user",
           code: "BAD_REQUEST",
         });
       }
@@ -275,6 +294,7 @@ export const userRouter = router({
 
           ...(links && { "#links": "links" }),
         },
+
         ExpressionAttributeValues: {
           ...(about && { ":about": about }),
           ...(email && { ":email": email }),
@@ -288,10 +308,14 @@ export const userRouter = router({
       try {
         const updateResult = await dynamoClient.send(new UpdateCommand(params));
         if (updateResult) {
-          if (auth.user)
+          await Promise.all([
             momento
-              .delete("accounts-cache", auth.user.username!)
-              .catch((err) => console.log(err));
+              .delete("accounts-cache", `USER_COMPONENT#${auth.userId}`)
+              .catch((err) => console.log(err)),
+            momento
+              .delete("accounts-cache", username)
+              .catch((err) => console.log(err)),
+          ]);
 
           return true;
         }
@@ -337,11 +361,13 @@ export const userRouter = router({
     .input(UpdateInventoryZod)
     .mutation(async ({ ctx, input }) => {
       const { auth } = ctx;
-      const { inventory, activeSlots, profile, lastUpdated } = input;
+      const { inventory, activeSlots, profile, lastUpdated, username } = input;
       const updateAttributes: string[] = [];
       for (const property in input) {
         if (input[property as keyof UpdateInventory]) {
-          updateAttributes.push(`#${property}=:${property}`);
+          if (property !== "profile" && property !== "username") {
+            updateAttributes.push(`#${property}=:${property}`);
+          }
         }
       }
       const UpdateExpression = `SET ${updateAttributes.join(", ")}`;
@@ -373,9 +399,14 @@ export const userRouter = router({
           dynamoClient.send(new UpdateCommand(userParams)),
         ]);
         if (updateResult) {
-          momento
-            .delete("accounts-cache", auth.user!.username!)
-            .catch((err) => console.log(err));
+          await Promise.all([
+            momento
+              .delete("accounts-cache", `USER_COMPONENT#${auth.userId}`)
+              .catch((err) => console.log(err)),
+            momento
+              .delete("accounts-cache", username)
+              .catch((err) => console.log(err)),
+          ]);
           return true;
         }
         throw new TRPCError({

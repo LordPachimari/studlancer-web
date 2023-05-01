@@ -13,24 +13,20 @@ import { useClerk } from "@clerk/nextjs";
 import { User } from "@clerk/nextjs/api";
 import { Field, Form, Formik, FormikProps } from "formik";
 import { useRouter } from "next/router";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { z } from "zod";
 import { trpc } from "~/utils/api";
 const UsernameFormValues = z.object({
   username: z.string().min(2, { message: "username is too short" }),
 });
 type UsernameFormValuesType = z.infer<typeof UsernameFormValues>;
-export default function Username({
-  // componentName,
-  // setComponentName,
-  userId,
-}: {
+export default function Username({}: // componentName,
+// setComponentName,
+{
   componentName: "USERNAME" | "CHARACTER";
   setComponentName: Dispatch<SetStateAction<"USERNAME" | "CHARACTER">>;
-  userId: string;
 }) {
   const router = useRouter();
-  const clerk = useClerk();
   function validateUsername(value: string) {
     let error;
     const usernameParseResult = UsernameFormValues.safeParse({
@@ -43,22 +39,27 @@ export default function Username({
     }
     return error;
   }
-  const createUser = trpc.user.createUser.useMutation({
-    onSuccess: (data) => {
-      if (data) {
-        router.push(`/profile/${data}`).catch((err) => console.log(err));
-        clerk.user
-          ?.update({ username: data })
-          .catch((err) => console.log("username not updated"));
-      }
-    },
-  });
+  const createUser = trpc.user.createUser.useMutation();
 
   return (
     <Formik
       initialValues={{ username: "" }}
       onSubmit={(values, actions) => {
-        createUser.mutate({ username: values.username });
+        createUser.mutate(
+          { username: values.username },
+          {
+            onSuccess: (data) => {
+              if (data) {
+                router
+                  .push(`/profile/${data}`)
+                  .catch((err) => console.log(err));
+              }
+            },
+            onError: (error) => {
+              actions.setErrors({ username: error.message });
+            },
+          }
+        );
       }}
     >
       {(props) => (
@@ -66,7 +67,7 @@ export default function Username({
           {" "}
           <Card
             bg="white"
-            w={{ base: "100%", md: "md" }}
+            w={{ base: "100%", sm: "md" }}
             h="sm"
             borderRadius="3xl"
           >
@@ -95,7 +96,7 @@ export default function Username({
               <Button
                 mt={4}
                 colorScheme="blue"
-                isLoading={props.isSubmitting}
+                isLoading={createUser.isLoading}
                 type="submit"
                 // onClick={() => setComponentName("CHARACTER")}
               >

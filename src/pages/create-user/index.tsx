@@ -3,6 +3,8 @@ import { useAuth, useUser } from "@clerk/nextjs";
 import { ReactElement, useState } from "react";
 import GlobalLayout from "~/layouts/GlobalLayout";
 import Username from "../../components/create-user/Username";
+import { GetServerSidePropsContext } from "next";
+import { buildClerkProps, getAuth } from "@clerk/nextjs/server";
 
 export default function CreateUser() {
   const [componentName, setComponentName] = useState<"USERNAME" | "CHARACTER">(
@@ -17,7 +19,6 @@ export default function CreateUser() {
           <Username
             componentName={componentName}
             setComponentName={setComponentName}
-            userId={userId}
           />
         ) : (
           <Card>
@@ -34,3 +35,15 @@ export default function CreateUser() {
 CreateUser.getLayout = function getLayout(page: ReactElement) {
   return <GlobalLayout>{page}</GlobalLayout>;
 };
+export function getServerSideProps(context: GetServerSidePropsContext) {
+  /*
+   * Prefetching the `post.byId` query here.
+   * `prefetch` does not return the result and never throws - if you need that behavior, use `fetch` instead.
+   */
+
+  return {
+    props: {
+      ...buildClerkProps(context.req),
+    },
+  };
+}

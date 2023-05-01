@@ -215,13 +215,16 @@ export const UpdateUserAttributesZod = UserZod.pick({
   topics: true,
   subtopics: true,
   links: true,
-}).partial();
+})
+  .partial()
+  .required({ username: true });
 export type UpdateUserAttributes = z.infer<typeof UpdateUserAttributesZod>;
 export const UpdateInventoryZod = z.object({
   inventory: z.instanceof(Uint8Array),
   activeSlots: z.instanceof(Uint8Array),
   profile: z.string(),
   lastUpdated: z.string(),
+  username: z.string(),
 });
 export type UpdateInventory = z.infer<typeof UpdateInventoryZod>;
 

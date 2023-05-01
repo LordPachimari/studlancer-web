@@ -181,7 +181,7 @@ const EditProfile = ({
 }) => {
   const toast = useToast();
   const initialRef = useRef(null);
-  const userKey = getQueryKey(trpc.user.userById);
+  const userKey = getQueryKey(trpc.user.userByUsername);
   const updateUserAttributes = trpc.user.updateUserAttributes.useMutation({
     retry: 3,
   });
@@ -250,7 +250,9 @@ const EditProfile = ({
   const handleSave = () => {
     if (valueUpdated) {
       const parameters = {
-        ...(userInfo.username.updated && { username: userInfo.username.value }),
+        username: userInfo.username.updated
+          ? userInfo.username.value
+          : username,
         ...(userInfo.about.updated && { about: userInfo.about.value }),
         ...(userInfo.links.updated && {
           links: {
@@ -318,7 +320,8 @@ const EditProfile = ({
               ref={initialRef}
               placeholder="First name"
               value={userInfo.username.value}
-              disabled={isLoading}
+              // isDisabled={isLoading}
+              isDisabled={true}
               onChange={(e) =>
                 setUserInfo(
                   produce((info) => {
@@ -335,7 +338,7 @@ const EditProfile = ({
           <FormControl my={4} display="flex" alignItems="center">
             <FormLabel w="24">About</FormLabel>
             <Textarea
-              disabled={isLoading}
+              isDisabled={isLoading}
               placeholder="Tell us about yourself!"
               value={userInfo.about.value}
               onChange={(e) =>
@@ -367,7 +370,7 @@ const EditProfile = ({
               </svg>
 
               <Input
-                disabled={isLoading}
+                isDisabled={isLoading}
                 placeholder="@"
                 value={userInfo.links.value.twitter.value}
                 onChange={(e) =>
@@ -397,7 +400,7 @@ const EditProfile = ({
               <Input
                 placeholder="username"
                 value={userInfo.links.value.discord.value}
-                disabled={isLoading}
+                isDisabled={isLoading}
                 onChange={(e) =>
                   setUserInfo(
                     produce((info) => {
@@ -425,7 +428,6 @@ const EditProfile = ({
           <Button
             isDisabled={updateUserAttributes.isLoading || isSaving}
             onClick={() => {
-              onClose();
               setUserInfo({
                 about: { updated: false, value: about || "" },
                 links: {
@@ -441,6 +443,8 @@ const EditProfile = ({
                 },
                 username: { value: username, updated: false },
               });
+
+              onClose();
             }}
           >
             Cancel

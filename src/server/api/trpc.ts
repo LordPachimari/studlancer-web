@@ -120,11 +120,7 @@ const authedOnly = t.middleware(async ({ next, ctx }) => {
   }
 
   console.log("request...");
-  if (!ctx.auth.user) {
-    const user = await clerkClient.users.getUser(ctx.auth.userId);
 
-    ctx.auth.user = user;
-  }
   return next({
     ctx: {
       auth: ctx.auth,

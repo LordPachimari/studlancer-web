@@ -67,6 +67,7 @@ export default function Profile() {
             onCharacterClose={onCharacterClose}
             onCharacterOpen={onCharacterOpen}
             profile={user.data.profile}
+            username={user.data.username}
           />
         )}
 
