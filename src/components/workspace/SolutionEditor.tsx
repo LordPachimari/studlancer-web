@@ -277,6 +277,8 @@ const SolutionEditor = ({ id }: { id: string }) => {
                 }
               }
             },
+
+            onSettled: () => setIsSaving(false),
           }
         );
 
@@ -425,6 +427,7 @@ const SolutionEditor = ({ id }: { id: string }) => {
           <SolutionAttributes
             solution={solution}
             updateSolutionAttributesHandler={updateSolutionAttributesHandler}
+            setIsSaving={setIsSaving}
           />
         )}
         {solution === undefined ||

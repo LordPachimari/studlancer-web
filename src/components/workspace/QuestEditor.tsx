@@ -188,12 +188,13 @@ const QuestEditor = ({ id }: { id: string }) => {
                 }
               }
             },
+            onSettled() {
+              setIsSaving(false);
+            },
           }
         );
 
         clearTransactionQueue();
-
-        setIsSaving(false);
       },
       1000
     ),

@@ -3,7 +3,13 @@ import {
   TransactionQueue,
   UpdateTransaction,
 } from "../../types/main";
-import { FormEvent, KeyboardEvent, useRef } from "react";
+import {
+  Dispatch,
+  FormEvent,
+  KeyboardEvent,
+  SetStateAction,
+  useRef,
+} from "react";
 
 import { WorkspaceStore } from "../../zustand/workspace";
 import styles from "./workspace.module.css";
@@ -11,6 +17,7 @@ import { Flex, Skeleton } from "@chakra-ui/react";
 const SolutionAttributes = ({
   solution,
   updateSolutionAttributesHandler,
+  setIsSaving,
 }: {
   solution: Solution;
   updateSolutionAttributesHandler: ({
@@ -20,6 +27,8 @@ const SolutionAttributes = ({
     transactionQueue: TransactionQueue;
     lastTransaction: UpdateTransaction;
   }) => void;
+
+  setIsSaving: Dispatch<SetStateAction<boolean>>;
 }) => {
   const { id } = solution;
 
@@ -30,6 +39,7 @@ const SolutionAttributes = ({
   const titlePlaceholderText = "Write title here";
   const titleRef = useRef<HTMLDivElement>(null);
   const handleTitleChange = (e: FormEvent<HTMLDivElement>) => {
+    setIsSaving(true);
     updateSolutionListAttribute({
       type: "SOLUTION",
       id,
