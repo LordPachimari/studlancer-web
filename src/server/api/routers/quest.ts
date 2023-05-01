@@ -962,7 +962,14 @@ export const questRouter = router({
               RequestItems[tableName] = {
                 Keys,
                 ProjectionExpression:
-                  "id, level, experience, profile, username",
+                  "#id, #level, #experience, #profile, #username",
+                ExpressionAttributeNames: {
+                  "#level": "level",
+                  "#id": "id",
+                  "#experience": "experience",
+                  "#profile": "profile",
+                  "#username": "username",
+                },
               };
               const params: BatchGetCommandInput = {
                 RequestItems,
