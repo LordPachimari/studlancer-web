@@ -415,11 +415,17 @@ const JoinAlert = ({
                         userId,
                         createdAt,
                       });
-
-                      queryClient
-                        .invalidateQueries({
-                          queryKey: [...questKey, ...solversKey, ...listKey],
-                        })
+                      Promise.all([
+                        queryClient.invalidateQueries({
+                          queryKey: questKey,
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: solversKey,
+                        }),
+                        queryClient.invalidateQueries({
+                          queryKey: listKey,
+                        }),
+                      ])
                         .then(() => {
                           toast({
                             title: "Successfully joined!",
