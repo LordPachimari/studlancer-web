@@ -605,12 +605,16 @@ const _Solver = ({
   isAuthorised: boolean;
   questId: string;
 }) => {
+  let userImage: StaticImageData | undefined = undefined;
+  if (solver.profile) {
+    userImage = JSON.parse(solver.profile) as StaticImageData;
+  }
   return (
     <Box>
       <Flex gap={2}>
         <Link href={`/profile/${solver.id}`}>
           <Card
-            w="28"
+            w="36"
             h="14"
             display="flex"
             alignItems="center"
@@ -619,12 +623,19 @@ const _Solver = ({
             borderRadius="xl"
           >
             {/* <Circle size="40px" ml={2}></Circle> */}
-            <Avatar
-              ml={1}
-              size="sm"
-              name={solver.username}
-              // src="https://bit.ly/sage-adebayo"
-            />
+
+            {userImage ? (
+              <div className="circular-image-container">
+                <Image
+                  src={userImage}
+                  alt="avatar"
+                  className="circular-image"
+                  width={50}
+                />
+              </div>
+            ) : (
+              <Avatar name={solver.username} size="sm" />
+            )}
             <Flex
               flexDirection="column"
               whiteSpace="nowrap"
