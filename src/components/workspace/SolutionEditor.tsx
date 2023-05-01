@@ -104,9 +104,8 @@ const SolutionEditor = ({ id }: { id: string }) => {
       enabled: shouldUpdate,
     }
   );
-  const publishedSolutionKey = getQueryKey(trpc.solution.publishedSolution);
   const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
-  const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
+  const solversKey = getQueryKey(trpc.quest.solvers);
   const removeTargetQuest = trpc.solution.removeTargetQuest.useMutation({
     retry: 3,
   });
@@ -150,14 +149,15 @@ const SolutionEditor = ({ id }: { id: string }) => {
                 }
               })
             );
-            queryClient
-              .invalidateQueries({
-                queryKey: [
-                  ...publishedSolutionKey,
-                  ...publishedQuestKey,
-                  ...workspaceSolutionKey,
-                ],
-              })
+            Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: workspaceSolutionKey,
+              }),
+              queryClient.invalidateQueries({
+                queryKey: solversKey,
+              }),
+            ])
+
               .then(() => {
                 toast({
                   title: "Solution Unpublished.",
@@ -496,10 +496,12 @@ const SolutionEditor = ({ id }: { id: string }) => {
             colorScheme="green"
             w="100%"
             onClick={() => {
-              void router.push(`/solutions/${solution.id}`);
+              void router.push(
+                `/solutions/${solution.id}?quest=${solution.questId}`
+              );
             }}
           >
-            View Published Quest
+            View Published Solution
           </Button>
         </Flex>
       )}

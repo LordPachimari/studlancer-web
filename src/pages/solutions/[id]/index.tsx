@@ -115,19 +115,21 @@ export default function PublishedSolutionPage() {
 
         <Box w={{ base: "100%", md: "70%" }}>
           <SolutionComponent solution={solution.data} />
-          <Center columnGap={5} mt={10}>
-            <Button colorScheme="red" w="32 ">
-              REJECT
-            </Button>
+          {userId === solution.data.questCreatorId && (
+            <Center columnGap={5} mt={10}>
+              <Button colorScheme="red" w="32 ">
+                REJECT
+              </Button>
 
-            <Button colorScheme="green" w="32   ">
-              ACKNOWLEDGE
-            </Button>
+              <Button colorScheme="green" w="32   ">
+                ACKNOWLEDGE
+              </Button>
 
-            <Button colorScheme="green" w="32   ">
-              ACCEPT
-            </Button>
-          </Center>
+              <Button colorScheme="green" w="32   ">
+                ACCEPT
+              </Button>
+            </Center>
+          )}
         </Box>
       </Box>
     </Center>

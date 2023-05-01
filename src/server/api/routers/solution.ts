@@ -453,13 +453,14 @@ export const solutionRouter = router({
                       "#published =:published AND #creatorId =:creatorId",
 
                     UpdateExpression:
-                      "SET #published = :value, #lastUpdated = :lastUpdated, #publishedAt = :publishedAt",
+                      "SET #published = :value, #lastUpdated = :lastUpdated, #publishedAt = :publishedAt, #status = :status",
 
                     ExpressionAttributeNames: {
                       "#published": "published",
                       "#publishedAt": "publishedAt",
                       "#creatorId": "creatorId",
                       "#lastUpdated": "lastUpdated",
+                      "#status": "status",
                     },
                     ExpressionAttributeValues: {
                       ":published": false,
@@ -467,6 +468,7 @@ export const solutionRouter = router({
                       ":lastUpdated": new Date().toISOString(),
                       ":publishedAt": publishedSolution.publishedAt,
                       ":creatorId": auth.userId,
+                      ":status": "POSTED",
                     },
                   },
                 },
@@ -506,9 +508,14 @@ export const solutionRouter = router({
             const transactResult = await dynamoClient.send(
               new TransactWriteCommand(params)
             );
-            momento
-              .delete("accounts-cache", questId)
-              .catch((err) => console.log(err));
+            Promise.all([
+              momento
+                .delete("accounts-cache", questId)
+                .catch((err) => console.log(err)),
+              momento
+                .delete("accounts-cache", `SOLVERS#${questId}`)
+                .catch((err) => console.log(err)),
+            ]).catch((err) => console.log(err));
 
             if (transactResult) {
               return true;

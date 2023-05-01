@@ -295,10 +295,12 @@ const LeaveAlert = ({
                   {
                     onSuccess: () => {
                       setIsInvalidating(true);
+
                       queryClient
                         .invalidateQueries({
-                          queryKey: [...questKey, ...solversKey],
+                          queryKey: solversKey,
                         })
+
                         .then(() => {
                           toast({
                             title: "Successfully leaved!",
@@ -416,9 +418,6 @@ const JoinAlert = ({
                         createdAt,
                       });
                       Promise.all([
-                        queryClient.invalidateQueries({
-                          queryKey: questKey,
-                        }),
                         queryClient.invalidateQueries({
                           queryKey: solversKey,
                         }),
@@ -605,6 +604,7 @@ const _Solver = ({
   isAuthorised: boolean;
   questId: string;
 }) => {
+  console.log(solver);
   let userImage: StaticImageData | undefined = undefined;
   if (solver.profile) {
     userImage = JSON.parse(solver.profile) as StaticImageData;

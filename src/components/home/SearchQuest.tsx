@@ -72,7 +72,7 @@ export default function SearchQuestInput({
   }, [searchQuest.data]);
 
   return (
-    <InputGroup size="md" w="100%" mb={5}>
+    <InputGroup size="md" w="100%">
       <Input
         bg="white"
         ref={initialRef}

@@ -237,9 +237,38 @@ export const NonEditableSolutionAttributes = ({
 }: {
   solution: Solution | PublishedSolution;
 }) => {
+  const publishedSolution = solution as PublishedSolution;
   return (
     <>
-      <Title title={solution.title} />
+      {solution.published ? (
+        <Flex>
+          <Title title={publishedSolution.title} />
+          <Spacer />
+          <Badge
+            fontSize="md"
+            h="8"
+            minW="16"
+            variant="solid"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            colorScheme={
+              publishedSolution.status === "ACCEPTED"
+                ? "green"
+                : publishedSolution.status === "ACKNOWLEDGED"
+                ? "green"
+                : publishedSolution.status === "REJECTED"
+                ? "red"
+                : "yellow"
+            }
+            borderRadius="md"
+          >
+            {publishedSolution.status || "POSTED"}
+          </Badge>
+        </Flex>
+      ) : (
+        <Title title={solution.title} />
+      )}
     </>
   );
 };

@@ -10,7 +10,7 @@
   transform: translateY(-50%);
   overflow-y: auto;
 
-  z-index: 1; /* Stay on top */
+  z-index: 7; /* Stay on top */
   transition: all 0.1s ease-in-out;
   border: 1px solid #cbd5e0;
   border-top: none;

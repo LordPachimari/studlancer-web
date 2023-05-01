@@ -174,6 +174,8 @@ const Publish = ({
     const publishedQuestsKey = getQueryKey(trpc.quest.publishedQuests);
     const publishedQuestKey = getQueryKey(trpc.quest.publishedQuest);
     const workspaceQuestKey = getQueryKey(trpc.quest.workspaceQuest);
+
+    const solversKey = getQueryKey(trpc.quest.solvers);
     const workspaceSolutionKey = getQueryKey(trpc.solution.workspaceSolution);
     if (questId && type === "QUEST") {
       publishQuest.mutate(
@@ -194,14 +196,14 @@ const Publish = ({
                 }
               }
             ).catch((err) => console.log(err));
-            queryClient
-              .invalidateQueries({
-                queryKey: [
-                  ...publishedQuestKey,
-                  ...workspaceQuestKey,
-                  ...publishedQuestsKey,
-                ],
-              })
+            Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: workspaceQuestKey,
+              }),
+              queryClient.invalidateQueries({
+                queryKey: publishedQuestsKey,
+              }),
+            ])
               .then(() => {
                 onClose();
                 toast({
@@ -246,10 +248,14 @@ const Publish = ({
                 return value;
               }
             }).catch((err) => console.log(err));
-            queryClient
-              .invalidateQueries({
-                queryKey: [...publishedQuestKey, workspaceSolutionKey],
-              })
+            Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: workspaceSolutionKey,
+              }),
+              queryClient.invalidateQueries({
+                queryKey: solversKey,
+              }),
+            ])
               .then(() => {
                 onClose();
                 toast({
