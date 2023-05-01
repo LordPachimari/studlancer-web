@@ -195,6 +195,34 @@ const Character = ({
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+  const onClose = () => {
+    if (shouldUpdateLocal) {
+      //fetch character from the server if local version is stale
+
+      if (inventory.data) {
+        fetchCharacterFromServer({
+          ...(inventory.data.activeSlots && {
+            activeSlots: inventory.data.activeSlots,
+          }),
+          inventory: inventory.data.inventory,
+
+          ...(profile && { profile }),
+          lastUpdated: inventory.data.lastUpdated,
+        });
+      } else {
+        setCharacterState(
+          produce((state) => {
+            state.profile = null;
+            state.activeSlots = defaultActiveSlots;
+          })
+        );
+      }
+    } else {
+      fetchCharacterFromLocalStorage();
+    }
+
+    onCharacterClose();
+  };
 
   useEffect(() => {
     if (characterState.activeSlots.skin === null) {
@@ -253,7 +281,7 @@ const Character = ({
       <ModalContent minH="80vh" bg="blue.100">
         <ModalHeader>Create your character</ModalHeader>
 
-        {/* <ModalCloseButton /> */}
+        <ModalCloseButton onClick={onClose} />
         <ModalBody pb={6} display={{ base: "block", md: "flex" }}>
           {/* <Grid templateColumns="repeat(2, 1fr)" gap="3" w="40" h="md"> */}
           <Flex
@@ -555,34 +583,7 @@ const Character = ({
           </Button>
           <Button
             isDisabled={updateInventory.isLoading || isSaving}
-            onClick={() => {
-              if (shouldUpdateLocal) {
-                //fetch character from the server if local version is stale
-
-                if (inventory.data) {
-                  fetchCharacterFromServer({
-                    ...(inventory.data.activeSlots && {
-                      activeSlots: inventory.data.activeSlots,
-                    }),
-                    inventory: inventory.data.inventory,
-
-                    ...(profile && { profile }),
-                    lastUpdated: inventory.data.lastUpdated,
-                  });
-                } else {
-                  setCharacterState(
-                    produce((state) => {
-                      state.profile = null;
-                      state.activeSlots = defaultActiveSlots;
-                    })
-                  );
-                }
-              } else {
-                fetchCharacterFromLocalStorage();
-              }
-
-              onCharacterClose();
-            }}
+            onClick={onClose}
             colorScheme="blue"
             w="28"
           >

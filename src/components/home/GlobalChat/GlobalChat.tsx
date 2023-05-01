@@ -44,7 +44,7 @@ export default function GlobalChat({
   const [isLoading, setIsLoading] = useState(false);
   const [channel, setChannel] = useState<TopicsType | "GENERAL">("GENERAL");
   const { getToken, isSignedIn, userId, isLoaded } = useAuth();
-  const user = trpc.user.userById.useQuery(
+  const user = trpc.user.userComponent.useQuery(
     { id: userId || "" },
     { enabled: !!userId && isSignedIn && isLoaded, staleTime: 10 * 60 * 1000 }
   );
