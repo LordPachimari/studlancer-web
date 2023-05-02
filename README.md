@@ -17,7 +17,7 @@
 - [x] **Local and remote cache**. Used serveless remote Momento cache for fetching published quests, and local cache to store non-published quests and solutions (created in the workspace).
 - [x] **Authentication**. Utilized third-party clerk authentication.
 - [x] **Global chat**. Used supabase realtime, with rate limiting and cron jobs that delete all the messages except last 100.
-- [x] **Image upload  (needs more optimisation)**. Image upload to S3 bucket via NEXT.js api route. The max image size is 10MB. Image loading state is not added yet, multipart upload will be added in the future. 
+- [x] **Image upload  (needs more optimisation)**. Image upload to S3 bucket via NEXT.js api route. Image loading state is not added yet, multipart upload will be added in the future. 
 - [x] **Global Search (for quests and users)**. Utilizing Rockset real-time data-analytics.
 - [x] **Pagination.**
 - [x] **Leaderboard**. Utilizing Rockset real-time data-analytics.
