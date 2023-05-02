@@ -22,6 +22,7 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
@@ -35,6 +36,7 @@ import {
 import { trpc } from "~/utils/api";
 import { TopicColor } from "~/utils/topicsColor";
 import { LoadingSpinner } from "./LoadingSpinner";
+import Link from "next/link";
 const SearchInput = ({
   setSearchLoading,
   setSearchComponents,
@@ -54,6 +56,7 @@ const SearchInput = ({
     { text },
     { enabled: enableFetch }
   );
+  console.log("isFocused", isFocused);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleSearch = useCallback(
@@ -61,6 +64,12 @@ const SearchInput = ({
       setEnableFetch(true);
       setText(event.target.value);
     }, 500),
+    []
+  );
+  const onBlurHandler = useCallback(
+    debounce(() => {
+      setIsFocused(false);
+    }, 200),
     []
   );
 
@@ -80,12 +89,10 @@ const SearchInput = ({
         bg="gray.100"
         height="10"
         placeholder="Global Search..."
-        onBlur={() => {
-          setIsFocused(false);
-        }}
         onFocus={() => {
           setIsFocused(true);
         }}
+        onBlur={onBlurHandler}
         onChange={(e) => {
           setSearchLoading(true);
           if (!e.target.value) {
@@ -254,6 +261,7 @@ export function GlobalSearch() {
       w="100%"
       h="fit-content"
       position="relative"
+
       // minH="36"
     >
       <Card
@@ -281,14 +289,15 @@ export function GlobalSearch() {
                 if (item.type === "QUEST") {
                   const quest = item as PublishedQuest;
                   return (
-                    <SearchComponent
-                      key={quest.id}
-                      id={quest.id}
-                      text={quest.text}
-                      type="QUEST"
-                      title={quest.title}
-                      topic={quest.topic}
-                    />
+                    <Link key={quest.id} href={`/quests/${quest.id}`}>
+                      <SearchComponent
+                        id={quest.id}
+                        text={quest.text}
+                        type="QUEST"
+                        title={quest.title}
+                        topic={quest.topic}
+                      />
+                    </Link>
                   );
                 } else if (item.type === "POST") {
                   const post = item as Post;
@@ -305,13 +314,15 @@ export function GlobalSearch() {
                 } else {
                   const user = item as UserComponent;
                   return (
-                    <SearchComponent
-                      key={user.id}
-                      id={user.id}
-                      type="USER"
-                      username={user.username}
-                      profile={user.profile}
-                    />
+                    <Link key={user.id} href={`/profile/${user.username}`}>
+                      <SearchComponent
+                        key={user.id}
+                        id={user.id}
+                        type="USER"
+                        username={user.username}
+                        profile={user.profile}
+                      />
+                    </Link>
                   );
                 }
               })
