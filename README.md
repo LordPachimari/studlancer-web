@@ -29,7 +29,7 @@
 - [ ] **Guild**. UI and appropriate CRUD operations needs to be done.
 - [ ] **Settings**. UI and appropriate CRUD operations needs to be done.
 - [ ] **Real-time collaboration in the workspace with CRDT**.
-- [ ] **Get rid of the loading states**. Make the website to be blazingly fast by caching all of the responses locally and getting rid of the loading states.
+- [ ] **Get rid of the loading states**. Make the website blazingly fast by caching all of the responses locally and getting rid of the loading states.
 
 Looking **optimistically** in the future I may add the following:
 
