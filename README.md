@@ -23,7 +23,7 @@
 - [x] **Leaderboard**. Utilizing Rockset real-time data-analytics.
 
 ## In progress
-- [ ] **Notifications**. Notifications will be stored in supabase tables,  every new table insertion of a notification will trigger an event that can be captured by supabase Realtime listeners, which will notify the clients that are subscribed to the updates on the table.
+- [ ] **Notifications**. Find a way to push notification from the server. May use Websocket connection or SSE
 - [ ] **Payment**. Stripe for payment.
 - [ ] **Private chat**. Supabase realtime. 
 - [ ] **Guild**. UI and appropriate CRUD operations needs to be done.
