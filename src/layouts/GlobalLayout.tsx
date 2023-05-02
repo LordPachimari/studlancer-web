@@ -30,7 +30,7 @@ export default function GlobalLayout({
 
   return (
     <Box bg="blue.50" minWidth="2xs" position="relative">
-      {true && (
+      {loading && (
         <Progress
           size="xs"
           isIndeterminate
