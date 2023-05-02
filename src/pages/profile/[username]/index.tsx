@@ -60,7 +60,7 @@ export default function Profile() {
         columnGap="16"
         mt={16}
       >
-        {isSignedIn && user.data && userId && (
+        {isSignedIn && user.data && userId === user.data.id && (
           <Character
             id={user.data.id}
             isCharacterOpen={isCharacterOpen}
