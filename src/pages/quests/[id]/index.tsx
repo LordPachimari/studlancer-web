@@ -612,7 +612,7 @@ const _Solver = ({
   return (
     <Box>
       <Flex gap={2}>
-        <Link href={`/profile/${solver.id}`}>
+        <Link href={`/profile/${solver.username}`}>
           <Card
             w="36"
             h="14"
