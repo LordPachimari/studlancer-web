@@ -249,7 +249,7 @@ const Reward = ({
         value={stateReward || ""}
         type="number"
         onChange={(e) => {
-          if (e.target.valueAsNumber > 0) {
+          if (e.target.valueAsNumber > 0 || !e.target.value) {
             handleRewardChange(e), setStateReward(e.target.valueAsNumber || 0);
           }
         }}
@@ -298,7 +298,7 @@ const Slots = ({
         value={stateSlots || ""}
         type="number"
         onChange={(e) => {
-          if (e.target.valueAsNumber > 0) {
+          if (e.target.valueAsNumber > 0 || !e.target.value) {
             handleSlotsChange(e), setStateSlots(e.target.valueAsNumber || 0);
           }
         }}

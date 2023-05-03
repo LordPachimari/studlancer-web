@@ -51,6 +51,7 @@ export default function Profile() {
     return <Box>No user found</Box>;
   }
 
+
   return (
     <Flex w="100%" justify="center" mb={20}>
       <Box
