@@ -31,7 +31,5 @@
 - [ ] **Real-time collaboration in the workspace with CRDT**.
 - [ ] **Get rid of the loading states**. Make the website blazingly fast by caching all of the responses locally and getting rid of the loading states.
 
-Looking **optimistically** in the future I may add the following:
 
-- [ ] **AI in the workspace**.
 
