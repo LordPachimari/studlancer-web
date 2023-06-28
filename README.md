@@ -1,4 +1,4 @@
-# Studlancer-web.
+# Studlancer-web (DELETED ALL THE DATA).
 
  This web-app uses NEXT.js, Dynamodb as a database, TRPC for server-client typesafety, Clerk for authentication, Chakra ui for UI, Supabase realtime for chat, Momento for cache, Zustand for state management, rockset for real-time data-analytics (like ElasticSearch but with real-time data ingestion).
  
